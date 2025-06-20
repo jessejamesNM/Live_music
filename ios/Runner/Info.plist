@@ -67,15 +67,22 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	
+	<!-- iPhone: solo vertical -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+
+	<!-- iPad: todas las orientaciones (requisito de Apple para multitarea) -->
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:deep-link-service.vercel.app</string>
