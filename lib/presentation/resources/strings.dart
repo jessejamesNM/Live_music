@@ -1,5 +1,4 @@
 class AppStrings {
-
   static const String termsText = '''TÉRMINOS Y CONDICIONES DE USO DE LIVE MUSIC
 Última actualización: 12 de mayo de 2025
 
@@ -19,8 +18,9 @@ Funcionalidades principales:
 
 3. Registro y Cuentas
 3.1 Requisitos:
-• Debes ser mayor de 18 años o contar con autorización de un tutor legal.
+• Debes tener al menos 13 años para usar la App.
 • Proporcionar información verdadera, exacta y actualizada (nombre, email, ubicación, experiencia artística, etc.).
+• Si eres menor de edad, debes contar con autorización de un tutor legal.
 
 3.2 Seguridad:
 • Eres responsable de mantener la confidencialidad de tu contraseña y de toda actividad bajo tu cuenta.
@@ -34,7 +34,7 @@ Nos reservamos el derecho de suspender o eliminar cuentas que:
 
 4. Datos Personales y Privacidad
 4.1 Datos recopilados:
-• Información de registro (nombre, email, teléfono).
+• Información de registro (nombre, email, teléfono, edad).
 • Datos de ubicación (para mostrar artistas cercanos).
 • Contenido subido por usuarios (fotos, videos, audio).
 • Datos de uso (analíticos a través de Google Analytics).
@@ -64,8 +64,8 @@ Queda estrictamente prohibido subir contenido que:
 • Sea difamatorio, obsceno o discriminatorio.
 • Promueva actividades ilegales.
 
-5.3 Licencia de uso:
-Al subir contenido, nos otorgas una licencia no exclusiva, mundial y gratuita para mostrarlo en la App con fines de promoción del servicio.
+5.3 Licencia de uso y derechos de contenido:
+Al subir contenido, nos otorgas una licencia no exclusiva, mundial y gratuita para mostrarlo en la App con fines de promoción del servicio. Los músicos y usuarios que suben contenido (como imágenes, videos y textos en sus perfiles) nos otorgan permiso para mostrar y distribuir ese contenido dentro de la plataforma. Este contenido es responsabilidad de quien lo publica, y solo se utiliza para los fines establecidos en la app. Live Music no reclama propiedad sobre dicho contenido, pero cuenta con autorización expresa para su exhibición y difusión dentro de la plataforma.
 
 6. Pagos y Transacciones Futuras
 6.1 Funcionalidades futuras:
@@ -119,74 +119,97 @@ Live Music ("nosotros", "la App" o "el Servicio") se compromete a proteger tu pr
 
 1. Información que Recopilamos
 1.1 Datos proporcionados por ti:
-Información de registro: Nombre, email, teléfono, ubicación, experiencia artística.
-Perfil de artista: Fotos, videos, audio, descripción profesional, tarifas.
-Contenido generado: Mensajes, reseñas, comentarios.
+
+Información de registro: nombre, email, teléfono, ubicación, edad y experiencia artística.
+
+Perfil de artista: fotos, videos, audios, descripción profesional, tarifas.
+
+Contenido generado: mensajes, reseñas y comentarios.
 
 1.2 Datos recopilados automáticamente:
-Ubicación: Para mostrar artistas/eventos cercanos (puedes desactivarlo en ajustes).
-Datos de uso: Tiempo de sesión, interacciones, preferencias (mediante Google Analytics).
-Dispositivo: Modelo, sistema operativo, dirección IP (para seguridad y análisis).
+
+Ubicación: usada para mostrar artistas o eventos cercanos (puedes desactivarla en los ajustes del dispositivo).
+
+Datos de uso: tiempo de sesión, interacciones y preferencias mediante Google Analytics.
+
+Información del dispositivo: modelo, sistema operativo, dirección IP (para seguridad y análisis).
 
 1.3 Datos de terceros:
-Si inicias sesión con Google o Facebook, recibimos información básica de tu perfil (nombre, email).
+
+Si usas el acceso con Google o Facebook, recibimos tu nombre y correo electrónico público desde esas plataformas.
 
 2. Uso de la Información
-Utilizamos tus datos para:
-• Proporcionar y mejorar el servicio (ej.: conectar artistas y contratantes).
-• Personalizar tu experiencia (recomendaciones basadas en ubicación/intereses).
-• Comunicarnos contigo (notificaciones, soporte técnico, actualizaciones).
-• Prevenir fraudes y garantizar seguridad.
-• Cumplir con obligaciones legales.
+Utilizamos los datos para:
+
+Proporcionar y mejorar el servicio (ej. conectar músicos con posibles contratantes).
+
+Personalizar tu experiencia (resultados por zona o género musical).
+
+Comunicarnos contigo (soporte, notificaciones y actualizaciones importantes).
+
+Prevenir fraudes y mantener la seguridad.
+
+Cumplir obligaciones legales o regulatorias.
 
 3. Compartir Información
 3.1 Con otros usuarios:
-Artistas: Tu perfil (nombre, fotos, portafolio) es visible para contratantes.
-Contratantes: Tu nombre y datos de contacto al negociar servicios.
+
+Artistas: su perfil (nombre, fotos, tarifas, etc.) será visible para contratantes.
+
+Contratantes: sus datos básicos serán visibles al iniciar una conversación.
 
 3.2 Con proveedores de servicios:
-Almacenamiento: Firebase (Google Cloud) y AWS.
-Analítica: Google Analytics.
-Pagos futuros: Stripe/PayPal (solo datos necesarios para transacciones).
 
-3.3 Por requerimiento legal:
-Podemos divulgar información si es necesario por ley o para proteger nuestros derechos.
+Almacenamiento: Firebase (Google Cloud) y AWS.
+
+Analítica: Google Analytics.
+
+En el futuro: Stripe o PayPal (solo lo necesario para procesar pagos).
+
+3.3 Por obligación legal:
+Podemos compartir información si es requerido por ley o ante un proceso legal válido.
 
 4. Seguridad de los Datos
-Encriptación: Datos sensibles protegidos con SSL/TLS.
-Acceso restringido: Solo personal autorizado puede acceder a tu información.
-Protección de contraseñas: Se almacenan de forma segura (hash).
+Ciframos las conexiones usando SSL/TLS.
 
-Nota: Aunque implementamos medidas, ninguna plataforma es 100% invulnerable.
+Almacenamos contraseñas en formato cifrado (hash).
+
+Limitamos el acceso interno solo a personal autorizado.
 
 5. Tus Derechos
 Puedes:
-Acceder o corregir tus datos (en ajustes de perfil).
-Eliminar tu cuenta (solicítalo a livemusicofficialmx@gmail.com).
-Desactivar la recopilación de ubicación (en configuración del dispositivo).
-Oponerte al uso de datos para marketing.
 
-Para ejercer estos derechos, contáctanos dentro de 72 horas hábiles.
+Acceder, modificar o eliminar tus datos (desde la app o por solicitud).
+
+Solicitar la baja de tu cuenta escribiendo a: livemusicofficialmx@gmail.com
+
+Desactivar permisos como la ubicación desde tu dispositivo.
+
+Oponerte al uso de datos para fines comerciales.
 
 6. Retención de Datos
-Conservamos tu información:
-Mientras tu cuenta esté activa.
-Hasta 2 años después de inactividad (salvo requerimiento legal).
-El contenido público (ej.: reseñas) puede permanecer anonimizado.
+Conservamos tus datos mientras tu cuenta esté activa.
 
-7. Menores de Edad
-Live Music está diseñada principalmente para usuarios adultos.
-No verificamos activamente la edad de los usuarios.
-Si eres menor de edad, te recomendamos usar la App bajo supervisión de un tutor legal.
+Si está inactiva, los datos podrán conservarse por un máximo de 2 años.
 
-8. Cambios en esta Política
-Notificaremos actualizaciones por email o dentro de la App.
-El uso continuado tras cambios implica aceptación.
+Parte del contenido público (reseñas o portafolios) puede conservarse de forma anonimizada.
 
-9. Contacto
-Para preguntas sobre privacidad:
-✉ Email: livemusicofficialmx@gmail.com
-Respuesta en 72 horas hábiles.
+7. Contenido Publicado
+Todo contenido que publiques dentro de la app (imágenes, videos, audios, descripciones, etc.) sigue siendo de tu propiedad. Sin embargo, al usar el servicio, nos otorgas una licencia no exclusiva, mundial y gratuita para mostrar, reproducir y distribuir dicho contenido dentro de la app y materiales promocionales relacionados, únicamente con el fin de operar y promover la plataforma.
+
+8. Menores de Edad
+La App está dirigida a mayores de 13 años, en conformidad con los estándares internacionales. No verificamos activamente la edad de los usuarios. Si eres menor, te recomendamos usar la app con supervisión de un adulto responsable.
+
+9. Cambios en esta Política
+Cualquier cambio importante será notificado por correo electrónico o dentro de la App.
+El uso continuo de la App tras dichos cambios implica tu aceptación.
+
+10. Contacto
+Para dudas o solicitudes relacionadas con la privacidad:
+✉ Correo electrónico: livemusicofficialmx@gmail.com
+⏱ Tiempo de respuesta estimado: 72 horas hábiles.
+
+
 
 Aviso Legal Adicional
 "Live Music cumple con la Ley Federal de Protección de Datos Personales (México). Para usuarios en EE.UU., seguimos las mejores prácticas de privacidad."''';
