@@ -16,7 +16,6 @@ import 'date_card.dart';
 import 'expandible_card.dart';
 import 'music_chip.dart';
 import 'package:live_music/presentation/resources/colors.dart';
-
 class TopDropdown extends StatefulWidget {
   final SearchProvider searchProvider;
   final bool isVisible;
@@ -47,15 +46,24 @@ class _TopDropdownState extends State<TopDropdown> {
   int maxPrice = 10000;
   bool useTextFieldValues = false;
   bool isTransitioning = false;
+  final int maxPriceLimit = 10000;
+
+  // Controladores para los campos de texto
+  final TextEditingController minPriceController = TextEditingController();
+  final TextEditingController maxPriceController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    minPriceController.text = '\$$minPrice';
+    maxPriceController.text = '\$$maxPrice';
   }
 
   @override
-  void didUpdateWidget(TopDropdown oldWidget) {
-    super.didUpdateWidget(oldWidget);
+  void dispose() {
+    minPriceController.dispose();
+    maxPriceController.dispose();
+    super.dispose();
   }
 
   void onEventSelected(String event) async {
@@ -71,9 +79,12 @@ class _TopDropdownState extends State<TopDropdown> {
   }
 
   void showToast(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+      )
+    );
   }
 
   void onNextClicked(ExpandedCard? currentCard) {
@@ -103,16 +114,13 @@ class _TopDropdownState extends State<TopDropdown> {
   void _applyFilters() async {
     final searchProvider = widget.searchProvider;
 
-    if (minPrice < 200) {
-      showToast(AppStrings.minPriceError);
-      return;
-    }
-    if (maxPrice > 10000) {
-      showToast(AppStrings.maxPriceError);
-      return;
-    }
     if (minPrice > maxPrice) {
       showToast(AppStrings.priceRangeError);
+      return;
+    }
+
+    if (maxPrice > maxPriceLimit) {
+      showToast('El precio máximo no puede exceder \$$maxPriceLimit');
       return;
     }
 
@@ -139,6 +147,56 @@ class _TopDropdownState extends State<TopDropdown> {
     } catch (e) {
       showToast(AppStrings.filterErrorMessage);
     }
+  }
+
+  void _handleMinPriceChange(String value) {
+    final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+    final newMinPrice = int.tryParse(cleanValue) ?? 0;
+    
+    if (newMinPrice > maxPriceLimit) {
+      showToast('El precio mínimo no puede exceder \$$maxPriceLimit');
+      return;
+    }
+    
+    setState(() {
+      minPrice = newMinPrice;
+      priceRange = RangeValues(
+        newMinPrice.toDouble(),
+        priceRange.end,
+      );
+      useTextFieldValues = true;
+    });
+    
+    // Actualizar el controlador manteniendo el símbolo $
+    minPriceController.text = '\$$cleanValue';
+    minPriceController.selection = TextSelection.fromPosition(
+      TextPosition(offset: minPriceController.text.length),
+    );
+  }
+
+  void _handleMaxPriceChange(String value) {
+    final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+    final newMaxPrice = int.tryParse(cleanValue) ?? 0;
+    
+    if (newMaxPrice > maxPriceLimit) {
+      showToast('El precio máximo no puede exceder \$$maxPriceLimit');
+      return;
+    }
+    
+    setState(() {
+      maxPrice = newMaxPrice;
+      priceRange = RangeValues(
+        priceRange.start,
+        newMaxPrice.toDouble(),
+      );
+      useTextFieldValues = true;
+    });
+    
+    // Actualizar el controlador manteniendo el símbolo $
+    maxPriceController.text = '\$$cleanValue';
+    maxPriceController.selection = TextSelection.fromPosition(
+      TextPosition(offset: maxPriceController.text.length),
+    );
   }
 
   @override
@@ -194,10 +252,7 @@ class _TopDropdownState extends State<TopDropdown> {
                                   color: colorScheme[AppStrings.primaryColor],
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color:
-                                        colorScheme[AppStrings
-                                            .secondaryColor] ??
-                                        Colors.grey,
+                                    color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
                                     width: 2,
                                   ),
                                 ),
@@ -231,319 +286,287 @@ class _TopDropdownState extends State<TopDropdown> {
                             child: Column(
                               children: [
                                 ExpandableCard(
-  title: AppStrings.eventType,
-  isExpanded: expandedCard == ExpandedCard.EventType,
-  onClick: () {
-    setState(() {
-      // Solo expande si no está expandido, no lo cierra si ya está expandido
-      if (expandedCard != ExpandedCard.EventType) {
-        expandedCard = ExpandedCard.EventType;
-      }
-    });
-  },
-  content: Column(
-    children: [
-      Text(
-        AppStrings.whatEventType,
-        style: TextStyle(
-          fontSize: 22,
-          color: colorScheme[AppStrings.secondaryColor],
-        ),
-      ),
-      const SizedBox(height: 8),
-      SizedBox(
-        height: 150,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              EventCard(
-                text: AppStrings.wedding,
-                isSelected: selectedEvent == AppStrings.wedding,
-                onClick: () => onEventSelected(AppStrings.wedding),
-              ),
-              const SizedBox(width: 8),
-              EventCard(
-                text: AppStrings.sweetFifteen,
-                isSelected: selectedEvent == AppStrings.sweetFifteen,
-                onClick: () => onEventSelected(AppStrings.sweetFifteen),
-              ),
-              const SizedBox(width: 8),
-              EventCard(
-                text: AppStrings.casualParty,
-                isSelected: selectedEvent == AppStrings.casualParty,
-                onClick: () => onEventSelected(AppStrings.casualParty),
-              ),
-              const SizedBox(width: 8),
-              EventCard(
-                text: AppStrings.publicEvent,
-                isSelected: selectedEvent == AppStrings.publicEvent,
-                onClick: () => onEventSelected(AppStrings.publicEvent),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  ),
-),
+                                  title: AppStrings.eventType,
+                                  isExpanded: expandedCard == ExpandedCard.EventType,
+                                  onClick: () {
+                                    setState(() {
+                                      if (expandedCard != ExpandedCard.EventType) {
+                                        expandedCard = ExpandedCard.EventType;
+                                      }
+                                    });
+                                  },
+                                  content: Column(
+                                    children: [
+                                      Text(
+                                        AppStrings.whatEventType,
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          color: colorScheme[AppStrings.secondaryColor],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 150,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: [
+                                              EventCard(
+                                                text: AppStrings.wedding,
+                                                isSelected: selectedEvent == AppStrings.wedding,
+                                                onClick: () => onEventSelected(AppStrings.wedding),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: AppStrings.sweetFifteen,
+                                                isSelected: selectedEvent == AppStrings.sweetFifteen,
+                                                onClick: () => onEventSelected(AppStrings.sweetFifteen),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: AppStrings.casualParty,
+                                                isSelected: selectedEvent == AppStrings.casualParty,
+                                                onClick: () => onEventSelected(AppStrings.casualParty),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: AppStrings.publicEvent,
+                                                isSelected: selectedEvent == AppStrings.publicEvent,
+                                                onClick: () => onEventSelected(AppStrings.publicEvent),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
 
-const SizedBox(height: 16),
+                                const SizedBox(height: 16),
 
-ExpandableCard(
-  title: AppStrings.musicType,
-  isExpanded: expandedCard == ExpandedCard.MusicType,
-  onClick: () {
-    setState(() {
-      // Solo expande si no está expandido, no lo cierra si ya está expandido
-      if (expandedCard != ExpandedCard.MusicType) {
-        expandedCard = ExpandedCard.MusicType;
-      }
-    });
-  },
-  content: Column(
-    children: [
-      Text(
-        AppStrings.whatMusicType,
-        style: TextStyle(
-          fontSize: 22,
-          color: colorScheme[AppStrings.secondaryColor],
-        ),
-      ),
-      const SizedBox(height: 8),
-      SizedBox(
-        height: 135,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          children: [
-            for (String genre in [
-              AppStrings.band,
-              AppStrings.nortStyle,
-              AppStrings.corridos,
-              AppStrings.mariachi,
-              AppStrings.montainStyle,
-              AppStrings.cumbia,
-              AppStrings.reggaeton,
-            ])
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: MusicChip(
-                  text: genre,
-                  isSelected: selectedGenres.contains(genre),
-                  onClick: () {
-                    setState(() {
-                      if (selectedGenres.contains(genre)) {
-                        selectedGenres.remove(genre);
-                      } else {
-                        selectedGenres.add(genre);
-                      }
-                    });
-                  },
-                ),
-              ),
-          ],
-        ),
-      ),
-      if (expandedCard == ExpandedCard.MusicType)
-        Align(
-          alignment: Alignment.bottomRight,
-          child: TextButton(
-            onPressed: () => onNextClicked(expandedCard),
-            child: Text(
-              AppStrings.next,
-              style: TextStyle(
-                color: colorScheme[AppStrings.secondaryColor],
-                fontSize: 18,
-              ),
-            ),
-          ),
-        ),
-    ],
-  ),
-),
+                                ExpandableCard(
+                                  title: AppStrings.musicType,
+                                  isExpanded: expandedCard == ExpandedCard.MusicType,
+                                  onClick: () {
+                                    setState(() {
+                                      if (expandedCard != ExpandedCard.MusicType) {
+                                        expandedCard = ExpandedCard.MusicType;
+                                      }
+                                    });
+                                  },
+                                  content: Column(
+                                    children: [
+                                      Text(
+                                        AppStrings.whatMusicType,
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          color: colorScheme[AppStrings.secondaryColor],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 135,
+                                        child: ListView(
+                                          scrollDirection: Axis.horizontal,
+                                          children: [
+                                            for (String genre in [
+                                              AppStrings.band,
+                                              AppStrings.nortStyle,
+                                              AppStrings.corridos,
+                                              AppStrings.mariachi,
+                                              AppStrings.montainStyle,
+                                              AppStrings.cumbia,
+                                              AppStrings.reggaeton,
+                                            ])
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 8.0),
+                                                child: MusicChip(
+                                                  text: genre,
+                                                  isSelected: selectedGenres.contains(genre),
+                                                  onClick: () {
+                                                    setState(() {
+                                                      if (selectedGenres.contains(genre)) {
+                                                        selectedGenres.remove(genre);
+                                                      } else {
+                                                        selectedGenres.add(genre);
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (expandedCard == ExpandedCard.MusicType)
+                                        Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: TextButton(
+                                            onPressed: () => onNextClicked(expandedCard),
+                                            child: Text(
+                                              AppStrings.next,
+                                              style: TextStyle(
+                                                color: colorScheme[AppStrings.secondaryColor],
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
 
-const SizedBox(height: 16),
+                                const SizedBox(height: 16),
 
-ExpandableCard(
-  title: AppStrings.date,
-  isExpanded: expandedCard == ExpandedCard.Date,
-  onClick: () {
-    setState(() {
-      // Solo expande si no está expandido, no lo cierra si ya está expandido
-      if (expandedCard != ExpandedCard.Date) {
-        expandedCard = ExpandedCard.Date;
-      }
-    });
-  },
-  content: Column(
-    children: [
-      DateCard(
-        selectedDate: selectedDay,
-        onDateSelected: (DateTime day) {
-          setState(() {
-            selectedDay = day;
-          });
-        },
-      ),
-      if (expandedCard == ExpandedCard.Date)
-        Align(
-          alignment: Alignment.bottomRight,
-          child: TextButton(
-            onPressed: () => onNextClicked(expandedCard),
-            child: Text(
-              AppStrings.next,
-              style: TextStyle(
-                color: colorScheme[AppStrings.secondaryColor],
-                fontSize: 18,
-              ),
-            ),
-          ),
-        ),
-    ],
-  ),
-),
+                                ExpandableCard(
+                                  title: AppStrings.date,
+                                  isExpanded: expandedCard == ExpandedCard.Date,
+                                  onClick: () {
+                                    setState(() {
+                                      if (expandedCard != ExpandedCard.Date) {
+                                        expandedCard = ExpandedCard.Date;
+                                      }
+                                    });
+                                  },
+                                  content: Column(
+                                    children: [
+                                      DateCard(
+                                        selectedDate: selectedDay,
+                                        onDateSelected: (DateTime day) {
+                                          setState(() {
+                                            selectedDay = day;
+                                          });
+                                        },
+                                      ),
+                                      if (expandedCard == ExpandedCard.Date)
+                                        Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: TextButton(
+                                            onPressed: () => onNextClicked(expandedCard),
+                                            child: Text(
+                                              AppStrings.next,
+                                              style: TextStyle(
+                                                color: colorScheme[AppStrings.secondaryColor],
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
 
-const SizedBox(height: 16),
+                                const SizedBox(height: 16),
 
-ExpandableCard(
-  title: AppStrings.hourlyRate,
-  isExpanded: expandedCard == ExpandedCard.Price,
-  onClick: () {
-    setState(() {
-      // Solo expande si no está expandido, no lo cierra si ya está expandido
-      if (expandedCard != ExpandedCard.Price) {
-        expandedCard = ExpandedCard.Price;
-      }
-    });
-  },
-  content: Column(
-    children: [
-      Text(
-        AppStrings.indicateHourlyRate,
-        style: TextStyle(
-          fontSize: 22,
-          color: colorScheme[AppStrings.secondaryColor],
-        ),
-      ),
-      const SizedBox(height: 8),
-      RangeSlider(
-        values: priceRange,
-        min: 200,
-        max: 10000,
-        divisions: 100,
-        onChanged: (RangeValues values) {
-          setState(() {
-            priceRange = values;
-            minPrice = values.start.toInt();
-            maxPrice = values.end.toInt();
-            useTextFieldValues = false;
-          });
-        },
-        activeColor: colorScheme[AppStrings.essentialColor],
-      ),
-      const SizedBox(height: 16),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              children: [
-                Text(
-                  AppStrings.minimum,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: textFieldWidth,
-                  child: TextField(
-                    controller: TextEditingController(
-                      text: useTextFieldValues
-                          ? '\$${minPrice.toString()}'
-                          : '\$${priceRange.start.toInt().toString()}',
-                    ),
-                    style: TextStyle(
-                      color: colorScheme[AppStrings.secondaryColor],
-                    ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                      final newMinPrice = int.tryParse(cleanValue);
-                      if (newMinPrice != null) {
-                        setState(() {
-                          minPrice = newMinPrice;
-                          priceRange = RangeValues(
-                            newMinPrice.toDouble(),
-                            priceRange.end,
-                          );
-                          useTextFieldValues = true;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Text(
-                  AppStrings.maximum,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: textFieldWidth,
-                  child: TextField(
-                    controller: TextEditingController(
-                      text: useTextFieldValues
-                          ? '\$${maxPrice.toString()}'
-                          : '\$${priceRange.end.toInt().toString()}',
-                    ),
-                    style: TextStyle(
-                      color: colorScheme[AppStrings.secondaryColor],
-                    ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                      final newMaxPrice = int.tryParse(cleanValue);
-                      if (newMaxPrice != null) {
-                        setState(() {
-                          maxPrice = newMaxPrice;
-                          priceRange = RangeValues(
-                            priceRange.start,
-                            newMaxPrice.toDouble(),
-                          );
-                          useTextFieldValues = true;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
-),
-
+                                ExpandableCard(
+                                  title: AppStrings.hourlyRate,
+                                  isExpanded: expandedCard == ExpandedCard.Price,
+                                  onClick: () {
+                                    setState(() {
+                                      if (expandedCard != ExpandedCard.Price) {
+                                        expandedCard = ExpandedCard.Price;
+                                      }
+                                    });
+                                  },
+                                  content: Column(
+                                    children: [
+                                      Text(
+                                        AppStrings.indicateHourlyRate,
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          color: colorScheme[AppStrings.secondaryColor],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      RangeSlider(
+                                        values: priceRange,
+                                        min: 0,
+                                        max: maxPriceLimit.toDouble(),
+                                        divisions: 100,
+                                        onChanged: (RangeValues values) {
+                                          if (values.end > maxPriceLimit) {
+                                            showToast('El precio máximo no puede exceder \$$maxPriceLimit');
+                                            return;
+                                          }
+                                          
+                                          setState(() {
+                                            priceRange = values;
+                                            minPrice = values.start.toInt();
+                                            maxPrice = values.end.toInt();
+                                            useTextFieldValues = false;
+                                            minPriceController.text = '\$${minPrice.toString()}';
+                                            maxPriceController.text = '\$${maxPrice.toString()}';
+                                          });
+                                        },
+                                        activeColor: colorScheme[AppStrings.essentialColor],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Column(
+                                              children: [
+                                                Text(
+                                                  AppStrings.minimum,
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    color: colorScheme[AppStrings.secondaryColor],
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                SizedBox(
+                                                  width: textFieldWidth,
+                                                  child: TextField(
+                                                    controller: minPriceController,
+                                                    style: TextStyle(
+                                                      color: colorScheme[AppStrings.secondaryColor],
+                                                    ),
+                                                    decoration: InputDecoration(
+                                                      border: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.circular(24),
+                                                      ),
+                                                    ),
+                                                    keyboardType: TextInputType.number,
+                                                    onChanged: _handleMinPriceChange,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Column(
+                                              children: [
+                                                Text(
+                                                  AppStrings.maximum,
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    color: colorScheme[AppStrings.secondaryColor],
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                SizedBox(
+                                                  width: textFieldWidth,
+                                                  child: TextField(
+                                                    controller: maxPriceController,
+                                                    style: TextStyle(
+                                                      color: colorScheme[AppStrings.secondaryColor],
+                                                    ),
+                                                    decoration: InputDecoration(
+                                                      border: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.circular(24),
+                                                      ),
+                                                    ),
+                                                    keyboardType: TextInputType.number,
+                                                    onChanged: _handleMaxPriceChange,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
 
                                 if (selectedEvent != null &&
                                     selectedGenres.isNotEmpty &&
@@ -555,19 +578,13 @@ ExpandableCard(
                                       child: ElevatedButton(
                                         onPressed: _applyFilters,
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              colorScheme[AppStrings
-                                                  .essentialColor],
-                                          foregroundColor:
-                                              colorScheme[AppStrings
-                                                  .essentialColor],
+                                          backgroundColor: colorScheme[AppStrings.essentialColor],
+                                          foregroundColor: colorScheme[AppStrings.essentialColor],
                                         ),
                                         child: Text(
                                           AppStrings.applyFilters,
                                           style: TextStyle(
-                                            color:
-                                                colorScheme[AppStrings
-                                                    .secondaryColor],
+                                            color: colorScheme[AppStrings.secondaryColor],
                                           ),
                                         ),
                                       ),

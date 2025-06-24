@@ -10,6 +10,7 @@
 // 1. Asegúrate de manejar correctamente los errores de Firebase (por ejemplo, problemas de red).
 // 2. Considera optimizar las consultas a Firestore si el número de usuarios bloqueados es grande.
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
@@ -54,8 +55,10 @@ class _BlockedAccountsState extends State<BlockedAccounts> {
 
     // Cargar usuarios bloqueados después de que la interfaz se construya
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentUserId = context.read<UserProvider>().currentUserId;
-      _loadBlockedUsers(currentUserId); // Cargar usuarios bloqueados
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId != null) {
+        _loadBlockedUsers(currentUserId); // Cargar usuarios bloqueados
+      }
     });
   }
 
@@ -122,7 +125,7 @@ class _BlockedAccountsState extends State<BlockedAccounts> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = context.watch<UserProvider>().currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
     final userType = widget.userProvider.userType;
     final isArtist = userType == AppStrings.artist;
@@ -228,7 +231,11 @@ class _BlockedAccountsState extends State<BlockedAccounts> {
                   ),
                   TextButton(
                     onPressed:
-                        () => unblockUser(currentUserId, userToUnblock!.userId),
+                        () {
+                          if (currentUserId != null) {
+                            unblockUser(currentUserId, userToUnblock!.userId);
+                          }
+                        },
                     style: TextButton.styleFrom(
                       foregroundColor: colorScheme[AppStrings.essentialColor],
                     ),

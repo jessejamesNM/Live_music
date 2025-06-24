@@ -28,7 +28,6 @@
 // - Visibilidad de notificaciones y actualizaciones de estados.
 // =============================================================================
 
-
 import 'dart:io';
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +50,6 @@ import '../widgets/get_conversation_reference.dart'; // Asegúrate de ajustar el
 import 'package:logging/logging.dart';
 import '../widgets/utils/pair.dart';
 import 'package:live_music/presentation/resources/strings.dart';
-
 class MessagesProvider extends ChangeNotifier {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   final User? currentUser = FirebaseAuth.instance.currentUser;
@@ -282,10 +280,17 @@ class MessagesProvider extends ChangeNotifier {
   }
 
   void checkOnlineStatusAndBlock(
-    String currentUserId,
     String otherUserId,
     Function(bool, bool) callback,
   ) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null) {
+      // No hay usuario autenticado, manejar este caso según necesites
+      callback(false, true); // Por ejemplo, considerar como offline y bloqueado
+      return;
+    }
+
     var firestore = FirebaseFirestore.instance;
 
     firestore.collection("users").doc(otherUserId).snapshots().listen((
@@ -311,7 +316,7 @@ class MessagesProvider extends ChangeNotifier {
       snapshot,
     ) {
       if (snapshot.exists) {
-        // You might want to handle this differently since we can't setState here
+        // Puedes manejar actualizaciones del usuario actual aquí si es necesario
       }
     });
   }
@@ -420,6 +425,16 @@ class MessagesProvider extends ChangeNotifier {
         );
       },
     );
+  }
+
+  void cancelAllActiveListeners() {
+    _activeSubscriptions.forEach((_, sub) => sub.cancel());
+    _activeSubscriptions.clear();
+  }
+
+  void clearAllConversations() {
+    _messages.value = []; // Limpiar la lista de mensajes/conversaciones
+    notifyListeners();
   }
 
   Future<void> unblockUser(String currentUserId, String userIdToUnblock) async {
@@ -739,26 +754,23 @@ class MessagesProvider extends ChangeNotifier {
 
   void deleteAllMessages(String userId, String otherUserId) async {
     try {
-      // Obtener la referencia a la conversación
+      // Borrar mensajes de Firebase
       final conversationRef = await conversationReference
           .getConversationReference(userId, otherUserId);
-      // Obtener la ruta como nombre de la colección
       final collectionPath = conversationRef.path;
-
-      // Referencia a la colección de mensajes
       final collectionRef = FirebaseFirestore.instance.collection(
         collectionPath,
       );
-
-      // Obtener todos los documentos (mensajes)
       final snapshot = await collectionRef.get();
 
-      // Eliminar cada documento
       for (final doc in snapshot.docs) {
         await collectionRef.doc(doc.id).delete();
       }
+
+      // Borrar mensajes de Room
+      await messageRepository.messageDao.deleteAllMessages(userId, otherUserId);
     } catch (e) {
-      print(' $e');
+      print('Error al eliminar mensajes: $e');
     }
   }
 
@@ -913,6 +925,7 @@ class MessagesProvider extends ChangeNotifier {
     for (DataSnapshot snapshot in dataSnapshot.children) {
       String receiverId = snapshot.child("receiverId").value as String;
       bool messageRead = snapshot.child("messageRead").value as bool;
+
       if (receiverId == currentUserId && messageRead == false) {
         messagesUnReaded++;
       }
@@ -976,6 +989,63 @@ class MessagesProvider extends ChangeNotifier {
     } else {
       DateFormat dateFormat = DateFormat('dd/MM/yyyy');
       return dateFormat.format(messageDate);
+    }
+  }
+
+  Future<void> syncConversationsFromFirebase(String userId) async {
+    try {
+      final nickname = await getNickname(userId);
+      final DatabaseReference rootRef = FirebaseDatabase.instance.ref();
+
+      final DataSnapshot snapshot = await rootRef.get();
+      final db = await roomDb;
+
+      if (snapshot.exists) {
+        for (final DataSnapshot child in snapshot.children) {
+          final String? conversationName = child.key;
+
+          // Solo procesar si el nombre contiene el nickname
+          if (conversationName != null && conversationName.contains(nickname)) {
+            ConversationTempData conversationData = await processCollection(
+              child,
+              userId,
+            );
+
+            final userInfo = await getUserInfoFromFirestore(
+              conversationData.userId,
+            );
+            final int messagesUnread = await countUnreadMessages(
+              conversationName,
+              userId,
+            );
+            final String formattedTimestamp = formatTimestamp(
+              conversationData.timestamp,
+            );
+            final String userNickname = await getNickname(
+              conversationData.userId,
+            );
+            final bool isArtist = await checkIfArtist(conversationData.userId);
+
+            final conversation = Conversation(
+              currentUserId: userId,
+              nickname: userNickname,
+              otherUserId: conversationData.userId,
+              lastMessage: conversationData.lastMessage,
+              timestamp: conversationData.timestamp,
+              profileImage: userInfo.second,
+              name: userInfo.first,
+              messagesUnread: messagesUnread,
+              conversationName: conversationName,
+              formattedTimestamp: formattedTimestamp,
+              artist: isArtist,
+            );
+
+            await db.conversationDao.insertOrUpdate(conversation);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("syncConversationsFromFirebase error: $e");
     }
   }
 
@@ -1053,11 +1123,14 @@ class MessagesProvider extends ChangeNotifier {
   Future<void> setupConversationListener(String userId) async {
     try {
       String nickname = await getNickname(userId);
+      print("se inicializa");
+      // 🔹 NUEVO PASO: sincronizar desde Firebase a Room
+      await syncConversationsFromFirebase(userId);
 
-      // 1) Carga inicial de todas las conversaciones existentes
+      // 1) Cargar conversaciones ya existentes desde Room y conectar listeners
       await setupListenersForExistingConversations(userId);
 
-      // 2) Configuración de listeners en tiempo real solo para nuevos mensajes
+      // 2) Configuración de listeners en tiempo real para nuevos mensajes
       final lastTimestamps = await loadLastTimestampsFromDb(userId);
 
       lastTimestamps.forEach((conversationName, lastTs) {
@@ -1073,7 +1146,7 @@ class MessagesProvider extends ChangeNotifier {
 
         final subscription = ref.onChildAdded.listen((event) {
           if (isInitialData) {
-            // Ignorar los datos iniciales (ya fueron procesados en la carga inicial)
+            // Ignorar los datos iniciales (ya fueron procesados)
             isInitialData = false;
             return;
           }
@@ -1083,7 +1156,7 @@ class MessagesProvider extends ChangeNotifier {
         _activeSubscriptions[conversationName] = subscription;
       });
     } catch (e) {
-      debugPrint("$e");
+      debugPrint("setupConversationListener error: $e");
     }
   }
 

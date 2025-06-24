@@ -449,7 +449,7 @@ static const List<String> statesUS = [
   static const String publicEvent = "Evento Público";
 
   static const String weddingIcon = "assets/svg/ic_marriage.svg";
-  static const String sweetFifteenIcon = "assets/svg/ic_quincean%CC%83era.svg";
+  static const String sweetFifteenIcon = "assets/svg/ic_quinceanera.svg";
   static const String casualPartyIcon = "assets/svg/ic_party.svg";
   static const String publicEventIcon = "assets/svg/ic_public_event.svg";
   // Debug/logging strings

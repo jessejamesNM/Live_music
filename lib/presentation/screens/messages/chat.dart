@@ -26,7 +26,6 @@
 ///   o similar, si se escala en complejidad.
 /// -----------------------------------------------------------------------------
 
-
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -44,34 +43,28 @@ import '../../widgets/animated_visibility.dart';
 import '../../widgets/chat/message_item.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-
 // ChatScreen Widget (Stateful)
 class ChatScreen extends StatefulWidget {
-  final String currentUserId;
   final UserProvider userProvider;
   final MessagesProvider messagesProvider;
   final GoRouter goRouter;
   const ChatScreen({
     Key? key,
-    required this.currentUserId,
     required this.userProvider,
     required this.messagesProvider,
     required this.goRouter,
   }) : super(key: key);
 
-
   @override
   _ChatScreenState createState() => _ChatScreenState(
-    currentUserId: currentUserId,
     userProvider: userProvider,
   );
 }
 
-
 // ChatScreen State
 class _ChatScreenState extends State<ChatScreen> {
-  late final String currentUserId;
-  late final String otherUserId;
+  late String currentUserId;
+  late String otherUserId;
   final UserProvider userProvider;
   File? _selectedMediaFile;
   String? _profileImageUrl;
@@ -85,19 +78,22 @@ class _ChatScreenState extends State<ChatScreen> {
   double? _currentLongitude;
   TextEditingController _messageController = TextEditingController();
   bool _isBottomSheetVisible = false;
-  late final String _otherUserId;
+  late String _otherUserId;
   StreamSubscription? _messagesSubscription;
   final Logger logger = Logger();
   String token = '';
-  _ChatScreenState({required this.currentUserId, required this.userProvider});
 
+  _ChatScreenState({required this.userProvider});
 
   @override
   void initState() {
     super.initState();
+    // Obtener el ID del usuario actual desde Firebase Auth
+    currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _otherUserId = userProvider.otherUserId;
     _initializeChat();
     _checkAndSaveFcmToken();
+
     widget.messagesProvider.getFcmToken(_otherUserId).then((_) {
       setState(() {
         token = widget.messagesProvider.notificationUserToken.value;
@@ -105,25 +101,22 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-
   void _initializeChat() {
     widget.messagesProvider.loadProfileImage(_otherUserId, (url) {
       if (mounted) setState(() => _profileImageUrl = url);
     });
 
-
     widget.messagesProvider.getFcmToken(_otherUserId);
-    widget.messagesProvider.checkOnlineStatusAndBlock(
-      currentUserId,
-      _otherUserId,
-      (isOnline, iAmBlocked) {
-        if (mounted)
-          setState(() {
-            _isOnline = isOnline;
-            _iAmBlocked = iAmBlocked;
-          });
-      },
-    );
+    widget.messagesProvider.checkOnlineStatusAndBlock(_otherUserId, (
+      isOnline,
+      iAmBlocked,
+    ) {
+      if (mounted)
+        setState(() {
+          _isOnline = isOnline;
+          _iAmBlocked = iAmBlocked;
+        });
+    });
     _syncMessages();
     _loadMessages();
     _setupFirebaseListener();
@@ -132,16 +125,13 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-
   Future<void> _checkAndSaveFcmToken() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
-
     final userDoc = FirebaseFirestore.instance
         .collection("users")
         .doc(currentUser.uid);
-
 
     try {
       final snapshot = await userDoc.get();
@@ -162,7 +152,6 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {}
   }
 
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -178,15 +167,13 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
   void _cleanupListeners() {
     _messagesSubscription?.cancel();
     widget.messagesProvider.clearAllFirebaseListeners();
   }
 
-
   void _syncMessages() {
-    if (_otherUserId.isNotEmpty) {
+    if (_otherUserId.isNotEmpty && currentUserId.isNotEmpty) {
       widget.messagesProvider.syncMessagesWithFirebase(
         currentUserId,
         _otherUserId,
@@ -194,9 +181,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
   void _loadMessages() {
-    if (_otherUserId.isNotEmpty) {
+    if (_otherUserId.isNotEmpty && currentUserId.isNotEmpty) {
       widget.messagesProvider.loadMessagesFromRoom(currentUserId, _otherUserId);
       Future.delayed(Duration(seconds: 1), () {
         widget.messagesProvider.loadMessagesFromRoom(
@@ -207,9 +193,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
   void _setupFirebaseListener() async {
-    if (_otherUserId.isNotEmpty) {
+    if (_otherUserId.isNotEmpty && currentUserId.isNotEmpty) {
       _messagesSubscription?.cancel();
       widget.messagesProvider.setupFirebaseListener(
         currentUserId,
@@ -218,7 +203,6 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) setState(() {});
     }
   }
-
 
   void _sendMessage() {
     if (_iAmBlocked) {
@@ -238,7 +222,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
   @override
   void dispose() {
     _messageController.dispose();
@@ -247,11 +230,9 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
-
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primarySecondColor],
@@ -309,6 +290,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             onPressed: () {
                               widget.messagesProvider
                                   .clearAllFirebaseListeners();
+                              widget.messagesProvider.setupConversationListener(
+                                currentUserId,
+                              );
                               context.pop();
                             },
                           ),
@@ -589,5 +573,3 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-
-

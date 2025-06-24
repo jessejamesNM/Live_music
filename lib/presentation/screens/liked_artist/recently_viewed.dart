@@ -28,6 +28,7 @@
   ──────────────────────────────────────────────────────────────────────────────
 */
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:live_music/data/provider_logics/nav_buttom_bar_components/favorites/favorites_provider.dart';
 import 'package:live_music/data/provider_logics/user/user_provider.dart';
@@ -101,7 +102,7 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreen> {
             .favoritesProvider
             .recentlyViewedProfiles; // Los perfiles recientemente vistos
     final currentUserId =
-        widget.userProvider.currentUserId; // ID del usuario actual
+        FirebaseAuth.instance.currentUser?.uid;
 
     return Column(
       children: [
@@ -173,7 +174,7 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreen> {
                   goRouter: widget.goRouter,
                   favoritesProvider: widget.favoritesProvider,
                   profiles: profiles,
-                  currentUserId: currentUserId,
+                  currentUserId: currentUserId ?? '',
                   toggleFavoritesDialog: () {
                     setState(() {
                       showFavoritesDialog =

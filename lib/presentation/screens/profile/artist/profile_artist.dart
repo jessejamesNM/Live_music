@@ -8,6 +8,7 @@
 
 // Importaciones necesarias
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -109,12 +110,12 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
   // Método para subir la imagen de perfil al servidor
   Future<void> _uploadProfileImage(File file) async {
     try {
-      final currentUserId = widget.userProvider.currentUserId;
+      final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
       await widget.uploadProfileImagesToServer.uploadProfileImage(
-        currentUserId,
+        currentUserId!,
         file,
       );
-      widget.userProvider.loadUserData(currentUserId); // Actualizar datos de usuario
+      widget.userProvider.loadUserData(currentUserId!); // Actualizar datos de usuario
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -134,14 +135,16 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
     final messagesProvieder = widget.messagesProvider;
     final userProvider = context.watch<UserProvider>();
     final isArtist = userProvider.userType == AppStrings.artist;
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
     final profileProvider = widget.profileProvider;
     final reviewProvider = widget.reviewProvider;
     final colorScheme = ColorPalette.getPalette(context); // Esquema de colores
 
     // Cargar datos del usuario
-    userProvider.loadUserData(currentUserId);
-    userProvider.getUserData(currentUserId);
+    if (currentUserId != null) {
+      userProvider.loadUserData(currentUserId);
+      userProvider.getUserData(currentUserId);
+    }
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColorLight],
@@ -169,7 +172,7 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
                       userName: userProvider.userName,
                       nickname: userProvider.nickname,
                       isUploading: _isUploadingProfileImage,
-                      currentUserId: currentUserId,
+                      currentUserId: currentUserId ?? '',
                       goRouter: widget.goRouter,
                     ),
                   ),
@@ -196,13 +199,15 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
                     content = WorksContent(); // Contenido de trabajos
                     break;
                   case 1:
-                    content = AvailabilityContent(userId: currentUserId); // Disponibilidad
+                    content = AvailabilityContent(userId: currentUserId ?? ''); // Disponibilidad
                     break;
                   case 2:
-                    content = DatesContent( // Fechas
-                      profileProvider: profileProvider,
-                      currentUserId: currentUserId,
-                    );
+                    content = currentUserId != null
+                        ? DatesContent( // Fechas
+                            profileProvider: profileProvider,
+                            currentUserId: currentUserId,
+                          )
+                        : const SizedBox.shrink();
                     break;
                   case 3:
                     content = ReviewsContent( // Reseñas
@@ -229,13 +234,23 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final currentUserId = userProvider.currentUserId;
+      final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
       final imageFile = File(pickedFile.path);
 
-      await widget.uploadWorkImagesToServer.uploadWorkImage(
-        currentUserId,
-        imageFile,
-      );
+      if (currentUserId != null) {
+        await widget.uploadWorkImagesToServer.uploadWorkImage(
+          currentUserId,
+          imageFile,
+        );
+      } else {
+        // Handle the null case if necessary, e.g., show an error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('User ID is null. Cannot upload work image.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

@@ -102,9 +102,9 @@ class _HomeScreenState extends State<Home> {
 
     // Se ejecuta después del primer frame para evitar errores de contexto
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchUserId();
+      
       _fetchArtists();
-      widget.userProvider.fetchCurrentUserId();
+     
       widget.beginningProvider.checkAndSaveUserLocation(
         context,
         widget.goRouter,
@@ -112,13 +112,7 @@ class _HomeScreenState extends State<Home> {
     });
   }
 
-  // Obtiene el ID del usuario actual desde Firebase
-  void _fetchUserId() {
-    widget.userProvider.fetchUserIdFromFirebase(
-      ValueNotifier<String>(widget.userProvider.currentUserId),
-      widget.auth,
-    );
-  }
+
 
   // Obtiene los artistas según la ubicación del usuario y géneros seleccionados
   void _fetchArtists() {
@@ -175,7 +169,6 @@ class _HomeScreenState extends State<Home> {
     final colorScheme = ColorPalette.getPalette(context);
     final goRouter = widget.goRouter;
 
-print("se ejecuto esta cosa aaaaaaa Home $artists ");
   
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],

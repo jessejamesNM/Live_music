@@ -25,6 +25,7 @@
 /// -----------------------------------------------------------------------------
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:provider/provider.dart';
@@ -60,13 +61,15 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
     final userType = userProvider.userType;
     final isArtist = userType == 'artist'; // Determinar si es artista
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context); // Esquema de colores
 
     // Configurar listener para cambios en listas de favoritos
     WidgetsBinding.instance.addPostFrameCallback((_) {
       favoritesProvider.removeLikedUsersListener();
-      favoritesProvider.listenForLikedUsersChanges(context, currentUserId);
+      if (currentUserId != null) {
+        favoritesProvider.listenForLikedUsersChanges(context, currentUserId);
+      }
     });
 
     // Mostrar diálogo de confirmación para borrar lista

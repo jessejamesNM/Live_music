@@ -194,7 +194,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final UploadProfileImagesToServer _uploadProfileImagesToServer;
   late final UploadWorkMediaToServer _uploadWorkImagesToServer;
   late final BeginningProvider _beginningProvider;
-  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
   late final ProfileProvider _profileProvider;
   bool _isAppActive = false;
 
@@ -342,8 +341,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Obtiene el tipo de usuario
     await _userProvider.fetchUserType();
 
-    // Inicializa el currentUserId
-    await _userProvider.fetchCurrentUserId();
+
 
     // Determinar ruta inicial
     final initialRoute = await _determineInitialRoute();
@@ -688,7 +686,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         path: AppStrings.chatScreenRoute,
         builder:
             (context, state) => ChatScreen(
-              currentUserId: _currentUserId,
               userProvider: _userProvider,
               messagesProvider: _messagesProvider,
               goRouter: _goRouter,
@@ -793,7 +790,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         path: AppStrings.profileImageScreenRoute,
         builder:
             (context, state) =>
-                ProfileImageScreen(userId: _currentUserId, goRouter: _goRouter),
+                ProfileImageScreen(goRouter: _goRouter),
       ),
       GoRoute(
         path: AppStrings.countryStateScreenRoute,

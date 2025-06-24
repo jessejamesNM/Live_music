@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:live_music/presentation/resources/strings.dart';
@@ -34,7 +35,7 @@ class _ReviewsContentWSState extends State<ReviewsContentWS> {
     userProvider = Provider.of<UserProvider>(context, listen: false);
     reviewProvider = Provider.of<ReviewProvider>(context, listen: false);
     messagesProvider = Provider.of<MessagesProvider>(context, listen: false);
-    currentUserId = userProvider.currentUserId;
+    currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       reviewProvider.getAverageStars(widget.otherUserId);

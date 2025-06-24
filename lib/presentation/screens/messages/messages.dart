@@ -14,6 +14,7 @@
 
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -28,14 +29,11 @@ import '../../widgets/chat/bottom_sheet_widget.dart';
 import '../../widgets/chat/receiver_card.dart';
 import '../buttom_navigation_bar.dart';
 
-
-// Pantalla de Conversaciones
 class ConversationsScreen extends HookWidget {
   final GoRouter goRouter;
   final UserProvider userProvider;
   final MessagesProvider messagesProvider;
   final ReviewProvider reviewProvider;
-
 
   const ConversationsScreen({
     required this.goRouter,
@@ -45,54 +43,70 @@ class ConversationsScreen extends HookWidget {
     Key? key,
   }) : super(key: key);
 
-
   @override
   Widget build(BuildContext context) {
-    // Se obtiene el esquema de colores para usar en la interfaz
     final colorScheme = ColorPalette.getPalette(context);
 
+    // Estado para manejar el UID reactivamente
+    final currentUserIdState = useState<String?>(
+      FirebaseAuth.instance.currentUser?.uid,
+    );
 
-    // Se obtiene la lista de conversaciones y el ID del usuario actual
-    final conversations = messagesProvider.conversations;
-    final currentUserId = userProvider.currentUserId;
-
-
-    // Establecer el listener para las conversaciones
+    // Escucha cambios del auth
     useEffect(() {
-      messagesProvider.setupConversationListener(currentUserId);
+      final listener = FirebaseAuth.instance.authStateChanges().listen((user) {
+        currentUserIdState.value = user?.uid;
+      });
+      return listener.cancel;
+    }, []);
+
+    final currentUserId = currentUserIdState.value;
+
+    // Estados internos para seguimiento del usuario anterior
+    final previousUserId = useRef<String?>(null);
+
+    // Si cambia el currentUserId, se reinicia todo
+    useEffect(() {
+      if (previousUserId.value != currentUserId) {
+        messagesProvider.cancelAllActiveListeners();
+        messagesProvider.clearAllConversations();
+
+        if (currentUserId != null) {
+          messagesProvider.setupConversationListener(currentUserId);
+        }
+
+        previousUserId.value = currentUserId;
+      }
       return null;
     }, [currentUserId]);
 
-
-    // Determinar si el usuario es un artista
     final userType = userProvider.userType;
     final isArtist = userType == AppStrings.artist;
 
-
-    // Estados para manejar la selección de conversaciones
     final selectedReceivers = useState<List<String>>([]);
     final showSelectionCircles = useState(false);
     final selectionButtonText = useState(AppStrings.edit);
     final isBottomSheetVisible = useState(false);
     final showActionBar = useState(false);
 
-
-    // Función para eliminar las conversaciones seleccionadas
     void deleteSelectedConversations() {
+      if (currentUserId == null) return;
+
       selectedReceivers.value.forEach((otherUserId) async {
+        if (otherUserId.isEmpty) return;
+
         try {
           final conversationRef = ConversationReference();
           final reference = await conversationRef.getConversationReference(
             currentUserId,
             otherUserId,
           );
-          await reference.remove(); // Eliminar la conversación
+          await reference.remove();
           messagesProvider.deleteConversation(otherUserId);
           messagesProvider.deleteAllMessages(currentUserId, otherUserId);
-        } catch (e) {
-          // No se registran logs sensibles, solo se maneja el error
-        }
+        } catch (_) {}
       });
+
       selectedReceivers.value = [];
       showSelectionCircles.value = false;
       selectionButtonText.value = AppStrings.edit;
@@ -100,16 +114,17 @@ class ConversationsScreen extends HookWidget {
       isBottomSheetVisible.value = false;
     }
 
-
-    // Función para bloquear las conversaciones seleccionadas
     void blockSelectedConversations() {
+      if (currentUserId == null) return;
+
       selectedReceivers.value.forEach((otherUserId) async {
+        if (otherUserId.isEmpty) return;
+
         try {
           userProvider.blockUser(currentUserId, otherUserId);
-        } catch (e) {
-          // No se registran logs sensibles, solo se maneja el error
-        }
+        } catch (_) {}
       });
+
       selectedReceivers.value = [];
       showSelectionCircles.value = false;
       selectionButtonText.value = AppStrings.edit;
@@ -117,41 +132,34 @@ class ConversationsScreen extends HookWidget {
       isBottomSheetVisible.value = false;
     }
 
-
-    // Funciones para bloquear y desbloquear conversaciones individualmente
     void blockOneConversation(String otherUserId) {
+      if (currentUserId == null || otherUserId.isEmpty) return;
       userProvider.blockUser(currentUserId, otherUserId);
     }
 
-
     void unblockOneConversation(String otherUserId) {
+      if (currentUserId == null || otherUserId.isEmpty) return;
       userProvider.unblockUser(currentUserId, otherUserId);
     }
 
-
-    // Función para eliminar una conversación individualmente
     void deleteOneConversation(String otherUserId) {
+      if (currentUserId == null || otherUserId.isEmpty) return;
       messagesProvider.deleteConversation(otherUserId);
       messagesProvider.deleteAllMessages(currentUserId, otherUserId);
     }
 
-
-    // Función para alternar entre el modo de selección
     void toggleSelectionMode() {
       if (selectionButtonText.value == AppStrings.edit) {
-        // Entrando en modo selección
         showSelectionCircles.value = true;
         selectionButtonText.value = AppStrings.done;
         isBottomSheetVisible.value = true;
       } else {
-        // Saliendo del modo selección
         showSelectionCircles.value = false;
         selectionButtonText.value = AppStrings.edit;
         isBottomSheetVisible.value = false;
-        selectedReceivers.value = []; // Limpiar selección
+        selectedReceivers.value = [];
       }
     }
-
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
@@ -203,7 +211,7 @@ class ConversationsScreen extends HookWidget {
                   const SizedBox(height: 16),
                   Expanded(
                     child: StreamBuilder<List<Conversation>>(
-                      stream: conversations,
+                      stream: messagesProvider.conversations,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -211,7 +219,6 @@ class ConversationsScreen extends HookWidget {
                             child: CircularProgressIndicator(),
                           );
                         }
-
 
                         if (snapshot.hasError) {
                           return Center(
@@ -225,7 +232,6 @@ class ConversationsScreen extends HookWidget {
                           );
                         }
 
-
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return Center(
                             child: Text(
@@ -238,9 +244,7 @@ class ConversationsScreen extends HookWidget {
                           );
                         }
 
-
                         final conversationList = snapshot.data!;
-
 
                         return ListView.builder(
                           padding: const EdgeInsets.only(bottom: 80),
@@ -248,7 +252,6 @@ class ConversationsScreen extends HookWidget {
                           itemBuilder: (context, index) {
                             final conversation = conversationList[index];
                             final id = conversation.otherUserId;
-
 
                             return Row(
                               children: [
@@ -279,8 +282,7 @@ class ConversationsScreen extends HookWidget {
                                         border: Border.all(
                                           color:
                                               colorScheme[AppStrings
-                                                  .secondaryColor] ??
-                                              Colors.grey,
+                                                  .secondaryColor]!,
                                           width: 1,
                                         ),
                                       ),
@@ -299,7 +301,7 @@ class ConversationsScreen extends HookWidget {
                                 Expanded(
                                   child: ConversationItem(
                                     conversation: conversation,
-                                    currentUserId: currentUserId,
+                                    currentUserId: currentUserId ?? '',
                                     messagesProvider: messagesProvider,
                                     blockOneConversation: blockOneConversation,
                                     unblockOneConversation:
@@ -328,7 +330,6 @@ class ConversationsScreen extends HookWidget {
                 blockSelectedConversations: blockSelectedConversations,
                 onBottomSheetVisibilityChanged: (visible) {
                   if (!visible) {
-                    // Cuando el BottomSheet se cierra (por ejemplo, al tocar fuera)
                     showSelectionCircles.value = false;
                     selectionButtonText.value = AppStrings.edit;
                     selectedReceivers.value = [];
@@ -343,7 +344,6 @@ class ConversationsScreen extends HookWidget {
   }
 }
 
-
 class ConversationItem extends StatefulWidget {
   final Conversation conversation;
   final String currentUserId;
@@ -353,7 +353,6 @@ class ConversationItem extends StatefulWidget {
   final void Function(String) unblockOneConversation;
   final bool isArtist;
   final GoRouter goRouter;
-
 
   const ConversationItem({
     required this.conversation,
@@ -367,32 +366,26 @@ class ConversationItem extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
-
   @override
   State<ConversationItem> createState() => _ConversationItemState();
 }
-
 
 class _ConversationItemState extends State<ConversationItem> {
   bool isOnline = false;
   bool iAmBlocked = false;
   bool iBlocked = false;
 
-
   late final StreamSubscription<DocumentSnapshot> userSub;
   late final StreamSubscription<DocumentSnapshot> currentUserSub;
-
 
   @override
   void initState() {
     super.initState();
 
-
     widget.messagesProvider.syncMessagesWithFirebase(
       widget.currentUserId,
       widget.conversation.otherUserId,
     );
-
 
     userSub = FirebaseFirestore.instance
         .collection("users")
@@ -412,7 +405,6 @@ class _ConversationItemState extends State<ConversationItem> {
           }
         });
 
-
     currentUserSub = FirebaseFirestore.instance
         .collection("users")
         .doc(widget.currentUserId)
@@ -431,7 +423,6 @@ class _ConversationItemState extends State<ConversationItem> {
         });
   }
 
-
   @override
   void dispose() {
     userSub.cancel();
@@ -439,11 +430,9 @@ class _ConversationItemState extends State<ConversationItem> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     ColorPalette.getPalette(context);
-
 
     return ReceiverCard(
       conversation: widget.conversation,
@@ -459,5 +448,8 @@ class _ConversationItemState extends State<ConversationItem> {
     );
   }
 }
+
+
+
 
 

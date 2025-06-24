@@ -21,6 +21,7 @@
 /// -----------------------------------------------------------------------------
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:live_music/data/provider_logics/user/user_provider.dart';
 import 'package:live_music/presentation/resources/strings.dart';
@@ -42,30 +43,37 @@ class _NicknameScreenState extends State<NicknameScreen> {
   String nickname = '';
   String errorMessage = '';
 
-  Future<bool> shouldCheckLocation(bool isArtist, String currentUserId) async {
-    if (isArtist) return false;
+ 
+Future<bool> shouldCheckLocation(bool isArtist) async {
+  if (isArtist) return false;
 
-    final docSnapshot =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUserId)
-            .get();
+  final currentUser = FirebaseAuth.instance.currentUser;
 
-    if (!docSnapshot.exists) return true;
-
-    final data = docSnapshot.data();
-    final hasCountry = data?['country'] != null && data?['country'] != '';
-    final hasState = data?['state'] != null && data?['state'] != '';
-
-    return !(hasCountry || hasState);
+  if (currentUser == null || currentUser.uid.trim().isEmpty) {
+    print(" Usuario no autenticado o UID vacío");
+    return true; // o false, depende de tu lógica general
   }
+
+  final docSnapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(currentUser.uid)
+      .get();
+
+  if (!docSnapshot.exists) return true;
+
+  final data = docSnapshot.data();
+  final hasCountry = data != null && data['country'] != null && data['country'].toString().trim().isNotEmpty;
+  final hasState = data != null && data['state'] != null && data['state'].toString().trim().isNotEmpty;
+
+  return !(hasCountry || hasState);
+}
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<BeginningProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final userType = userProvider.userType;
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
     final isArtist = userType == AppStrings.artist;
     final colorScheme = ColorPalette.getPalette(context);
 
@@ -153,7 +161,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                         // Condición especial antes de guardar nickname y navegar
                         final needsLocationCheck = await shouldCheckLocation(
                           isArtist,
-                          currentUserId,
+                          
                         );
 
                         if (needsLocationCheck) {

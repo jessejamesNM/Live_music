@@ -20,6 +20,7 @@
  * - Funciones de interacción con el perfil: guardar en favoritos y contactar por mensaje.
  * - Soporte para personalizar el tema visual según el esquema de colores de la aplicación.
  */
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/svg.dart';
@@ -31,27 +32,22 @@ import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/men
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/review_content_ws.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/work_content_ws.dart';
 
-
 import 'package:live_music/presentation/widgets/bottom_list_creator_dialog.dart';
 import 'package:live_music/presentation/widgets/bottom_save_to_favorites_dialog.dart';
 import 'package:live_music/presentation/widgets/save_message.dart';
 import 'package:provider/provider.dart';
 
-
 import 'package:cached_network_image/cached_network_image.dart';
 
-
 import '../../../../data/provider_logics/user/user_provider.dart';
-
-
 import '../../../../data/model/profile/image_data.dart';
 import '../../../../data/repositories/render_http_client/images/upload_work_image.dart';
 import '../../../widgets/search/profile_artist_ws/button_row_ws.dart';
 import '../../buttom_navigation_bar.dart';
 
-
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:live_music/presentation/resources/colors.dart';
+
 class ProfileHeaderWS extends StatefulWidget {
   final ArtistProfileScreenWSState state;
   final GoRouter goRouter;
@@ -76,7 +72,6 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
   @override
   void initState() {
     super.initState();
-    // Detener/listener según tu lógica original...
   }
 
   @override
@@ -84,7 +79,7 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
     final userProvider = Provider.of<UserProvider>(context);
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final otherUserId = userProvider.otherUserId;
-    final currentUserId = userProvider.currentUserId;
+   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final userName = userProvider.userName;
     final nickname = userProvider.nickname;
     final profileImageUrl = userProvider.profileImageUrl;
@@ -157,22 +152,22 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
               textAlign: TextAlign.center,
             ),
 
-            // Si decides mantener el form/report inline, aquí lo puedes dejar:
-            if (showBlockDialog)
-              _buildBlockDialog(context, currentUserId, otherUserId),
-            if (showReportForm)
-              _buildReportForm(context, currentUserId, otherUserId),
+           // Si decides mantener el form/report inline, aquí lo puedes dejar:
+if (showBlockDialog && currentUserId != null && otherUserId != null)
+  _buildBlockDialog(context, currentUserId!, otherUserId!),
+if (showReportForm && currentUserId != null && otherUserId != null)
+  _buildReportForm(context, currentUserId!, otherUserId!),
 
-            const SizedBox(height: 8),
-            _buildActionButtons(
-              context,
-              widget.state,
-              favoritesProvider,
-              currentUserId,
-              otherUserId,
-              colorScheme,
-              isUserLiked,
-            ),
+const SizedBox(height: 8),
+_buildActionButtons(
+  context,
+  widget.state,
+  favoritesProvider,
+  currentUserId ?? '', // Provide default empty string if null
+  otherUserId ?? '',   // Provide default empty string if null
+  colorScheme,
+  isUserLiked,
+),
           ],
         ),
       ),
@@ -556,7 +551,7 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
     );
     final likedLists = favoritesProvider.likedUsersListsValue;
     final isLiked = favoritesProvider.isUserLiked(otherUserId);
-    final currentUserId = widget.userProvider.currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     if (isLiked) {
       setState(() => showConfirmRemoveDialog = true);
@@ -569,7 +564,9 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
         setState(() {
           selectedList = list;
           showSaveMessage = true;
-          favoritesProvider.onLikeClick(otherUserId, currentUserId);
+          if (currentUserId != null) {
+            favoritesProvider.onLikeClick(otherUserId, currentUserId);
+          }
         });
       } else {
         setState(() => showBottomSaveDialog = true);
@@ -587,7 +584,7 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
   @override
   Widget build(BuildContext context) {
     final isArtist = widget.userProvider.userType == AppStrings.artist;
-    final currentUserId = widget.userProvider.currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
 
     return Scaffold(
@@ -671,77 +668,88 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
             // Diálogos y overlays (se muestran sobre el contenido)
             if (showConfirmRemoveDialog) _buildConfirmRemoveDialog(context),
             if (showBottomSaveDialog)
-              BottomSaveToFavoritesDialog(
-                onDismiss: () => setState(() => showBottomSaveDialog = false),
-                onCreateNewList: () {
-                  setState(() {
-                    showBottomSaveDialog = false;
-                    showBottomFavoritesListCreatorDialog = true;
-                  });
-                  widget.favoritesProvider.onLikeClick(
-                    otherUserId,
-                    currentUserId,
-                  );
-                },
-                favoritesProvider: widget.favoritesProvider,
-                userIdToSave: otherUserId,
-                onUserAddedToList: _onUserAddedToList,
-                onLikeClick: () {
-                  widget.favoritesProvider.onLikeClick(
-                    otherUserId,
-                    currentUserId,
-                  );
-                },
-              ),
-            if (showBottomFavoritesListCreatorDialog)
-              BottomFavoritesListCreatorDialog(
-                userId: otherUserId,
-                onDismiss:
-                    () => setState(
-                      () => showBottomFavoritesListCreatorDialog = false,
-                    ),
-                favoritesProvider: widget.favoritesProvider,
-                onLikeClick: () {
-                  widget.favoritesProvider.onLikeClick(
-                    otherUserId,
-                    currentUserId,
-                  );
-                },
-              ),
-            if (showSaveMessage && selectedList != null)
-              SaveMessage(
-                list: selectedList!,
-                onModifyClick: () {
-                  setState(() {
-                    showSaveMessage = false;
-                    showBottomSaveDialog = true;
-                  });
-                  widget.favoritesProvider.onLikeClick(
-                    otherUserId,
-                    currentUserId,
-                  );
-                },
-                isVisible: showSaveMessage,
-                onDismiss: () {
-                  setState(() => showSaveMessage = false);
-                  widget.favoritesProvider.onLikeClick(
-                    otherUserId,
-                    currentUserId,
-                  );
-                },
-                favoritesProvider: widget.favoritesProvider,
-                userIdToRemove: otherUserId,
-                onLikeClick: () {
-                  widget.favoritesProvider.onLikeClick(
-                    otherUserId,
-                    currentUserId,
-                  );
-                },
-                onUnlikeClick: () {
-                  widget.favoritesProvider.onUnlikeClick(otherUserId);
-                },
-                currentUserId: currentUserId,
-              ),
+  BottomSaveToFavoritesDialog(
+    onDismiss: () => setState(() => showBottomSaveDialog = false),
+    onCreateNewList: () {
+      setState(() {
+        showBottomSaveDialog = false;
+        showBottomFavoritesListCreatorDialog = true;
+      });
+      if (otherUserId != null && currentUserId != null) {
+        widget.favoritesProvider.onLikeClick(
+          otherUserId,
+          currentUserId,
+        );
+      }
+    },
+    favoritesProvider: widget.favoritesProvider,
+    userIdToSave: otherUserId,
+    onUserAddedToList: _onUserAddedToList,
+    onLikeClick: () {
+      if (otherUserId != null && currentUserId != null) {
+        widget.favoritesProvider.onLikeClick(
+          otherUserId,
+          currentUserId,
+        );
+      }
+    },
+  ),
+if (showBottomFavoritesListCreatorDialog)
+  BottomFavoritesListCreatorDialog(
+    userId: otherUserId,
+    onDismiss: () => setState(() => showBottomFavoritesListCreatorDialog = false),
+    favoritesProvider: widget.favoritesProvider,
+    onLikeClick: () {
+      if (otherUserId != null && currentUserId != null) {
+        widget.favoritesProvider.onLikeClick(
+          otherUserId,
+          currentUserId,
+        );
+      }
+    },
+  ),
+if (showSaveMessage && selectedList != null)
+  SaveMessage(
+    list: selectedList!,
+    onModifyClick: () {
+      setState(() {
+        showSaveMessage = false;
+        showBottomSaveDialog = true;
+      });
+      if (otherUserId != null && currentUserId != null) {
+        widget.favoritesProvider.onLikeClick(
+          otherUserId,
+          currentUserId,
+        );
+      }
+    },
+    isVisible: showSaveMessage,
+    onDismiss: () {
+      setState(() => showSaveMessage = false);
+      if (otherUserId != null && currentUserId != null) {
+        widget.favoritesProvider.onLikeClick(
+          otherUserId,
+          currentUserId,
+        );
+      }
+    },
+    favoritesProvider: widget.favoritesProvider,
+    userIdToRemove: otherUserId,
+    onLikeClick: () {
+      if (otherUserId != null && currentUserId != null) {
+        widget.favoritesProvider.onLikeClick(
+          otherUserId,
+          currentUserId,
+        );
+      }
+    },
+    onUnlikeClick: () {
+      if (otherUserId != null) {
+        widget.favoritesProvider.onUnlikeClick(otherUserId);
+      }
+    },
+    currentUserId: currentUserId ?? '', // Provide default value if null
+  ),
           ],
         ),
       ),

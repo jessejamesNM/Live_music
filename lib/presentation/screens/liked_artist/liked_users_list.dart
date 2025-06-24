@@ -27,6 +27,7 @@
   ──────────────────────────────────────────────────────────────────────────────
 */
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/presentation/resources/strings.dart';
@@ -54,7 +55,7 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
   // Provider para manejar la lista de favoritos
   late FavoritesProvider _favoritesProvider;
   // ID del usuario actual
-  late String _currentUserId;
+  late String? _currentUserId;
   // Flag para controlar el estado de carga
   bool _loading = true;
   // Lista de perfiles a mostrar
@@ -71,7 +72,7 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     _favoritesProvider = Provider.of<FavoritesProvider>(context, listen: false);
     // Guardar ID del usuario actual
-    _currentUserId = userProvider.currentUserId;
+    _currentUserId = FirebaseAuth.instance.currentUser?.uid;
     // Cargar los perfiles favoritos
     _loadProfiles();
   }
@@ -164,7 +165,7 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
 
     // Eliminar usuario a través del provider
     _favoritesProvider.removeFromLikedUsersList(
-      currentUserId: _currentUserId,
+      currentUserId: _currentUserId!,
       listId: sel.listId,
       userId: userToDelete!,
     );
@@ -268,7 +269,7 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
                       goRouter: widget.goRouter,
                       favoritesProvider: _favoritesProvider,
                       profiles: _profiles,
-                      currentUserId: _currentUserId,
+                      currentUserId: _currentUserId!,
                       toggleFavoritesDialog: () {},
                       isEditMode: isEditMode,
                       removeUserFromFavoritesList: ({

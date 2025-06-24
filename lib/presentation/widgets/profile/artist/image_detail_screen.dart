@@ -17,6 +17,7 @@
  *  - Utiliza un `FutureBuilder` para cargar la imagen de manera asíncrona y mostrarla cuando esté lista.
  */
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -55,7 +56,7 @@ class ImageDetailScreen extends StatelessWidget {
       listen: false,
     );
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
       backgroundColor:
           Colors
@@ -78,7 +79,7 @@ class ImageDetailScreen extends StatelessWidget {
                 nickname: userProvider.nickname, // Apodo del usuario.
                 isUploading:
                     false, // No estamos subiendo imágenes, estamos solo en modo vista.
-                currentUserId: currentUserId,
+                currentUserId: currentUserId ?? '',
                 goRouter: goRouter,
               ),
               const SizedBox(

@@ -284,7 +284,7 @@ class ProfilePreviewScreen extends StatelessWidget {
                       ),
                       onPressed: () {
                         userProvider.setOtherUserId(userId);
-                        goRouter.push(AppStrings.profileArtistScreenRoute);
+                        goRouter.push(AppStrings.profileArtistScreenWSRoute);
                       },
                       child: Text(AppStrings.viewFullProfile),
                     ),

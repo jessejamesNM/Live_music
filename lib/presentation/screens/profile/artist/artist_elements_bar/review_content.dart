@@ -10,6 +10,7 @@
 // - Presenta una lista de reseñas con información sobre el autor y su puntuación.
 
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:live_music/data/provider_logics/nav_buttom_bar_components/messages/messages_provider.dart';
 import 'package:live_music/presentation/resources/strings.dart';
@@ -45,7 +46,7 @@ class _ReviewsContentState extends State<ReviewsContent> {
   void initState() {
     super.initState();
     _loadReviews(); // Carga las reseñas al inicio.
-    final userId = widget.userProvider.currentUserId;
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     widget.reviewProvider.getAverageStars(
       userId,
     ); // Obtiene la puntuación promedio de reseñas.
@@ -72,7 +73,7 @@ class _ReviewsContentState extends State<ReviewsContent> {
 
   // Función para cargar las reseñas.
   void _loadReviews() {
-    final userId = widget.userProvider.currentUserId;
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     widget.reviewProvider.getReviews(userId, (result) {
       if (mounted) {
         setState(() {
@@ -157,7 +158,7 @@ class _ReviewsContentState extends State<ReviewsContent> {
                         // Muestra el número de reseñas con un StreamBuilder que escucha los cambios.
                         StreamBuilder<int>(
                           stream: widget.messagesProvider.getReviewCountStream(
-                            widget.userProvider.currentUserId,
+                            FirebaseAuth.instance.currentUser?.uid ?? '',
                           ),
                           builder: (context, snapshot) {
                             final count = snapshot.data ?? reviewsNumber;

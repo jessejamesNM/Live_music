@@ -34,6 +34,8 @@ import '../../../../data/provider_logics/user/user_provider.dart';
 import '../../../resources/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+
 class VerificationSuccessScreen extends StatefulWidget {
   // Se puede pasar un deep link como parámetro (por ejemplo, desde un correo)
   final Uri? deepLinkUri;
@@ -198,7 +200,7 @@ class VerificationSuccessContent extends StatelessWidget {
                                   ); // Navega a la pantalla de artista
                                 } else if (userType == 'contractor') {
                                   context.go(
-                                    AppStrings.usernameScreen,
+                                   AppStrings.ageTermsScreenRoute,
                                   ); // Navega a la pantalla de contractor
                                 } else {
                                   // Puedes manejar el caso de un userType no reconocido, si es necesario

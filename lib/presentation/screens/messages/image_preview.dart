@@ -23,6 +23,7 @@
   - Se incluye la funcionalidad para enviar el archivo y manejar posibles errores.
 */
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/presentation/resources/strings.dart';
@@ -45,7 +46,7 @@ class ImagePreviewScreen extends StatelessWidget {
     final selectedMediaFile = messagesProvider.selectedImageFile.value;
 
     // Obtener los ID del usuario actual y el otro usuario
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
     final otherUserId = userProvider.otherUserId;
 
     // Obtener la paleta de colores para la interfaz
@@ -187,7 +188,7 @@ class ImagePreviewScreen extends StatelessWidget {
                               context,
                               "",
                               selectedMediaFile,
-                              currentUserId,
+                              currentUserId?? '',
                               otherUserId,
                             )
                             .catchError((error) {

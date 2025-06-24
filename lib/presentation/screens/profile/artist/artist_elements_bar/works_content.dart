@@ -23,6 +23,7 @@
 // - Soporte para varios formatos de video (mp4, mov, avi, mkv, webm).
 // =====================================================================
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:live_music/data/widgets/cut_and_upload_images.dart';
 import 'package:live_music/data/widgets/media_upload_event.dart';
@@ -57,7 +58,7 @@ class WorksContentState extends State<WorksContent> {
   void initState() {
     super.initState();
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    currentUserId = userProvider.currentUserId;
+    currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _eventBus = EventBus();
     
     _eventBus.subscribe<MediaUploadEvent>(_handleMediaUpload);

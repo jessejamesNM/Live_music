@@ -16,6 +16,7 @@
 // - Se podría agregar una verificación adicional para asegurarse de que el usuario está seguro antes de continuar con la eliminación.
 // - Es recomendable mostrar un mensaje de éxito o feedback después de que la eliminación se haya completado con éxito.
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +36,7 @@ class FinalConfirmation extends HookWidget {
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
     final userProvider = Provider.of<UserProvider>(context);
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isLoading = useState(false);
     final errorMessage = useState<String?>(null);
     final ProfileProvider profileProvider = ProfileProvider();
@@ -122,7 +123,7 @@ class FinalConfirmation extends HookWidget {
 
                     // Realiza la solicitud de eliminación
                     await profileProvider.saveDeletionRequest(
-                      userId: currentUserId,
+                      userId: currentUserId ?? '',
                       reason: reason,
                       currentDay: DateFormat(
                         AppStrings.dateFormat,

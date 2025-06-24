@@ -19,6 +19,7 @@
 */
 
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -76,30 +77,32 @@ class ProfileImageHandler {
     try {
       // Convertir archivo recortado en objeto File
       final file = File(croppedFile.path);
-      final currentUserId = userProvider.currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) {
+      throw Exception("No se pudo obtener el ID del usuario actual.");
+    }
+    // Según el tipo de imagen, proceder diferente
+    if (imageType == 'profiles') {
+      // Subir imagen de perfil
+      final profileUploader = UploadProfileImagesToServer();
+      await profileUploader.uploadProfileImage(currentUserId, file);
 
-      // Según el tipo de imagen, proceder diferente
-      if (imageType == 'profiles') {
-        // Subir imagen de perfil
-        final profileUploader = UploadProfileImagesToServer();
-        await profileUploader.uploadProfileImage(currentUserId, file);
+      // Actualizar la información del usuario localmente
+      userProvider.loadUserData(currentUserId);
 
-        // Actualizar la información del usuario localmente
-        userProvider.loadUserData(currentUserId);
+      // Obtener nueva URL de la imagen
+      final String? newImageUrl = userProvider.profileImageUrl;
 
-        // Obtener nueva URL de la imagen
-        final String? newImageUrl = userProvider.profileImageUrl;
-
-        // Verificar que la URL no sea nula ni vacía y ejecutar callback
-        if (newImageUrl != null && newImageUrl.isNotEmpty) {
-          onImageUploaded(newImageUrl);
-        } else {
-          throw Exception("La URL de la imagen de perfil no está disponible.");
-        }
-      } else if (imageType == 'works') {
-        // Subir imagen de trabajo
-        final worksUploader = RetrofitInstanceForWorks().apiServiceForWorks;
-        final resp = await worksUploader.uploadImage(file, currentUserId);
+      // Verificar que la URL no sea nula ni vacía y ejecutar callback
+      if (newImageUrl != null && newImageUrl.isNotEmpty) {
+        onImageUploaded(newImageUrl);
+      } else {
+        throw Exception("La URL de la imagen de perfil no está disponible.");
+      }
+    } else if (imageType == 'works') {
+      // Subir imagen de trabajo
+      final worksUploader = RetrofitInstanceForWorks().apiServiceForWorks;
+      final resp = await worksUploader.uploadImage(file, currentUserId);
 
         // Verificar que la respuesta contenga URL y ejecutar callback
         if (resp.url != null && resp.url!.isNotEmpty) {

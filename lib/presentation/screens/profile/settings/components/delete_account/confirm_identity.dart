@@ -66,7 +66,7 @@ class _ConfirmIdentityState extends State<ConfirmIdentity> {
   // Método para obtener los datos del usuario desde Firestore
   Future<void> _fetchUserData() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.currentUserId;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final userDoc =
         await FirebaseFirestore.instance
             .collection(AppStrings.usersCollection)

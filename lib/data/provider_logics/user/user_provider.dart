@@ -70,9 +70,6 @@ class UserProvider with ChangeNotifier {
   String _otherUserId = '';
   String get otherUserId => _otherUserId;
 
-  String _currentUserId = '';
-  String get currentUserId => _currentUserId;
-
   bool _addFavorite = false;
   bool get addFavorite => _addFavorite;
 
@@ -143,10 +140,6 @@ class UserProvider with ChangeNotifier {
     notifyListeners(); // Notificar a los listeners para actualizar la UI
   }
 
-  set currentUserId(String value) {
-    _currentUserId = value;
-    notifyListeners(); // Notificar a los listeners para actualizar la UI
-  }
 
   set addFavorite(bool value) {
     _addFavorite = value;
@@ -201,19 +194,6 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  // Esta función obtiene el ID del usuario actual de Firebase Auth.
-  Future<void> fetchCurrentUserId() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      // Si el usuario está autenticado, guarda su UID en _currentUserId.
-      _currentUserId = user.uid;
-    } else {
-      // Si no hay usuario autenticado, establece el ID como una cadena vacía.
-      _currentUserId = '';
-    }
-    notifyListeners(); // Notifica a los listeners que el valor ha cambiado.
-  }
-
   // Función para verificar el correo electrónico del usuario.
   Future<void> verifyEmail() async {
     final currentUser = _auth.currentUser;
@@ -260,7 +240,8 @@ class UserProvider with ChangeNotifier {
     }
     return success;
   }
-final String openCageApiKey = '36b67e51dc224a05afa8db6d5ef376f3'; 
+
+  final String openCageApiKey = '36b67e51dc224a05afa8db6d5ef376f3';
 
   // Obtiene la ubicación del dispositivo y luego la dirección.
   Future<void> getCountryAndState() async {
@@ -333,6 +314,7 @@ final String openCageApiKey = '36b67e51dc224a05afa8db6d5ef376f3';
       return index != -1 ? replacements[index] : char;
     }).join();
   }
+
   // Función pública para verificar si el tipo de usuario es 'Artist'.
   bool isUserTypeArtist(String userType) {
     return userType == 'Artist';
@@ -538,23 +520,14 @@ final String openCageApiKey = '36b67e51dc224a05afa8db6d5ef376f3';
     otherUserId.value = '';
   }
 
-  // Inicializar el ViewModel con el ID del usuario actual
-  void init(ValueNotifier<String> currentUserId, FirebaseAuth firebaseAuth) {
-    fetchUserIdFromFirebase(currentUserId, firebaseAuth);
-  }
 
-  // Obtener el ID del usuario actual desde Firebase Auth
-  void fetchUserIdFromFirebase(
-    ValueNotifier<String> currentUserId,
-    FirebaseAuth firebaseAuth,
-  ) {
-    final user = firebaseAuth.currentUser;
-    currentUserId.value = user?.uid ?? '';
-  }
+
+
 
   // Establecer el ID de otro usuario
   void setOtherUserId(String id) {
     _otherUserId = id;
+    loadUserData(id);
   }
 
   // Cargar datos del usuario desde Firebase y guardar en la base de datos local
@@ -667,47 +640,53 @@ final String openCageApiKey = '36b67e51dc224a05afa8db6d5ef376f3';
           }
         });
   }
+// Añadir likes a un usuario
+void addLikes(String userId) async {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  // Obtener el ID del usuario actual desde Firebase Auth
+  String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-  // Añadir likes a un usuario
-  void addLikes(String userId) async {
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
+  // Verificar que hay un usuario autenticado
+  if (currentUserId == null) {
+    print('No hay usuario autenticado');
+    return;
+  }
 
-    QuerySnapshot querySnapshot =
-        await firestore
-            .collection("UserStatistics")
-            .doc(userId)
-            .collection("phases")
-            .doc("fase1")
-            .collection("Statistics")
-            .limit(1)
-            .get();
+  QuerySnapshot querySnapshot = await firestore
+      .collection("UserStatistics")
+      .doc(userId)
+      .collection("phases")
+      .doc("fase1")
+      .collection("Statistics")
+      .limit(1)
+      .get();
 
-    if (querySnapshot.docs.isNotEmpty) {
-      DocumentSnapshot firstDocument = querySnapshot.docs.first;
-      String documentPath = firstDocument.reference.path;
-      DocumentReference documentRef = firestore.doc(documentPath);
-      DocumentReference userRef = firestore.collection("users").doc(userId);
+  if (querySnapshot.docs.isNotEmpty) {
+    DocumentSnapshot firstDocument = querySnapshot.docs.first;
+    String documentPath = firstDocument.reference.path;
+    DocumentReference documentRef = firestore.doc(documentPath);
+    DocumentReference userRef = firestore.collection("users").doc(userId);
 
-      DocumentSnapshot document = await documentRef.get();
-      if (document.exists) {
-        List<String> userWhoLikedMeIds = [];
+    DocumentSnapshot document = await documentRef.get();
+    if (document.exists) {
+      List<String> userWhoLikedMeIds = [];
 
-        DocumentSnapshot userDocument = await userRef.get();
-        userWhoLikedMeIds = List<String>.from(
-          userDocument.get("userWhoLikedMeIds") ?? [],
-        );
+      DocumentSnapshot userDocument = await userRef.get();
+      userWhoLikedMeIds = List<String>.from(
+        userDocument.get("userWhoLikedMeIds") ?? [],
+      );
 
-        int currentLikes = (document.get("userLikes") ?? 0) as int;
+      int currentLikes = (document.get("userLikes") ?? 0) as int;
 
-        if (!userWhoLikedMeIds.contains(currentUserId)) {
-          await documentRef.update({"userLikes": currentLikes + 1});
-          await userRef.update({
-            "userWhoLikedMeIds": FieldValue.arrayUnion([currentUserId]),
-          });
-        }
+      if (!userWhoLikedMeIds.contains(currentUserId)) {
+        await documentRef.update({"userLikes": currentLikes + 1});
+        await userRef.update({
+          "userWhoLikedMeIds": FieldValue.arrayUnion([currentUserId]),
+        });
       }
     }
   }
+}
 
   // Subir estadísticas de usuario
   Future<void> uploadStatistics(String userId, int startDateMillis) async {

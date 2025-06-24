@@ -90,7 +90,7 @@ class _RegisterContractorMailScreenState
     };
   }
 
-  // Método para manejar el registro (copiado del artista pero manteniendo userType como contractor)
+  // Método para manejar el registro
   Future<void> _handleRegistration() async {
     final name = nameController.text.trim();
     final lastName = lastNameController.text.trim();
@@ -120,7 +120,7 @@ class _RegisterContractorMailScreenState
     try {
       final sharedPreferences = await SharedPreferences.getInstance();
       final userRepository = UserRepository(sharedPreferences);
-      final role = AppStrings.contractor; // Mantenemos como contractor
+      final role = AppStrings.contractor;
 
       // Intenta registrar el usuario
       final errorMsg = await userRepository.registerUser(
@@ -132,9 +132,11 @@ class _RegisterContractorMailScreenState
       );
 
       if (errorMsg == null) {
-        // Cambiamos la lógica de envío de correo para contractor si es necesario
+        // Envía el correo de verificación y navega a la pantalla de espera
         await sendVerificationEmail(email);
-        if (mounted) context.go(AppStrings.waitingConfirmScreenRoute);
+        if (mounted) {
+          context.go(AppStrings.waitingConfirmScreenRoute);
+        }
       } else {
         setState(() => errorMessage = errorMsg);
       }
@@ -197,7 +199,7 @@ class _RegisterContractorMailScreenState
               ),
               SizedBox(height: textFieldSpacing * 1.5),
 
-              // Botón de registro (copiado del artista)
+              // Botón de registro
               _buildRegisterButton(
                 colorScheme: colorScheme,
                 buttonHeight: buttonHeight,
@@ -236,7 +238,6 @@ class _RegisterContractorMailScreenState
     );
   }
 
-  // Métodos auxiliares copiados del artista
   Widget _buildFormFields({
     required Map<String, Color?> colorScheme,
     required double borderValue,
