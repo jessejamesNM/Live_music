@@ -1,0 +1,99 @@
+{
+  "project_info": {
+    "project_number": "979330270552",
+    "firebase_url": "https://live-mus-default-rtdb.firebaseio.com",
+    "project_id": "live-mus",
+    "storage_bucket": "live-mus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:979330270552:android:0bced7a78696208c56512d",
+        "android_client_info": {
+          "package_name": "com.jesse.live_music"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "979330270552-kgfobs66tk0f826l32eq5nvgh106s2cq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jesse.live_music",
+            "certificate_hash": "7bba1fcefd0528cf8978b1aa036ab129e3c262bd"
+          }
+        },
+        {
+          "client_id": "979330270552-p2vf2up4erpa4d8d6r8jdjv507dbhq01.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYVDccLi4MPtugSptWv_la-MX0BQDyjTs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "979330270552-p2vf2up4erpa4d8d6r8jdjv507dbhq01.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "979330270552-c9eevtm2tecmfi49m32fl6rau2t658sv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.liveMusic4"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:979330270552:android:49c19d207ad6323356512d",
+        "android_client_info": {
+          "package_name": "com.jesse.livemusic"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "979330270552-t3i16no31lrd76vbp66knbtn529e8i76.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jesse.livemusic",
+            "certificate_hash": "7bba1fcefd0528cf8978b1aa036ab129e3c262bd"
+          }
+        },
+        {
+          "client_id": "979330270552-p2vf2up4erpa4d8d6r8jdjv507dbhq01.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYVDccLi4MPtugSptWv_la-MX0BQDyjTs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "979330270552-p2vf2up4erpa4d8d6r8jdjv507dbhq01.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "979330270552-c9eevtm2tecmfi49m32fl6rau2t658sv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.liveMusic4"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
