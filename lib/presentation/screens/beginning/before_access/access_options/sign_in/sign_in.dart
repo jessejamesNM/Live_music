@@ -39,12 +39,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:go_router/go_router.dart';
-
 class LoginOptionsScreen extends StatefulWidget {
   final GoRouter goRouter;
 
-  const LoginOptionsScreen({Key? key, required this.goRouter})
-    : super(key: key);
+  const LoginOptionsScreen({Key? key, required this.goRouter}) : super(key: key);
 
   @override
   _LoginOptionsScreenState createState() => _LoginOptionsScreenState();
@@ -70,16 +68,15 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
       User? currentUser = userCredential.user;
 
       if (currentUser != null) {
-        DocumentSnapshot userDoc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(currentUser.uid)
-                .get();
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
 
         if (userDoc.exists) {
           setState(() {
@@ -165,8 +162,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                     style: TextStyle(
                       fontSize: titleFontSize,
                       color:
-                          colorScheme[AppStrings.secondaryColor] ??
-                          Colors.black,
+                          colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                     ),
                   ),
                 ),
@@ -184,7 +180,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
 
                 SizedBox(height: textFieldSpacing * 2.5),
 
-                // Email button
+                // Email button con icono y texto en blanco fijo
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: buttonPaddingHorizontal,
@@ -192,19 +188,16 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          colorScheme[AppStrings.essentialColor] ??
-                          Colors.white,
+                          colorScheme[AppStrings.essentialColor] ?? Colors.white,
                       side: BorderSide(
                         color:
-                            colorScheme[AppStrings.essentialColor] ??
-                            Colors.black,
+                            colorScheme[AppStrings.essentialColor] ?? Colors.black,
                         width: buttonBorderWidth,
                       ),
                     ),
-                    onPressed:
-                        () => widget.goRouter.push(
-                          AppStrings.loginMailScreenRoute,
-                        ),
+                    onPressed: () => widget.goRouter.push(
+                      AppStrings.loginMailScreenRoute,
+                    ),
                     child: SizedBox(
                       height: buttonHeight,
                       child: Stack(
@@ -214,9 +207,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                             left: 0,
                             child: Icon(
                               Icons.mail,
-                              color:
-                                  colorScheme[AppStrings.secondaryColor] ??
-                                  Colors.black,
+                              color: Colors.white, // Aquí forzamos blanco
                               size: buttonIconSize,
                             ),
                           ),
@@ -224,9 +215,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                             child: Text(
                               AppStrings.continueWithMail,
                               style: TextStyle(
-                                color:
-                                    colorScheme[AppStrings.secondaryColor] ??
-                                    Colors.black,
+                                color: Colors.white, // Aquí también blanco fijo
                               ),
                             ),
                           ),
@@ -238,7 +227,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
 
                 SizedBox(height: textFieldSpacing),
 
-                // Google button
+                // Google button sin cambios
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: buttonPaddingHorizontal,
@@ -249,8 +238,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                           colorScheme[AppStrings.primaryColor] ?? Colors.white,
                       side: BorderSide(
                         color:
-                            colorScheme[AppStrings.secondaryColor] ??
-                            Colors.black,
+                            colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                         width: buttonBorderWidth,
                       ),
                     ),
@@ -275,7 +263,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                               style: TextStyle(
                                 color:
                                     colorScheme[AppStrings.secondaryColor] ??
-                                    Colors.black,
+                                        Colors.black,
                               ),
                             ),
                           ),
@@ -290,7 +278,8 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
             if (isLoading)
               Center(
                 child: CircularProgressIndicator(
-                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                  color:
+                      colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                 ),
               ),
           ],

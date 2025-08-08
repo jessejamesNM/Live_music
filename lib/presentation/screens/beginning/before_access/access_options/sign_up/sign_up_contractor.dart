@@ -151,8 +151,8 @@ class RegisterOptionsContractorUI extends StatelessWidget {
                             child: Icon(
                               Icons.mail,
                               color:
-                                  colorScheme[AppStrings.secondaryColor] ??
-                                  Colors.black,
+                                  
+                                  Colors.white,
                               size: 24,
                             ),
                           ),
@@ -161,8 +161,7 @@ class RegisterOptionsContractorUI extends StatelessWidget {
                               AppStrings.continueWithMail,
                               style: TextStyle(
                                 color:
-                                    colorScheme[AppStrings.secondaryColor] ??
-                                    Colors.black,
+                                    Colors.white,
                               ),
                             ),
                           ),

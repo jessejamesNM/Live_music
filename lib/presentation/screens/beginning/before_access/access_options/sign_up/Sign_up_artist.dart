@@ -36,24 +36,19 @@ import '../../../../../../data/provider_logics/auth/register_wigh_google_provide
 import '../../../../../../data/provider_logics/user/user_provider.dart';
 import '../../../../../resources/colors.dart';
 import '../../../../../resources/strings.dart';
-
 class RegisterOptionsArtistScreen extends StatelessWidget {
   final GoRouter goRouter;
 
-  // Constructor que recibe el objeto 'goRouter' para manejar la navegación.
   const RegisterOptionsArtistScreen({Key? key, required this.goRouter})
-    : super(key: key);
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      // Se crea un proveedor de estado para manejar el registro con Google.
       create: (_) => RegisterWithGoogleProvider(),
       child: Consumer2<RegisterWithGoogleProvider, UserProvider>(
-        // El Consumer escucha cambios en los proveedores de estado y actualiza la UI.
         builder: (context, registerWithGoogleProvider, userProvider, child) {
           return RegisterOptionsArtistUI(
-            // Se pasa el estado y los datos necesarios al widget de UI.
             registerWithGoogleProvider: registerWithGoogleProvider,
             userProvider: userProvider,
             goRouter: goRouter,
@@ -69,7 +64,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
   final UserProvider userProvider;
   final GoRouter goRouter;
 
-  // Constructor que recibe los proveedores y el objeto 'goRouter'.
   const RegisterOptionsArtistUI({
     Key? key,
     required this.registerWithGoogleProvider,
@@ -79,10 +73,8 @@ class RegisterOptionsArtistUI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el esquema de colores de la aplicación.
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Definimos constantes de diseño para la UI.
     const double paddingAll = 16.0;
     const double iconPaddingTop = 16.0;
     const double textFieldSpacing = 8.0;
@@ -95,7 +87,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
     const double svgIconSize = 23.0;
 
     return Scaffold(
-      // Establecemos el color de fondo de la pantalla usando el esquema de colores.
       backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(paddingAll),
@@ -103,7 +94,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
           children: [
             Positioned(
               top: iconPaddingTop,
-              // Botón para navegar hacia atrás.
               child: IconButton(
                 icon: Icon(
                   Icons.arrow_back,
@@ -111,7 +101,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   size: 26.0,
                 ),
                 onPressed: () {
-                  // Si es posible, navega hacia atrás, sino regresa a la pantalla de selección.
                   if (goRouter.canPop()) {
                     goRouter.pop();
                   } else {
@@ -124,37 +113,31 @@ class RegisterOptionsArtistUI extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Título de la pantalla de registro.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: paddingAll),
                   child: Text(
                     AppStrings.signUp,
                     style: TextStyle(
                       fontSize: titleFontSize,
-                      color:
-                          colorScheme[AppStrings.secondaryColor] ??
-                          Colors.black,
+                      color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                     ),
                   ),
                 ),
                 const SizedBox(height: textFieldSpacing * 2.5),
-                // Botón de registro con correo electrónico.
+                // Botón con icono y texto en color blanco (cambios aquí)
                 _buildAuthButton(
                   icon: Icons.mail,
                   text: AppStrings.continueWithMail,
-                  onPressed:
-                      () => goRouter.push(
-                        AppStrings.registerArtistMailScreenRoute,
-                      ),
+                  onPressed: () => goRouter.push(AppStrings.registerArtistMailScreenRoute),
                   colorScheme: colorScheme,
                   buttonHeight: buttonHeight,
                   buttonIconSize: buttonIconSize,
                   buttonPaddingHorizontal: buttonPaddingHorizontal,
                   buttonBorderWidth: buttonBorderWidth,
                   backgroundColor: AppStrings.essentialColor,
+                  forceIconAndTextColor: Colors.white, // <-- color blanco fijo
                 ),
                 const SizedBox(height: textFieldSpacing),
-                // Botón de registro con Google.
                 _buildAuthButton(
                   iconWidget: SvgPicture.asset(
                     AppStrings.googleIconPath,
@@ -163,13 +146,8 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                     color: colorScheme[AppStrings.secondaryColor],
                   ),
                   text: AppStrings.continueWithGoogle,
-                  onPressed:
-                      () => registerWithGoogleProvider.signInWithGoogle(
-                        context,
-                        userProvider,
-                        goRouter,
-                        AppStrings.artist,
-                      ),
+                  onPressed: () => registerWithGoogleProvider.signInWithGoogle(
+                      context, userProvider, goRouter, AppStrings.artist),
                   colorScheme: colorScheme,
                   buttonHeight: buttonHeight,
                   buttonIconSize: buttonIconSize,
@@ -179,18 +157,14 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   borderColor: AppStrings.secondaryColor,
                 ),
                 const SizedBox(height: textFieldSpacing),
-                // Botón de texto para ir a la pantalla de login.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: paddingAll),
                   child: TextButton(
-                    onPressed:
-                        () => goRouter.push(AppStrings.loginOptionsScreenRoute),
+                    onPressed: () => goRouter.push(AppStrings.loginOptionsScreenRoute),
                     child: Text(
                       AppStrings.logIn,
                       style: TextStyle(
-                        color:
-                            colorScheme[AppStrings.secondaryColor] ??
-                            Colors.black,
+                        color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                         fontSize: buttonFontSize,
                       ),
                     ),
@@ -204,7 +178,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
     );
   }
 
-  // Método para construir los botones de autenticación (email, Google, etc.).
   Widget _buildAuthButton({
     IconData? icon,
     Widget? iconWidget,
@@ -217,17 +190,21 @@ class RegisterOptionsArtistUI extends StatelessWidget {
     required double buttonBorderWidth,
     required String backgroundColor,
     String borderColor = '',
+    Color? forceIconAndTextColor, // nuevo parámetro opcional para forzar color
   }) {
+    final Color iconTextColor = forceIconAndTextColor ??
+        colorScheme[AppStrings.secondaryColor] ??
+        Colors.black;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme[backgroundColor] ?? Colors.white,
           side: BorderSide(
-            color:
-                borderColor.isNotEmpty
-                    ? colorScheme[borderColor] ?? Colors.black
-                    : colorScheme[backgroundColor] ?? Colors.black,
+            color: borderColor.isNotEmpty
+                ? colorScheme[borderColor] ?? Colors.black
+                : colorScheme[backgroundColor] ?? Colors.black,
             width: buttonBorderWidth,
           ),
         ),
@@ -239,13 +216,10 @@ class RegisterOptionsArtistUI extends StatelessWidget {
             children: [
               Positioned(
                 left: 0,
-                child:
-                    iconWidget ??
+                child: iconWidget ??
                     Icon(
                       icon,
-                      color:
-                          colorScheme[AppStrings.secondaryColor] ??
-                          Colors.black,
+                      color: iconTextColor,
                       size: buttonIconSize,
                     ),
               ),
@@ -253,8 +227,7 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                    color: iconTextColor,
                   ),
                 ),
               ),
