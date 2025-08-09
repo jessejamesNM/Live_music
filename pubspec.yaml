@@ -59,11 +59,11 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.3
   
 flutter_launcher_icons:
-  image_path_android: "assets/images/LiveMusic_ic.png"
-  image_path_ios: "assets/images/LiveMusicIos_ic.jpg"
+  image_path_android: "assets/images/My_Events_logo.png"
+  image_path_ios: "assets/images/My_Events_logo.jpg"
   android: true
   ios: true
-  adaptive_icon_background: "assets/images/LiveMusic_ic.png"
+  adaptive_icon_background: "assets/images/My_Events_logo.png"
   adaptive_icon_foreground: "assets/images/transparent.png"
 
 flutter:
