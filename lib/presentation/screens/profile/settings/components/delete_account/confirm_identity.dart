@@ -34,6 +34,7 @@ import '../../../../../../data/model/profile/deletion_request.dart';
 import '../../../../../../data/provider_logics/user/user_provider.dart';
 import '../../../../buttom_navigation_bar.dart';
 import 'package:live_music/presentation/resources/colors.dart';
+
 class ConfirmIdentity extends StatefulWidget {
   final GoRouter goRouter;
   final Function(DeletionRequest?) deletionRequest;
@@ -119,7 +120,7 @@ class _ConfirmIdentityState extends State<ConfirmIdentity> {
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: widget.goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: SafeArea(
         child: Padding(

@@ -29,7 +29,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:live_music/data/provider_logics/auth/register_with_apple_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../../data/provider_logics/auth/register_wigh_google_provider.dart';
@@ -40,21 +42,19 @@ import '../../../../../resources/strings.dart';
 class RegisterOptionsArtistScreen extends StatelessWidget {
   final GoRouter goRouter;
 
-  // Constructor que recibe el objeto 'goRouter' para manejar la navegación.
   const RegisterOptionsArtistScreen({Key? key, required this.goRouter})
     : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      // Se crea un proveedor de estado para manejar el registro con Google.
-      create: (_) => RegisterWithGoogleProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => RegisterWithGoogleProvider()),
+      ],
       child: Consumer2<RegisterWithGoogleProvider, UserProvider>(
-        // El Consumer escucha cambios en los proveedores de estado y actualiza la UI.
-        builder: (context, registerWithGoogleProvider, userProvider, child) {
+        builder: (context, googleProvider, userProvider, child) {
           return RegisterOptionsArtistUI(
-            // Se pasa el estado y los datos necesarios al widget de UI.
-            registerWithGoogleProvider: registerWithGoogleProvider,
+            registerWithGoogleProvider: googleProvider,
             userProvider: userProvider,
             goRouter: goRouter,
           );
@@ -69,7 +69,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
   final UserProvider userProvider;
   final GoRouter goRouter;
 
-  // Constructor que recibe los proveedores y el objeto 'goRouter'.
   const RegisterOptionsArtistUI({
     Key? key,
     required this.registerWithGoogleProvider,
@@ -79,10 +78,8 @@ class RegisterOptionsArtistUI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el esquema de colores de la aplicación.
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Definimos constantes de diseño para la UI.
     const double paddingAll = 16.0;
     const double iconPaddingTop = 16.0;
     const double textFieldSpacing = 8.0;
@@ -94,8 +91,9 @@ class RegisterOptionsArtistUI extends StatelessWidget {
     const double buttonFontSize = 16.0;
     const double svgIconSize = 23.0;
 
+    final String userType = userProvider.userType ?? '';
+
     return Scaffold(
-      // Establecemos el color de fondo de la pantalla usando el esquema de colores.
       backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(paddingAll),
@@ -103,7 +101,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
           children: [
             Positioned(
               top: iconPaddingTop,
-              // Botón para navegar hacia atrás.
               child: IconButton(
                 icon: Icon(
                   Icons.arrow_back,
@@ -111,7 +108,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   size: 26.0,
                 ),
                 onPressed: () {
-                  // Si es posible, navega hacia atrás, sino regresa a la pantalla de selección.
                   if (goRouter.canPop()) {
                     goRouter.pop();
                   } else {
@@ -124,7 +120,6 @@ class RegisterOptionsArtistUI extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Título de la pantalla de registro.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: paddingAll),
                   child: Text(
@@ -138,38 +133,54 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: textFieldSpacing * 2.5),
-                // Botón de registro con correo electrónico.
+
+                // Registro con correo - Texto en blanco
                 _buildAuthButton(
                   icon: Icons.mail,
                   text: AppStrings.continueWithMail,
-                  onPressed:
-                      () => goRouter.push(
-                        AppStrings.registerArtistMailScreenRoute,
-                      ),
+                  onPressed: () {
+                    if (userType.isNotEmpty) {
+                      goRouter.push(AppStrings.registerArtistMailScreenRoute);
+                    } else {
+                      _showUserTypeError(context);
+                    }
+                  },
                   colorScheme: colorScheme,
                   buttonHeight: buttonHeight,
                   buttonIconSize: buttonIconSize,
                   buttonPaddingHorizontal: buttonPaddingHorizontal,
                   buttonBorderWidth: buttonBorderWidth,
                   backgroundColor: AppStrings.essentialColor,
+                  textColor:
+                      Colors.white, // Texto en blanco para el botón de correo
+                  iconColor:
+                      Colors.white, // Icono en blanco para el botón de correo
                 ),
                 const SizedBox(height: textFieldSpacing),
-                // Botón de registro con Google.
+
+                // Registro con Google - Mantiene secondaryColor
                 _buildAuthButton(
                   iconWidget: SvgPicture.asset(
                     AppStrings.googleIconPath,
                     width: svgIconSize,
                     height: svgIconSize,
-                    color: colorScheme[AppStrings.secondaryColor],
+                    color:
+                        colorScheme[AppStrings
+                            .secondaryColor], // Mantiene secondaryColor
                   ),
                   text: AppStrings.continueWithGoogle,
-                  onPressed:
-                      () => registerWithGoogleProvider.signInWithGoogle(
+                  onPressed: () {
+                    if (userType.isNotEmpty) {
+                      registerWithGoogleProvider.signInWithGoogle(
                         context,
                         userProvider,
                         goRouter,
-                        AppStrings.artist,
-                      ),
+                        userType,
+                      );
+                    } else {
+                      _showUserTypeError(context);
+                    }
+                  },
                   colorScheme: colorScheme,
                   buttonHeight: buttonHeight,
                   buttonIconSize: buttonIconSize,
@@ -177,9 +188,12 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   buttonBorderWidth: buttonBorderWidth,
                   backgroundColor: AppStrings.primaryColor,
                   borderColor: AppStrings.secondaryColor,
+                  textColor:
+                      colorScheme[AppStrings
+                          .secondaryColor], // Mantiene secondaryColor
                 ),
+
                 const SizedBox(height: textFieldSpacing),
-                // Botón de texto para ir a la pantalla de login.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: paddingAll),
                   child: TextButton(
@@ -204,7 +218,16 @@ class RegisterOptionsArtistUI extends StatelessWidget {
     );
   }
 
-  // Método para construir los botones de autenticación (email, Google, etc.).
+  void _showUserTypeError(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Por favor selecciona un tipo de usuario antes de continuar.',
+        ),
+      ),
+    );
+  }
+
   Widget _buildAuthButton({
     IconData? icon,
     Widget? iconWidget,
@@ -217,6 +240,8 @@ class RegisterOptionsArtistUI extends StatelessWidget {
     required double buttonBorderWidth,
     required String backgroundColor,
     String borderColor = '',
+    Color? textColor,
+    Color? iconColor,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal),
@@ -237,24 +262,31 @@ class RegisterOptionsArtistUI extends StatelessWidget {
           child: Stack(
             alignment: Alignment.centerLeft,
             children: [
-              Positioned(
-                left: 0,
-                child:
-                    iconWidget ??
-                    Icon(
-                      icon,
-                      color:
-                          colorScheme[AppStrings.secondaryColor] ??
-                          Colors.black,
-                      size: buttonIconSize,
-                    ),
-              ),
+              if (iconWidget != null || icon != null)
+                Positioned(
+                  left: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12.0),
+                    child:
+                        iconWidget ??
+                        Icon(
+                          icon,
+                          color:
+                              iconColor ??
+                              colorScheme[AppStrings.secondaryColor] ??
+                              Colors.black,
+                          size: buttonIconSize,
+                        ),
+                  ),
+                ),
               Center(
                 child: Text(
                   text,
                   style: TextStyle(
                     color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                        textColor ??
+                        colorScheme[AppStrings.secondaryColor] ??
+                        Colors.black,
                   ),
                 ),
               ),

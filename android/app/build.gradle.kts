@@ -26,9 +26,9 @@ android {
     defaultConfig {
         applicationId = "com.jesse.live_music"
         minSdk = 23
-        targetSdk = flutter.targetSdkVersion.toInt()
-        versionCode = flutter.versionCode.toInt()
-        versionName = flutter.versionName
+        targetSdk = 35
+        versionCode = 10
+        versionName = "1.1.1"
     }
 
     signingConfigs {

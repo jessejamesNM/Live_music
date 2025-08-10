@@ -14,14 +14,10 @@ import 'package:live_music/presentation/widgets/beggining/option_card.dart';
 import '../../../resources/colors.dart';
 
 class SelectionScreen extends StatelessWidget {
-  // Definición de tres variables de callback (funciones) que se pasarán a los widgets.
-  // Estos callbacks se usan cuando el usuario hace clic en alguna de las opciones.
   final VoidCallback onArtistClick;
   final VoidCallback onContractorClick;
   final VoidCallback onLoginClick;
 
-  // Constructor para la clase, permite pasar funciones para los tres callbacks.
-  // Si no se pasa ninguna función, se usa la función por defecto _defaultCallback.
   const SelectionScreen({
     Key? key,
     this.onArtistClick = _defaultCallback,
@@ -29,31 +25,27 @@ class SelectionScreen extends StatelessWidget {
     this.onLoginClick = _defaultCallback,
   }) : super(key: key);
 
-  // Función por defecto que no hace nada, se usa cuando no se pasan funciones específicas.
   static void _defaultCallback() {}
 
   @override
   Widget build(BuildContext context) {
-    // Definimos la fuente principal que se usará en el texto de la UI.
     final fontMainFamily = AppStrings.bevietnamProRegular;
-
-    // Obtenemos el esquema de colores de la aplicación para aplicar el tema.
     final colorScheme = ColorPalette.getPalette(context);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth =
+        (screenWidth - 60) / 2; // Ajustado con margen y separación
+
     return Scaffold(
-      // Configuramos el color de fondo del Scaffold utilizando el esquema de colores.
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Padding(
-        // Aplicamos un padding de 20 puntos en todos los lados.
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Esto crea un espacio vacío de 65% del total disponible en el eje vertical.
             const Spacer(flex: 65),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Un texto que muestra el nombre de la aplicación, con estilo personalizado.
                 Text(
                   AppStrings.appName,
                   style: TextStyle(
@@ -62,34 +54,36 @@ class SelectionScreen extends StatelessWidget {
                     fontSize: 37,
                   ),
                 ),
-                const SizedBox(
-                  height: 40,
-                ), // Espacio vacío de 40 puntos entre elementos.
+                const SizedBox(height: 40),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Dos tarjetas de opción (OptionCard) que representan las opciones disponibles.
-                    OptionCard(
-                      text: AppStrings.iAmMusician,
-                      imageRes: AppStrings.icMusicAsset,
-                      onClick: onArtistClick,
+                    SizedBox(
+                      width: cardWidth,
+                      height: cardWidth,
+                      child: OptionCard(
+                        text: "Ofrezco servicios",
+                        imageRes: "assets/svg/businessman.svg",
+                        onClick: onArtistClick,
+                      ),
                     ),
-                    OptionCard(
-                      text: AppStrings.iWantToHire,
-                      imageRes: AppStrings.icContractorAsset,
-                      onClick: onContractorClick,
+                    SizedBox(
+                      width: cardWidth,
+                      height: cardWidth,
+                      child: OptionCard(
+                        text: AppStrings.iWantToHire,
+                        imageRes: AppStrings.icContractorAsset,
+                        onClick: onContractorClick,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
-            const Spacer(flex: 5), // Espacio vacío de 5% en la parte inferior.
+            const Spacer(flex: 5),
             Align(
-              alignment:
-                  Alignment
-                      .bottomRight, // Alinea el texto en la parte inferior derecha.
+              alignment: Alignment.bottomRight,
               child: GestureDetector(
-                // Detecta un toque y llama al callback para iniciar sesión.
                 onTap: onLoginClick,
                 child: Text(
                   AppStrings.logIn,

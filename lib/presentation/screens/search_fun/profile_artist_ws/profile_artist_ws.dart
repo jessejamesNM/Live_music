@@ -30,6 +30,7 @@ import 'package:live_music/data/sources/local/internal_data_base.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/aviability_content.ws.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/dates_ws.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/review_content_ws.dart';
+import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/service_profile_view_screen.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/work_content_ws.dart';
 
 import 'package:live_music/presentation/widgets/bottom_list_creator_dialog.dart';
@@ -68,23 +69,63 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
   String reportContent = "";
   bool showReportForm = false;
   bool showBlockDialog = false;
+  String? _currentProfileId; // Almacena localmente el ID del perfil actual
+  Map<String, dynamic> _profileData = {}; // Cache local de datos del perfil
 
   @override
   void initState() {
     super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    // Obtener el ID actual del provider
+    final currentProfileId = widget.userProvider.otherUserId;
+    if (currentProfileId == null) return;
+
+    // Guardar localmente el ID del perfil
+    _currentProfileId = currentProfileId;
+
+    // Cargar datos del perfil específico
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentProfileId)
+            .get();
+
+    if (doc.exists) {
+      setState(() {
+        _profileData = {
+          'userName': doc.get('name'),
+          'nickname': doc.get('nickname'),
+          'profileImageUrl': doc.get('profileImageUrl'),
+        };
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(ProfileHeaderWS oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.userProvider.otherUserId != _currentProfileId) {
+      _loadProfileData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
-    final otherUserId = userProvider.otherUserId;
-   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final userName = userProvider.userName;
-    final nickname = userProvider.nickname;
-    final profileImageUrl = userProvider.profileImageUrl;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
-    final isUserLiked = favoritesProvider.isUserLiked(otherUserId);
+
+    // Usar datos locales en lugar de los del provider directamente
+    final userName = _profileData['userName'] ?? 'Cargando...';
+    final nickname = _profileData['nickname'] ?? '';
+    final profileImageUrl = _profileData['profileImageUrl'] ?? '';
+    final isUserLiked =
+        _currentProfileId != null
+            ? favoritesProvider.isUserLiked(_currentProfileId!)
+            : false;
 
     return Container(
       color: colorScheme[AppStrings.primaryColorLight],
@@ -95,17 +136,13 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
           children: [
             Stack(
               children: [
-                // Flecha atrás personalizada
-
-                // Avatar
                 Center(
                   child: CircleAvatar(
                     radius: 60,
                     backgroundColor: Colors.grey[200],
                     child: ClipOval(
                       child:
-                          (profileImageUrl != null &&
-                                  profileImageUrl.isNotEmpty)
+                          (profileImageUrl.isNotEmpty)
                               ? CachedNetworkImage(
                                 imageUrl: profileImageUrl,
                                 fit: BoxFit.cover,
@@ -121,7 +158,6 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
                     ),
                   ),
                 ),
-                // Menú de opciones como diálogo
                 Positioned(
                   top: 0,
                   right: 0,
@@ -152,28 +188,24 @@ class _ProfileHeaderState extends State<ProfileHeaderWS> {
               textAlign: TextAlign.center,
             ),
 
-           // Si decides mantener el form/report inline, aquí lo puedes dejar:
-if (showBlockDialog && currentUserId != null && otherUserId != null)
-  _buildBlockDialog(context, currentUserId!, otherUserId!),
-if (showReportForm && currentUserId != null && otherUserId != null)
-  _buildReportForm(context, currentUserId!, otherUserId!),
-
-const SizedBox(height: 8),
-_buildActionButtons(
-  context,
-  widget.state,
-  favoritesProvider,
-  currentUserId ?? '', // Provide default empty string if null
-  otherUserId ?? '',   // Provide default empty string if null
-  colorScheme,
-  isUserLiked,
-),
+            const SizedBox(height: 8),
+            if (_currentProfileId != null && currentUserId != null)
+              _buildActionButtons(
+                context,
+                widget.state,
+                favoritesProvider,
+                currentUserId,
+                _currentProfileId!,
+                colorScheme,
+                isUserLiked,
+              ),
           ],
         ),
       ),
     );
   }
 
+  // Resto de los métodos permanecen iguales, pero usando _currentProfileId en lugar de userProvider.otherUserId
   void _showOptionsDialog(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
 
@@ -181,24 +213,22 @@ _buildActionButtons(
       context: context,
       builder:
           (_) => SimpleDialog(
-            backgroundColor: colorScheme[AppStrings.primaryColor], // Fondo
+            backgroundColor: colorScheme[AppStrings.primaryColor],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             children: [
               SimpleDialogOption(
                 child: Text(
                   AppStrings.reportOption,
                   style: TextStyle(
                     fontSize: 18,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color de texto
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  setState(() {
-                    showReportForm = true;
-                    showBlockDialog = false;
-                  });
+                  _showReportDialog(context);
                 },
               ),
               SimpleDialogOption(
@@ -206,17 +236,12 @@ _buildActionButtons(
                   AppStrings.blockOption,
                   style: TextStyle(
                     fontSize: 18,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color de texto
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  setState(() {
-                    showBlockDialog = true;
-                    showReportForm = false;
-                  });
+                  _showBlockDialog(context);
                 },
               ),
               SimpleDialogOption(
@@ -224,9 +249,7 @@ _buildActionButtons(
                   AppStrings.shareProfileOption,
                   style: TextStyle(
                     fontSize: 18,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color de texto
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
                 onPressed: () {
@@ -239,9 +262,7 @@ _buildActionButtons(
                   AppStrings.copyProfileUrlOption,
                   style: TextStyle(
                     fontSize: 18,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color de texto
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
                 onPressed: () {
@@ -254,9 +275,7 @@ _buildActionButtons(
                   AppStrings.cancelOption,
                   style: TextStyle(
                     fontSize: 18,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color de texto
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
                 onPressed: () => Navigator.pop(context),
@@ -266,171 +285,243 @@ _buildActionButtons(
     );
   }
 
-  Widget _buildBlockDialog(
-    BuildContext context,
-    String currentUserId,
-    String otherUserId,
-  ) {
+  void _showBlockDialog(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    return AlertDialog(
-      backgroundColor: colorScheme[AppStrings.primaryColor], // Fondo
-      title: Text(
-        AppStrings.blockUserTitle,
-        style: TextStyle(
-          fontSize: 20,
-          color: colorScheme[AppStrings.secondaryColor], // Color de texto
-        ),
-      ),
-      content: Text(
-        AppStrings.confirmBlockUser,
-        style: TextStyle(
-          fontSize: 18,
-          color: colorScheme[AppStrings.secondaryColor], // Color de texto
-        ),
-      ),
-      actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              child: Text(
-                AppStrings.cancel,
-                style: TextStyle(
-                  fontSize: 18,
-                  color:
-                      colorScheme[AppStrings.essentialColor], // Color del botón
-                ),
-              ),
-              onPressed: () => setState(() => showBlockDialog = false),
+    if (currentUserId == null || _currentProfileId == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Dialog(
+            backgroundColor: colorScheme[AppStrings.primaryColor],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            TextButton(
-              child: Text(
-                AppStrings.accept,
-                style: TextStyle(
-                  fontSize: 18,
-                  color:
-                      colorScheme[AppStrings.essentialColor], // Color del botón
-                ),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.blockUserTitle,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppStrings.confirmBlockUser,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          AppStrings.cancel,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme[AppStrings.essentialColor],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      TextButton(
+                        onPressed: () {
+                          widget.userProvider.blockUser(
+                            currentUserId,
+                            _currentProfileId!,
+                          );
+                          Navigator.pop(context);
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor:
+                              colorScheme[AppStrings.essentialColor],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          AppStrings.accept,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme[AppStrings.primaryColor],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              onPressed: () {
-                widget.userProvider.blockUser(currentUserId, otherUserId);
-                setState(() => showBlockDialog = false);
-              },
             ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReportForm(
-    BuildContext context,
-    String currentUserId,
-    String otherUserId,
-  ) {
-    final colorScheme = ColorPalette.getPalette(context);
-
-    return AlertDialog(
-      backgroundColor: colorScheme[AppStrings.primaryColor], // Fondo
-      title: Text(
-        AppStrings.reportDescription,
-        style: TextStyle(
-          fontSize: 20,
-          color: colorScheme[AppStrings.secondaryColor], // Color de texto
-        ),
-      ),
-      content: TextField(
-        decoration: InputDecoration(
-          labelText: AppStrings.description,
-          labelStyle: TextStyle(
-            fontSize: 18,
-            color:
-                colorScheme[AppStrings.secondaryColor], // Color de la etiqueta
           ),
-        ),
-        onChanged: (val) => reportContent = val,
-        style: TextStyle(
-          fontSize: 18,
-          color: colorScheme[AppStrings.secondaryColor], // Color del texto
-        ),
-      ),
-      actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              child: Text(
-                AppStrings.cancel,
-                style: TextStyle(
-                  fontSize: 18,
-                  color:
-                      colorScheme[AppStrings.essentialColor], // Color del botón
-                ),
-              ),
-              onPressed: () => setState(() => showReportForm = false),
-            ),
-            TextButton(
-              onPressed:
-                  reportContent.isNotEmpty
-                      ? () => _sendReport(currentUserId, otherUserId)
-                      : null,
-              child: Text(
-                AppStrings.send,
-                style: TextStyle(
-                  fontSize: 18,
-                  color:
-                      colorScheme[AppStrings.essentialColor], // Color del botón
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
-  void _sendReport(String currentUserId, String otherUserId) async {
-    if (reportContent.isNotEmpty) {
-      try {
-        // Obtén el nombre del usuario que está reportando desde Firestore
-        DocumentSnapshot currentUserSnapshot =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(currentUserId)
-                .get();
+  void _showReportDialog(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-        String currentUserName =
-            currentUserSnapshot.exists
-                ? currentUserSnapshot.get(
-                  'name',
-                ) // Asegúrate de que el campo 'name' exista
-                : 'Unknown User';
+    if (currentUserId == null || _currentProfileId == null) return;
 
-        // Crear un nuevo reporte en Firestore en la colección 'reports'
-        await FirebaseFirestore.instance
-            .collection('reports')
-            .doc(currentUserId)
-            .set({
-              'reporter_name': currentUserName,
-              'reported_user_id': otherUserId,
-              'report_content': reportContent,
-              'timestamp': FieldValue.serverTimestamp(),
-            });
+    final TextEditingController reportController = TextEditingController();
 
-        // Ocultar el formulario de reporte
-        setState(() => showReportForm = false);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Dialog(
+            backgroundColor: colorScheme[AppStrings.primaryColor],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.reportDescription,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: reportController,
+                    decoration: InputDecoration(
+                      labelText: AppStrings.description,
+                      labelStyle: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: colorScheme[AppStrings.secondaryColor]!,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: colorScheme[AppStrings.essentialColor]!,
+                        ),
+                      ),
+                    ),
+                    maxLines: 5,
+                    style: TextStyle(
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          AppStrings.cancel,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme[AppStrings.essentialColor],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      TextButton(
+                        onPressed: () {
+                          if (reportController.text.isNotEmpty) {
+                            _sendReport(
+                              currentUserId,
+                              _currentProfileId!,
+                              reportController.text,
+                            );
+                            Navigator.pop(context);
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor:
+                              colorScheme[AppStrings.essentialColor],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          AppStrings.send,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme[AppStrings.primaryColor],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
 
-        // Opcional: mostrar un mensaje de éxito (puedes usar un snackbar, por ejemplo)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Reporte enviado exitosamente')));
-      } catch (e) {
-        // En caso de error, muestra un mensaje (puedes ajustarlo según lo que prefieras)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al enviar el reporte: $e')),
-        );
-      }
+  void _sendReport(
+    String currentUserId,
+    String otherUserId,
+    String content,
+  ) async {
+    if (content.isEmpty) return;
+
+    try {
+      DocumentSnapshot currentUserSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUserId)
+              .get();
+
+      String currentUserName =
+          currentUserSnapshot.exists
+              ? currentUserSnapshot.get('name')
+              : 'Unknown User';
+
+      await FirebaseFirestore.instance
+          .collection('reports')
+          .doc(currentUserId)
+          .set({
+            'reporter_name': currentUserName,
+            'reported_user_id': otherUserId,
+            'report_content': content,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Reporte enviado exitosamente')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al enviar el reporte: $e')));
     }
   }
 
@@ -485,15 +576,11 @@ _buildActionButtons(
           onPressed: () => widget.goRouter.push(AppStrings.chatScreenRoute),
           child: Row(
             children: [
-              Icon(
-                Icons.message,
-                color: colorScheme[AppStrings.secondaryColor],
-                size: 15,
-              ),
+              Icon(Icons.message, color: Colors.white, size: 15),
               const SizedBox(width: 6),
               Text(
                 AppStrings.contactUser,
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+                style: TextStyle(color: Colors.white),
               ),
             ],
           ),
@@ -523,7 +610,9 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
   late final String otherUserId;
   late final UploadWorkMediaToServer uploadWorkImagesToServer;
   final showImageDetail = ValueNotifier<ImageData?>(null);
-  final selectedButtonIndex = ValueNotifier<String>(AppStrings.worksContent);
+  final selectedButtonIndex = ValueNotifier<String>(
+    AppStrings.servicesSelectionWS,
+  ); // Cambiado a servicios por defecto
   late final ValueNotifier<String?> menuSelectionNotifier;
 
   bool showConfirmRemoveDialog = false;
@@ -536,7 +625,9 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
   void initState() {
     super.initState();
     otherUserId = widget.userProvider.otherUserId;
-    menuSelectionNotifier = ValueNotifier(widget.userProvider.menuSelection);
+    menuSelectionNotifier = ValueNotifier(
+      widget.userProvider.menuSelection ?? AppStrings.servicesSelectionWS,
+    ); // Valor por defecto servicios
     uploadWorkImagesToServer = UploadWorkMediaToServer();
 
     // Registrar estadísticas de visualización
@@ -583,6 +674,7 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
 
   @override
   Widget build(BuildContext context) {
+    final userType = widget.userProvider.userType;
     final isArtist = widget.userProvider.userType == AppStrings.artist;
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
@@ -590,7 +682,7 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColorLight],
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist: isArtist,
+        userType: userType,
         goRouter: widget.goRouter,
       ),
       body: SafeArea(
@@ -648,6 +740,12 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
                     valueListenable: menuSelectionNotifier,
                     builder: (context, value, _) {
                       switch (value) {
+                        case AppStrings
+                            .servicesSelectionWS: // Nuevo caso para servicios
+                          return ServicesProfileViewScreen(
+                            userId: otherUserId,
+                            goRouter: widget.goRouter,
+                          );
                         case AppStrings.worksSelectionWS:
                           return WorksContentWS();
                         case AppStrings.availabilitySelectionWS:
@@ -657,7 +755,10 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
                         case AppStrings.reviewsSelectionWS:
                           return ReviewsContentWS(otherUserId: otherUserId);
                         default:
-                          return WorksContentWS();
+                          return ServicesProfileViewScreen(
+                            userId: otherUserId,
+                            goRouter: widget.goRouter,
+                          ); // Valor por defecto ahora es servicios
                       }
                     },
                   ),
@@ -668,88 +769,92 @@ class ArtistProfileScreenWSState extends State<ArtistProfileScreenWS> {
             // Diálogos y overlays (se muestran sobre el contenido)
             if (showConfirmRemoveDialog) _buildConfirmRemoveDialog(context),
             if (showBottomSaveDialog)
-  BottomSaveToFavoritesDialog(
-    onDismiss: () => setState(() => showBottomSaveDialog = false),
-    onCreateNewList: () {
-      setState(() {
-        showBottomSaveDialog = false;
-        showBottomFavoritesListCreatorDialog = true;
-      });
-      if (otherUserId != null && currentUserId != null) {
-        widget.favoritesProvider.onLikeClick(
-          otherUserId,
-          currentUserId,
-        );
-      }
-    },
-    favoritesProvider: widget.favoritesProvider,
-    userIdToSave: otherUserId,
-    onUserAddedToList: _onUserAddedToList,
-    onLikeClick: () {
-      if (otherUserId != null && currentUserId != null) {
-        widget.favoritesProvider.onLikeClick(
-          otherUserId,
-          currentUserId,
-        );
-      }
-    },
-  ),
-if (showBottomFavoritesListCreatorDialog)
-  BottomFavoritesListCreatorDialog(
-    userId: otherUserId,
-    onDismiss: () => setState(() => showBottomFavoritesListCreatorDialog = false),
-    favoritesProvider: widget.favoritesProvider,
-    onLikeClick: () {
-      if (otherUserId != null && currentUserId != null) {
-        widget.favoritesProvider.onLikeClick(
-          otherUserId,
-          currentUserId,
-        );
-      }
-    },
-  ),
-if (showSaveMessage && selectedList != null)
-  SaveMessage(
-    list: selectedList!,
-    onModifyClick: () {
-      setState(() {
-        showSaveMessage = false;
-        showBottomSaveDialog = true;
-      });
-      if (otherUserId != null && currentUserId != null) {
-        widget.favoritesProvider.onLikeClick(
-          otherUserId,
-          currentUserId,
-        );
-      }
-    },
-    isVisible: showSaveMessage,
-    onDismiss: () {
-      setState(() => showSaveMessage = false);
-      if (otherUserId != null && currentUserId != null) {
-        widget.favoritesProvider.onLikeClick(
-          otherUserId,
-          currentUserId,
-        );
-      }
-    },
-    favoritesProvider: widget.favoritesProvider,
-    userIdToRemove: otherUserId,
-    onLikeClick: () {
-      if (otherUserId != null && currentUserId != null) {
-        widget.favoritesProvider.onLikeClick(
-          otherUserId,
-          currentUserId,
-        );
-      }
-    },
-    onUnlikeClick: () {
-      if (otherUserId != null) {
-        widget.favoritesProvider.onUnlikeClick(otherUserId);
-      }
-    },
-    currentUserId: currentUserId ?? '', // Provide default value if null
-  ),
+              BottomSaveToFavoritesDialog(
+                onDismiss: () => setState(() => showBottomSaveDialog = false),
+                onCreateNewList: () {
+                  setState(() {
+                    showBottomSaveDialog = false;
+                    showBottomFavoritesListCreatorDialog = true;
+                  });
+                  if (otherUserId != null && currentUserId != null) {
+                    widget.favoritesProvider.onLikeClick(
+                      otherUserId,
+                      currentUserId,
+                    );
+                  }
+                },
+                favoritesProvider: widget.favoritesProvider,
+                userIdToSave: otherUserId,
+                onUserAddedToList: _onUserAddedToList,
+                onLikeClick: () {
+                  if (otherUserId != null && currentUserId != null) {
+                    widget.favoritesProvider.onLikeClick(
+                      otherUserId,
+                      currentUserId,
+                    );
+                  }
+                },
+              ),
+            if (showBottomFavoritesListCreatorDialog)
+              BottomFavoritesListCreatorDialog(
+                userId: otherUserId,
+                onDismiss:
+                    () => setState(
+                      () => showBottomFavoritesListCreatorDialog = false,
+                    ),
+                favoritesProvider: widget.favoritesProvider,
+                onLikeClick: () {
+                  if (otherUserId != null && currentUserId != null) {
+                    widget.favoritesProvider.onLikeClick(
+                      otherUserId,
+                      currentUserId,
+                    );
+                  }
+                },
+              ),
+            if (showSaveMessage && selectedList != null)
+              SaveMessage(
+                list: selectedList!,
+                onModifyClick: () {
+                  setState(() {
+                    showSaveMessage = false;
+                    showBottomSaveDialog = true;
+                  });
+                  if (otherUserId != null && currentUserId != null) {
+                    widget.favoritesProvider.onLikeClick(
+                      otherUserId,
+                      currentUserId,
+                    );
+                  }
+                },
+                isVisible: showSaveMessage,
+                onDismiss: () {
+                  setState(() => showSaveMessage = false);
+                  if (otherUserId != null && currentUserId != null) {
+                    widget.favoritesProvider.onLikeClick(
+                      otherUserId,
+                      currentUserId,
+                    );
+                  }
+                },
+                favoritesProvider: widget.favoritesProvider,
+                userIdToRemove: otherUserId,
+                onLikeClick: () {
+                  if (otherUserId != null && currentUserId != null) {
+                    widget.favoritesProvider.onLikeClick(
+                      otherUserId,
+                      currentUserId,
+                    );
+                  }
+                },
+                onUnlikeClick: () {
+                  if (otherUserId != null) {
+                    widget.favoritesProvider.onUnlikeClick(otherUserId);
+                  }
+                },
+                currentUserId:
+                    currentUserId ?? '', // Provide default value if null
+              ),
           ],
         ),
       ),

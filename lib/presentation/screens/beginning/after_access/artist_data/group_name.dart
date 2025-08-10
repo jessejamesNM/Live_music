@@ -29,7 +29,6 @@ import '../../../../../data/provider_logics/beginning/beginning_provider.dart';
 import '../../../../../data/provider_logics/user/user_provider.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-// Pantalla para ingresar el nombre del grupo. Utiliza Flutter Hooks y Provider.
 class GroupNameScreen extends HookWidget {
   final GoRouter goRouter;
 
@@ -37,25 +36,45 @@ class GroupNameScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Hook para almacenar el nombre del grupo que el usuario escribe.
     final groupName = useState('');
-
-    // Hook para almacenar mensajes de error en la validación del nombre.
     final errorMessage = useState('');
 
-    // Se obtienen instancias de los providers necesarios.
     final beginningProvider = Provider.of<BeginningProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
 
-    // Se obtiene el esquema de colores personalizado.
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Hook de efecto: se ejecuta una vez al iniciar la pantalla.
-    // Verifica la ubicación del usuario como parte del flujo de inicio.
-    useEffect(() {
-   
-      return;
-    }, []);
+    // Determinar el texto según el tipo de usuario
+    String getQuestionByUserType(String? userType) {
+      switch (userType) {
+        case 'artist':
+          return '¿Cuál es el nombre del grupo?';
+        case 'bakery':
+        case 'decoration':
+        case 'decorator':
+          return '¿Cómo se llama tu negocio?';
+        case 'place':
+          return '¿Cómo se llama su local?';
+        case 'furniture':
+          return '¿Cómo se llama su negocio?';
+        case 'entertainment':
+          return '¿Cómo se llama su negocio?';
+        case 'contractor':
+          return '¿Cuál es su nombre?';
+        default:
+          return '¿Cuál es el nombre del grupo?';
+      }
+    }
+
+    // Determinar la ruta siguiente según el tipo de usuario
+    String getNextRouteByUserType(String? userType) {
+      return userType == 'contractor'
+          ? AppStrings.welcomeScreenRoute
+          : AppStrings.profileImageScreenRoute;
+    }
+
+    final questionText = getQuestionByUserType(userProvider.userType);
+    final nextRoute = getNextRouteByUserType(userProvider.userType);
 
     return Scaffold(
       body: Container(
@@ -65,21 +84,19 @@ class GroupNameScreen extends HookWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Título de la pantalla (pregunta sobre el nombre del grupo).
             Text(
-              AppStrings.groupNameQuestion,
+              questionText,
               style: TextStyle(
                 color: colorScheme[AppStrings.secondaryColor],
                 fontSize: 24.0,
                 fontWeight: FontWeight.bold,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16.0),
 
-            // Campo de texto para ingresar el nombre del grupo.
             TextField(
               onChanged: (value) {
-                // Se actualiza el valor del nombre y se valida.
                 groupName.value = value;
                 errorMessage.value = beginningProvider.validateName(value);
               },
@@ -123,16 +140,12 @@ class GroupNameScreen extends HookWidget {
             ),
             const SizedBox(height: 16.0),
 
-            // Botón "Continuar" solo se muestra si hay un nombre válido sin errores.
             if (groupName.value.isNotEmpty && errorMessage.value.isEmpty)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    beginningProvider.setRouteToGo(
-                      AppStrings.profileImageScreenRoute,
-                    );
-                    // Guarda el nombre del grupo y navega al siguiente paso.
+                    beginningProvider.setRouteToGo(nextRoute);
                     beginningProvider.saveName(
                       groupName.value,
                       context,

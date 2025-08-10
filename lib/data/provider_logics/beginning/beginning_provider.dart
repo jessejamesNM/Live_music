@@ -42,7 +42,7 @@ class BeginningProvider with ChangeNotifier {
   String? selectedEvent;
   final FirebaseFirestore db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
   bool _showLoading = true;
   bool _showReadyMessage = false;
   bool _showWelcomeMessage = false;
@@ -90,21 +90,44 @@ class BeginningProvider with ChangeNotifier {
     }
   }
 
-  void selectEvent(String event) {
-    if (selectedEvent == event) {
-      selectedEvent = null;
+  // Make sure to initialize selectedEvents as a growable list.
+  List<String> selectedEvents = [];
+  void toggleEventSelection(String event) {
+    if (selectedEvents.contains(event)) {
+      selectedEvents.remove(event);
     } else {
-      selectedEvent = event;
+      selectedEvents.add(event);
     }
-    Future.microtask(() => notifyListeners());
+    print("toggleEventSelection: $selectedEvents");
+    notifyListeners();
   }
 
-  void saveSpecialty(BuildContext context, GoRouter goRouter) {
-    if (selectedEvent != null && currentUserId != null) {
-      db.collection(AppStrings.usersCollection).doc(currentUserId).update({
-        AppStrings.specialtyField: selectedEvent,
-      });
-      goRouter.go(AppStrings.priceScreenRoute);
+  Future<void> saveSpecialties(
+    BuildContext context,
+    GoRouter goRouter,
+    String currentUserId,
+    FirebaseFirestore firestore,
+  ) async {
+    if (selectedEvents.isNotEmpty) {
+      print("saveSpecialties: Saving $selectedEvents");
+      try {
+        await firestore
+            .collection(AppStrings.usersCollection)
+            .doc(currentUserId)
+            .update({AppStrings.specialtyField: selectedEvents});
+        goRouter.go(AppStrings.priceScreenRoute);
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar las especialidades: $error'),
+          ),
+        );
+      }
+    } else {
+      print("saveSpecialties Error: No se ha seleccionado ninguna specialty");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona al menos un evento')),
+      );
     }
   }
 
@@ -152,8 +175,8 @@ class BeginningProvider with ChangeNotifier {
   List<String> get selectedStates => _selectedStates;
   bool get countryExpanded => _countryExpanded;
   bool get stateExpanded => _stateExpanded;
-String get selectedCountry => _selectedCountry;
-String get selectedState => _selectedState;
+  String get selectedCountry => _selectedCountry;
+  String get selectedState => _selectedState;
   List<String> get countries => ["mexico", "united states"];
   List<String> get statesMexico =>
       AppStrings.statesMX; // Instanciado desde AppStrings
@@ -185,6 +208,7 @@ String get selectedState => _selectedState;
         return [];
     }
   }
+
   void removeState(String state) {
     _selectedStates.remove(state);
     notifyListeners();
@@ -205,13 +229,14 @@ String get selectedState => _selectedState;
       notifyListeners();
     });
   }
-void selectOneCountry(String country) {
-  if (_selectedCountry.isEmpty || _selectedCountry != country) {
-    _selectedCountry = country; // reemplaza cualquier valor previo
-    _selectedStates.clear();        // limpiar estados al cambiar país
+
+  void selectOneCountry(String country) {
+    if (_selectedCountry.isEmpty || _selectedCountry != country) {
+      _selectedCountry = country; // reemplaza cualquier valor previo
+      _selectedStates.clear(); // limpiar estados al cambiar país
+    }
+    notifyListeners();
   }
-  notifyListeners();
-}
 
   void selectCountry(String country) {
     if (_selectedCountries.contains(country)) {
@@ -221,14 +246,16 @@ void selectOneCountry(String country) {
     }
     notifyListeners();
   }
-void selectOneState(String state) {
-  if (_selectedState == state) {
-    _selectedState = '';
-  } else {
-    _selectedState = state;
+
+  void selectOneState(String state) {
+    if (_selectedState == state) {
+      _selectedState = '';
+    } else {
+      _selectedState = state;
+    }
+    notifyListeners();
   }
-  notifyListeners();
-}
+
   void selectState(String state) {
     if (_selectedStates.contains(state)) {
       _selectedStates.remove(state);
@@ -286,49 +313,50 @@ void selectOneState(String state) {
       );
     }
   }
-Future<void> saveSelection(BuildContext context, GoRouter goRouter) async {
-  final auth = FirebaseAuth.instance;
-  final db = FirebaseFirestore.instance;
-  final currentUserId = auth.currentUser?.uid;
 
-  if (currentUserId == null) return;
+  Future<void> saveSelection(BuildContext context, GoRouter goRouter) async {
+    final auth = FirebaseAuth.instance;
+    final db = FirebaseFirestore.instance;
+    final currentUserId = auth.currentUser?.uid;
 
-  try {
-    // Verificamos si hay más de 1 país seleccionado
-    final isMultipleCountries = _selectedCountries.length > 1;
+    if (currentUserId == null) return;
 
-    // Si hay más de un país, forzamos que se guarde "Todos los estados"
-    final statesToSave = isMultipleCountries
-        ? ['Todos los estados']
-        : _selectedStates;
+    try {
+      // Verificamos si hay más de 1 país seleccionado
+      final isMultipleCountries = _selectedCountries.length > 1;
 
-    // Guardamos en Firestore
-    await db.collection(AppStrings.usersCollection).doc(currentUserId).update(
-      {
-        AppStrings.countries: _selectedCountries,
-        AppStrings.states: statesToSave,
-      },
-    );
+      // Si hay más de un país, forzamos que se guarde "Todos los estados"
+      final statesToSave =
+          isMultipleCountries ? ['Todos los estados'] : _selectedStates;
 
-    // Verificación y navegación
-    final userDoc = await db.collection("users").doc(currentUserId).get();
-    final userData = userDoc.data();
+      // Guardamos en Firestore
+      await db.collection(AppStrings.usersCollection).doc(currentUserId).update(
+        {
+          AppStrings.countries: _selectedCountries,
+          AppStrings.states: statesToSave,
+        },
+      );
 
-    final hasCountries =
-        (userData?[AppStrings.countries] as List?)?.isNotEmpty ?? false;
-    final hasStates =
-        (userData?[AppStrings.states] as List?)?.isNotEmpty ?? false;
+      // Verificación y navegación
+      final userDoc = await db.collection("users").doc(currentUserId).get();
+      final userData = userDoc.data();
 
-    if (hasCountries && hasStates) {
-      goRouter.go(AppStrings.welcomeScreenRoute);
-    } else {
-      goRouter.go(AppStrings.countryStateScreenRoute);
+      final hasCountries =
+          (userData?[AppStrings.countries] as List?)?.isNotEmpty ?? false;
+      final hasStates =
+          (userData?[AppStrings.states] as List?)?.isNotEmpty ?? false;
+
+      if (hasCountries && hasStates) {
+        goRouter.go(AppStrings.welcomeScreenRoute);
+      } else {
+        goRouter.go(AppStrings.countryStateScreenRoute);
+      }
+    } catch (e) {
+      // Manejo de errores (puedes mostrar un SnackBar o log)
+      debugPrint("Error al guardar selección: $e");
     }
-  } catch (e) {
-    // Manejo de errores (puedes mostrar un SnackBar o log)
-    debugPrint("Error al guardar selección: $e");
   }
-}
+
   Future<String?> uploadWorkImageToServer(
     BuildContext context,
     File file,
@@ -461,243 +489,250 @@ Future<void> saveSelection(BuildContext context, GoRouter goRouter) async {
     }
   }
 
-Future<void> checkAndSaveUserLocation(
-  BuildContext context,
-  GoRouter goRouter,
-) async {
-  final currentUser = FirebaseAuth.instance.currentUser;
-  if (currentUser == null) return;
+  Future<void> checkAndSaveUserLocation(
+    BuildContext context,
+    GoRouter goRouter,
+  ) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-  final userDoc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUser.uid)
-      .get();
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
 
-  if (userDoc.exists && userDoc.data()?['country'] != null) return;
+    if (userDoc.exists && userDoc.data()?['country'] != null) return;
 
-  final permissionStatus = await Permission.location.status;
+    final permissionStatus = await Permission.location.status;
 
-  if (permissionStatus.isGranted) {
-    await _handleLocationAccess(context, currentUser.uid);
-  } else if (permissionStatus.isDenied) {
-    final newStatus = await Permission.location.request();
-    if (newStatus.isGranted) {
+    if (permissionStatus.isGranted) {
       await _handleLocationAccess(context, currentUser.uid);
-    } else {
+    } else if (permissionStatus.isDenied) {
+      final newStatus = await Permission.location.request();
+      if (newStatus.isGranted) {
+        await _handleLocationAccess(context, currentUser.uid);
+      } else {
+        goRouter.go(AppStrings.countryStateScreenRoute);
+      }
+    } else if (permissionStatus.isPermanentlyDenied) {
       goRouter.go(AppStrings.countryStateScreenRoute);
     }
-  } else if (permissionStatus.isPermanentlyDenied) {
-    Navigator.pushNamed(context, AppStrings.countryStateScreenRoute);
   }
-}
-void clearStates() {
-  selectedStates.clear();
-  notifyListeners();
-}
-Future<void> _handleLocationAccess(
-  BuildContext context,
-  String userId,
-) async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
 
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      final enableLocation = await showDialog<bool>(
+  void clearStates() {
+    selectedStates.clear();
+    notifyListeners();
+  }
+
+  Future<void> _handleLocationAccess(
+    BuildContext context,
+    String userId,
+  ) async {
+    try {
+      showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Ubicación requerida'),
-          content: const Text('Necesitamos acceso a tu ubicación para continuar'),
-          actions: [
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () => Navigator.pop(context, false),
-            ),
-            TextButton(
-              child: const Text('Activar'),
-              onPressed: () => Navigator.pop(context, true),
-            ),
-          ],
-        ),
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      if (enableLocation != true) {
-        Navigator.pop(context);
-        return;
-      }
-
-      await Geolocator.openLocationSettings();
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        Navigator.pop(context);
+        final enableLocation = await showDialog<bool>(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('Ubicación requerida'),
+                content: const Text(
+                  'Necesitamos acceso a tu ubicación para continuar',
+                ),
+                actions: [
+                  TextButton(
+                    child: const Text('Cancelar'),
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  TextButton(
+                    child: const Text('Activar'),
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
+              ),
+        );
+
+        if (enableLocation != true) {
+          Navigator.pop(context);
+          return;
+        }
+
+        await Geolocator.openLocationSettings();
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          Navigator.pop(context);
+          return;
+        }
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      Navigator.pop(context);
+
+      if (placemarks.isEmpty || placemarks.first.country == null) {
+        _redirectToManualLocationInput(context);
         return;
       }
-    }
 
-    final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.medium,
-    );
+      final place = placemarks.first;
 
-    final placemarks = await placemarkFromCoordinates(
-      position.latitude,
-      position.longitude,
-    );
+      String country = normalize(place.country ?? '');
+      String state = normalize(place.administrativeArea ?? '');
 
-    Navigator.pop(context);
+      // Mapeo manual
+      state = getFullStateName(country, state);
 
-    if (placemarks.isEmpty || placemarks.first.country == null) {
+      if (country.isEmpty) {
+        _redirectToManualLocationInput(context);
+        return;
+      }
+
+      print("Ubicación normalizada: $country, $state");
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'country': country,
+        'state': state,
+        'locationSource': 'automatic',
+        'lastLocationUpdate': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      Navigator.pop(context);
       _redirectToManualLocationInput(context);
-      return;
+    }
+  }
+
+  void _redirectToManualLocationInput(BuildContext context) {
+    Navigator.pushNamed(context, AppStrings.countryStateScreenRoute);
+  }
+
+  String normalize(String input) {
+    final withNoDiacritics = input
+        .toLowerCase()
+        .replaceAllMapped(RegExp(r'[áàäâã]'), (_) => 'a')
+        .replaceAllMapped(RegExp(r'[éèëê]'), (_) => 'e')
+        .replaceAllMapped(RegExp(r'[íìïî]'), (_) => 'i')
+        .replaceAllMapped(RegExp(r'[óòöôõ]'), (_) => 'o')
+        .replaceAllMapped(RegExp(r'[úùüû]'), (_) => 'u')
+        .replaceAllMapped(RegExp(r'ñ'), (_) => 'n');
+    return withNoDiacritics
+        .split(' ')
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+  }
+
+  String getFullStateName(String country, String inputState) {
+    final estadosMX = {
+      "Baja California": "Baja California",
+      "Baja California Sur": "Baja California Sur",
+      "Campeche": "Campeche",
+      "Chiapas": "Chiapas",
+      "Chihuahua": "Chihuahua",
+      "Coahuila": "Coahuila",
+      "Colima": "Colima",
+      "Durango": "Durango",
+      "Estado De Mexico": "Estado de Mexico",
+      "Guanajuato": "Guanajuato",
+      "Guerrero": "Guerrero",
+      "Hidalgo": "Hidalgo",
+      "Jalisco": "Jalisco",
+      "Michoacan": "Michoacan",
+      "Morelos": "Morelos",
+      "Nayarit": "Nayarit",
+      "Nuevo Leon": "Nuevo Leon",
+      "Oaxaca": "Oaxaca",
+      "Puebla": "Puebla",
+      "Queretaro": "Queretaro",
+      "Quintana Roo": "Quintana Roo",
+      "San Luis Potosi": "San Luis Potosi",
+      "Sinaloa": "Sinaloa",
+      "Sonora": "Sonora",
+      "Tabasco": "Tabasco",
+      "Tamaulipas": "Tamaulipas",
+      "Tlaxcala": "Tlaxcala",
+      "Veracruz": "Veracruz",
+      "Yucatan": "Yucatan",
+      "Zacatecas": "Zacatecas",
+    };
+
+    final estadosUS = {
+      "Alabama": "Alabama",
+      "Alaska": "Alaska",
+      "Arizona": "Arizona",
+      "Arkansas": "Arkansas",
+      "California": "California",
+      "Colorado": "Colorado",
+      "Connecticut": "Connecticut",
+      "Delaware": "Delaware",
+      "Florida": "Florida",
+      "Georgia": "Georgia",
+      "Hawaii": "Hawai",
+      "Idaho": "Idaho",
+      "Illinois": "Illinois",
+      "Indiana": "Indiana",
+      "Iowa": "Iowa",
+      "Kansas": "Kansas",
+      "Kentucky": "Kentucky",
+      "Louisiana": "Luisiana",
+      "Maine": "Maine",
+      "Maryland": "Maryland",
+      "Massachusetts": "Massachusetts",
+      "Michigan": "Michigan",
+      "Minnesota": "Minnesota",
+      "Mississippi": "Misisipi",
+      "Missouri": "Misuri",
+      "Montana": "Montana",
+      "Nebraska": "Nebraska",
+      "Nevada": "Nevada",
+      "New Hampshire": "Nuevo Hampshire",
+      "New Jersey": "Nueva Jersey",
+      "New Mexico": "Nuevo Mexico",
+      "New York": "Nueva York",
+      "North Carolina": "Carolina del Norte",
+      "North Dakota": "Dakota del Norte",
+      "Ohio": "Ohio",
+      "Oklahoma": "Oklahoma",
+      "Oregon": "Oregon",
+      "Pennsylvania": "Pensilvania",
+      "Rhode Island": "Rhode Island",
+      "South Carolina": "Carolina del Sur",
+      "South Dakota": "Dakota del Sur",
+      "Tennessee": "Tennessee",
+      "Texas": "Texas",
+      "Utah": "Utah",
+      "Vermont": "Vermont",
+      "Virginia": "Virginia",
+      "Washington": "Washington",
+      "West Virginia": "Virginia Occidental",
+      "Wisconsin": "Wisconsin",
+      "Wyoming": "Wyoming",
+    };
+
+    final normalized = inputState.trim();
+
+    if (country == "Mexico" && estadosMX.containsKey(normalized)) {
+      return estadosMX[normalized]!;
+    }
+    if (country == "United States" && estadosUS.containsKey(normalized)) {
+      return estadosUS[normalized]!;
     }
 
-    final place = placemarks.first;
-
-    String country = normalize(place.country ?? '');
-    String state = normalize(place.administrativeArea ?? '');
-
-    // Mapeo manual
-    state = getFullStateName(country, state);
-
-    if (country.isEmpty) {
-      _redirectToManualLocationInput(context);
-      return;
-    }
-
-    print("Ubicación normalizada: $country, $state");
-
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'country': country,
-      'state': state,
-      'locationSource': 'automatic',
-      'lastLocationUpdate': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  } catch (e) {
-    Navigator.pop(context);
-    _redirectToManualLocationInput(context);
-  }
-}
-
-void _redirectToManualLocationInput(BuildContext context) {
-  Navigator.pushNamed(context, AppStrings.countryStateScreenRoute);
-}
-
-String normalize(String input) {
-  final withNoDiacritics = input
-      .toLowerCase()
-      .replaceAllMapped(RegExp(r'[áàäâã]'), (_) => 'a')
-      .replaceAllMapped(RegExp(r'[éèëê]'), (_) => 'e')
-      .replaceAllMapped(RegExp(r'[íìïî]'), (_) => 'i')
-      .replaceAllMapped(RegExp(r'[óòöôõ]'), (_) => 'o')
-      .replaceAllMapped(RegExp(r'[úùüû]'), (_) => 'u')
-      .replaceAllMapped(RegExp(r'ñ'), (_) => 'n');
-  return withNoDiacritics
-      .split(' ')
-      .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
-}
-
-String getFullStateName(String country, String inputState) {
-  final estadosMX = {
-    "Baja California": "Baja California",
-    "Baja California Sur": "Baja California Sur",
-    "Campeche": "Campeche",
-    "Chiapas": "Chiapas",
-    "Chihuahua": "Chihuahua",
-    "Coahuila": "Coahuila",
-    "Colima": "Colima",
-    "Durango": "Durango",
-    "Estado De Mexico": "Estado de Mexico",
-    "Guanajuato": "Guanajuato",
-    "Guerrero": "Guerrero",
-    "Hidalgo": "Hidalgo",
-    "Jalisco": "Jalisco",
-    "Michoacan": "Michoacan",
-    "Morelos": "Morelos",
-    "Nayarit": "Nayarit",
-    "Nuevo Leon": "Nuevo Leon",
-    "Oaxaca": "Oaxaca",
-    "Puebla": "Puebla",
-    "Queretaro": "Queretaro",
-    "Quintana Roo": "Quintana Roo",
-    "San Luis Potosi": "San Luis Potosi",
-    "Sinaloa": "Sinaloa",
-    "Sonora": "Sonora",
-    "Tabasco": "Tabasco",
-    "Tamaulipas": "Tamaulipas",
-    "Tlaxcala": "Tlaxcala",
-    "Veracruz": "Veracruz",
-    "Yucatan": "Yucatan",
-    "Zacatecas": "Zacatecas",
-  };
-
-  final estadosUS = {
-    "Alabama": "Alabama",
-    "Alaska": "Alaska",
-    "Arizona": "Arizona",
-    "Arkansas": "Arkansas",
-    "California": "California",
-    "Colorado": "Colorado",
-    "Connecticut": "Connecticut",
-    "Delaware": "Delaware",
-    "Florida": "Florida",
-    "Georgia": "Georgia",
-    "Hawaii": "Hawai",
-    "Idaho": "Idaho",
-    "Illinois": "Illinois",
-    "Indiana": "Indiana",
-    "Iowa": "Iowa",
-    "Kansas": "Kansas",
-    "Kentucky": "Kentucky",
-    "Louisiana": "Luisiana",
-    "Maine": "Maine",
-    "Maryland": "Maryland",
-    "Massachusetts": "Massachusetts",
-    "Michigan": "Michigan",
-    "Minnesota": "Minnesota",
-    "Mississippi": "Misisipi",
-    "Missouri": "Misuri",
-    "Montana": "Montana",
-    "Nebraska": "Nebraska",
-    "Nevada": "Nevada",
-    "New Hampshire": "Nuevo Hampshire",
-    "New Jersey": "Nueva Jersey",
-    "New Mexico": "Nuevo Mexico",
-    "New York": "Nueva York",
-    "North Carolina": "Carolina del Norte",
-    "North Dakota": "Dakota del Norte",
-    "Ohio": "Ohio",
-    "Oklahoma": "Oklahoma",
-    "Oregon": "Oregon",
-    "Pennsylvania": "Pensilvania",
-    "Rhode Island": "Rhode Island",
-    "South Carolina": "Carolina del Sur",
-    "South Dakota": "Dakota del Sur",
-    "Tennessee": "Tennessee",
-    "Texas": "Texas",
-    "Utah": "Utah",
-    "Vermont": "Vermont",
-    "Virginia": "Virginia",
-    "Washington": "Washington",
-    "West Virginia": "Virginia Occidental",
-    "Wisconsin": "Wisconsin",
-    "Wyoming": "Wyoming",
-  };
-
-  final normalized = inputState.trim();
-
-  if (country == "Mexico" && estadosMX.containsKey(normalized)) {
-    return estadosMX[normalized]!;
-  }
-  if (country == "United States" && estadosUS.containsKey(normalized)) {
-    return estadosUS[normalized]!;
+    return normalized;
   }
 
-  return normalized;
-}
   Future<void> checkUserLocation(
     BuildContext context,
     UserProvider userProvider,

@@ -34,9 +34,11 @@ class AvailabilityContentWS extends StatefulWidget {
 }
 
 class _AvailabilityContentWSState extends State<AvailabilityContentWS> {
-  DateTime currentDate = DateTime.now(); // Fecha actual para mostrar en el calendario
+  DateTime currentDate =
+      DateTime.now(); // Fecha actual para mostrar en el calendario
   DateTime selectedMonth = DateTime.now(); // Mes seleccionado en el calendario
-  List<DateTime> unavailableDays = []; // Días en los que el usuario está ocupado
+  List<DateTime> unavailableDays =
+      []; // Días en los que el usuario está ocupado
 
   @override
   void initState() {
@@ -61,7 +63,9 @@ class _AvailabilityContentWSState extends State<AvailabilityContentWS> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(context); // Obtener paleta de colores
+    final colorScheme = ColorPalette.getPalette(
+      context,
+    ); // Obtener paleta de colores
 
     return Container(
       color: colorScheme[AppStrings.primaryColor],
@@ -72,7 +76,7 @@ class _AvailabilityContentWSState extends State<AvailabilityContentWS> {
           children: [
             // Título de la sección
             Text(
-              AppStrings.selectBusyDays,
+              AppStrings.busyDays,
               style: TextStyle(
                 fontSize: 18,
                 color: colorScheme[AppStrings.secondaryColor],

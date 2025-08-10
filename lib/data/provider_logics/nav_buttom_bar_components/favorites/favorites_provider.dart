@@ -42,12 +42,10 @@ class FavoritesProvider extends ChangeNotifier {
   FavoritesProvider({
     FirebaseFirestore? firestoreInstance,
     FirebaseAuth? authInstance,
-    required LikedUsersListDao dao,
-    required RecentlyViewedDao recentlyViewedDao,
+    required this.likedUsersListDao,
+    required this.recentlyViewedDao,
   }) : firestore = firestoreInstance ?? FirebaseFirestore.instance,
-       auth = authInstance ?? FirebaseAuth.instance,
-       likedUsersListDao = dao,
-       recentlyViewedDao = recentlyViewedDao {
+       auth = authInstance ?? FirebaseAuth.instance {
     _initialize();
   }
 
@@ -55,7 +53,7 @@ class FavoritesProvider extends ChangeNotifier {
   final _selectedListNameController = StreamController<String?>.broadcast();
 
   Stream<String?> get selectedListName async* {
-    yield _selectedListName; // <-- esto emite el valor inmediatamente al nuevo listener
+    yield _selectedListName;
     yield* _selectedListNameController.stream;
   }
 
@@ -63,12 +61,9 @@ class FavoritesProvider extends ChangeNotifier {
   Map<String, bool> _userLikedStatus = {};
 
   void startLikedUsersListener(String currentUserId, String targetUserId) {
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserId);
+    final docRef = firestore.collection('users').doc(currentUserId);
 
-    _likedUsersListeners[targetUserId]
-        ?.cancel(); // si ya hay uno, lo cancelamos
+    _likedUsersListeners[targetUserId]?.cancel();
     _likedUsersListeners[targetUserId] = docRef.snapshots().listen((snapshot) {
       if (!snapshot.exists) {
         docRef.set({'likedUsers': []});
@@ -79,7 +74,7 @@ class FavoritesProvider extends ChangeNotifier {
         return;
       }
 
-      final data = snapshot.data() as Map<String, dynamic>;
+      final data = snapshot.data() as Map<String, dynamic>? ?? {};
       final likedUsers = List<String>.from(data['likedUsers'] ?? []);
       _userLikedStatus[targetUserId] = likedUsers.contains(targetUserId);
       notifyListeners();
@@ -89,13 +84,11 @@ class FavoritesProvider extends ChangeNotifier {
   final BehaviorSubject<LikedUsersList?> _selectedList = BehaviorSubject();
   LikedUsersList? get selectedListValue => _selectedList.valueOrNull;
 
-  // Método para establecer la lista seleccionada
   void setSelectedList(LikedUsersList list) {
     _selectedList.add(list);
     notifyListeners();
   }
 
-  // Método para limpiar la lista seleccionada
   void clearSelectedList() {
     _selectedList.add(null);
     notifyListeners();
@@ -121,8 +114,7 @@ class FavoritesProvider extends ChangeNotifier {
         likedUsersList.remove(userIdToRemove);
 
         if (likedUsersList.isEmpty) {
-          await doc.reference
-              .delete(); // Elimina el documento si la lista queda vacía
+          await doc.reference.delete();
         } else {
           await doc.reference.update({'likedUsersList': likedUsersList});
         }
@@ -161,7 +153,6 @@ class FavoritesProvider extends ChangeNotifier {
       _recentlyViewedProfiles.stream;
 
   final _likedUsersLists = BehaviorSubject<List<LikedUsersList>>.seeded([]);
-  // In your FavoritesProvider class
   List<LikedUsersList> get likedUsersListsValue => _likedUsersLists.value;
   Stream<List<LikedUsersList>> get likedUsersLists => _likedUsersLists.stream;
 
@@ -182,7 +173,6 @@ class FavoritesProvider extends ChangeNotifier {
 
   void _initialize() {
     fetchRecentlyViewedProfilesFromRoom();
-
     fetchLikedUsersListsFromRoom();
     listenToLikedUsersLists();
   }
@@ -196,29 +186,28 @@ class FavoritesProvider extends ChangeNotifier {
       return;
     }
 
-    final userLikedRef = FirebaseFirestore.instance
+    final userLikedRef = firestore
         .collection("users")
         .doc(currentUserId)
         .collection("usersLiked")
         .doc(listId);
 
-    final otherUserRef = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId);
+    final otherUserRef = firestore.collection("users").doc(userId);
 
-    // 1. Eliminar de 'userWhoLikedMeIds' del artista
     try {
       await otherUserRef.update({
         'userWhoLikedMeIds': FieldValue.arrayRemove([currentUserId]),
       });
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error removing userWhoLikedMeIds: $e');
+    }
 
-    // 2. Decrementar likes del artista
     try {
       await otherUserRef.update({'likes': FieldValue.increment(-1)});
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error decrementing likes: $e');
+    }
 
-    // Obtener documento de la lista
     DocumentSnapshot? docSnapshot;
     try {
       docSnapshot = await userLikedRef.get();
@@ -226,18 +215,17 @@ class FavoritesProvider extends ChangeNotifier {
         return;
       }
     } catch (e) {
+      debugPrint('Error getting userLiked document: $e');
       return;
     }
 
-    // 3. Eliminar el userId de la lista likedUsers del usuario principal
     try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserId)
-          .update({
-            "likedUsers": FieldValue.arrayRemove([userId]),
-          });
-    } catch (e) {}
+      await firestore.collection("users").doc(currentUserId).update({
+        "likedUsers": FieldValue.arrayRemove([userId]),
+      });
+    } catch (e) {
+      debugPrint('Error updating likedUsers: $e');
+    }
 
     try {
       final firestoreList = List<String>.from(
@@ -245,25 +233,26 @@ class FavoritesProvider extends ChangeNotifier {
       );
 
       if (firestoreList.length <= 1 && firestoreList.contains(userId)) {
-        // Caso cuando solo hay un ID en la lista
         try {
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(currentUserId)
-              .update({
-                "likedUsers": FieldValue.arrayRemove([listId]),
-              });
-        } catch (e) {}
+          await firestore.collection("users").doc(currentUserId).update({
+            "likedUsers": FieldValue.arrayRemove([listId]),
+          });
+        } catch (e) {
+          debugPrint('Error removing list from likedUsers: $e');
+        }
 
         try {
           await userLikedRef.delete();
-        } catch (e) {}
+        } catch (e) {
+          debugPrint('Error deleting userLiked document: $e');
+        }
 
         try {
           await likedUsersListDao.delete(listId);
-        } catch (e) {}
+        } catch (e) {
+          debugPrint('Error deleting from likedUsersListDao: $e');
+        }
       } else {
-        // Caso cuando hay múltiples IDs en la lista
         try {
           await userLikedRef.update({
             'likedUsersList': FieldValue.arrayRemove([userId]),
@@ -284,123 +273,168 @@ class FavoritesProvider extends ChangeNotifier {
 
             await likedUsersListDao.insert(updatedList);
           }
-        } catch (e) {}
-      }
-    } catch (e) {}
-  }
-
-  void onUnlikeClick(String artist) async {
-    if (currentUserId == null || currentUserId!.isEmpty) {
-      return;
-    }
-
-    final currentUserRef = firestore.collection("users").doc(currentUserId);
-
-    try {
-      // Buscar el listId en la colección usersLiked
-      final querySnapshot = await currentUserRef.collection("usersLiked").get();
-
-      String? listId;
-      for (var doc in querySnapshot.docs) {
-        try {
-          final likedUsersList = doc.data()['likedUsersList'] as List?;
-          if (likedUsersList != null && likedUsersList.contains(artist)) {
-            listId = doc.id;
-            break;
-          }
         } catch (e) {
-          continue;
+          debugPrint('Error updating likedUsersList: $e');
         }
       }
-
-      if (listId != null && listId.isNotEmpty) {
-        // Llamar a la función para eliminar al artista de la lista de "likedUsers"
-        removeFromLikedUsersList(
-          currentUserId: currentUserId!,
-          listId: listId,
-          userId: artist,
-        );
-
-        // Ahora restar -1 a "userLikes" en el primer documento que no sea "Default" o "default"
-        final statisticsRef = firestore
-            .collection("UserStatistics")
-            .doc(artist)
-            .collection("phases")
-            .doc("fase1")
-            .collection("Statistics");
-
-        final statisticsSnapshot = await statisticsRef.get();
-
-        for (var doc in statisticsSnapshot.docs) {
-          final userLikes = doc.data()['userLikes'];
-          if (userLikes != null &&
-              userLikes is int &&
-              doc.id.toLowerCase() != 'default') {
-            // Restar -1 al campo userLikes
-            await doc.reference.update({'userLikes': FieldValue.increment(-1)});
-
-            break; // Solo restamos en el primer documento que cumpla la condición
-          }
-        }
-      } else {}
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error processing firestoreList: $e');
+    }
+  }
+void onUnlikeClick(String artist) async {
+  if (currentUserId == null || currentUserId!.isEmpty) {
+    return;
   }
 
-  void onLikeClick(String artist, String currentUserId) async {
-    // Verify artist is not null or empty
-    if (artist.isEmpty) {
-      return;
+  try {
+    // 1. Eliminar de la lista local (Room)
+    final listId = await _findListIdContainingArtist(artist);
+    if (listId != null) {
+      try {
+        await likedUsersListDao.delete(listId);
+        debugPrint('Lista eliminada localmente: $listId');
+      } catch (e) {
+        debugPrint('Error eliminando lista local: $e');
+      }
     }
 
-    // Firestore document references
-    final currentUserRef = FirebaseFirestore.instance
-        .collection("users")
-        .doc(currentUserId);
-    final otherUserRef = FirebaseFirestore.instance
-        .collection("users")
-        .doc(artist);
+    // 2. Eliminar de Firestore (operaciones independientes)
+    await _removeFromFirestoreLists(artist);
+    await _decrementUserLikes(artist);
+    await _removeFromLikedUsersField(artist);
 
-    // Update current user's likedUsers list
-    currentUserRef
-        .update({
-          "likedUsers": FieldValue.arrayUnion([artist]),
-        })
-        .then((_) {})
-        .catchError((e) {});
+    // 3. Actualizar estadísticas (independiente de lo anterior)
+    await _updateStatistics(artist);
 
-    // Update artist's userWhoLikedMeIds list
-    otherUserRef
-        .update({
-          "userWhoLikedMeIds": FieldValue.arrayUnion([currentUserId]),
-        })
-        .then((_) {
-          // Check if currentUserId is in userWhoLikedMeIds
-          otherUserRef.get().then((document) {
-            if (document.exists) {
-              final userWhoLikedMeIds = List<String>.from(
-                document.data()?['userWhoLikedMeIds'] ?? [],
-              );
-              if (userWhoLikedMeIds.contains(currentUserId)) {
-                // Update a field in the artist's document (optional)
-                otherUserRef
-                    .update({"userLiked": true})
-                    .then((_) {})
-                    .catchError((e) {});
-              }
-            }
+  } catch (e) {
+    debugPrint('Error en onUnlikeClick: $e');
+  }
+}
+
+Future<String?> _findListIdContainingArtist(String artist) async {
+  final currentUserRef = firestore.collection("users").doc(currentUserId);
+  final querySnapshot = await currentUserRef.collection("usersLiked").get();
+
+  for (var doc in querySnapshot.docs) {
+    try {
+      final likedUsersList = doc.data()['likedUsersList'] as List?;
+      if (likedUsersList != null && likedUsersList.contains(artist)) {
+        return doc.id;
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  return null;
+}
+
+Future<void> _removeFromFirestoreLists(String artist) async {
+  try {
+    final currentUserRef = firestore.collection("users").doc(currentUserId);
+    final querySnapshot = await currentUserRef.collection("usersLiked").get();
+
+    for (var doc in querySnapshot.docs) {
+      try {
+        final likedUsersList = List<String>.from(doc.data()['likedUsersList'] ?? []);
+        if (likedUsersList.contains(artist)) {
+          await doc.reference.update({
+            'likedUsersList': FieldValue.arrayRemove([artist])
           });
-        })
-        .catchError((e) {});
+          debugPrint('Artista eliminado de lista Firestore: ${doc.id}');
+        }
+      } catch (e) {
+        debugPrint('Error eliminando de lista ${doc.id}: $e');
+      }
+    }
+  } catch (e) {
+    debugPrint('Error accediendo a Firestore: $e');
+  }
+}
 
-    // Ahora sumar +1 a "userLikes" en el primer documento que no sea "Default" o "default"
-    final statisticsRef = FirebaseFirestore.instance
+Future<void> _removeFromLikedUsersField(String artist) async {
+  try {
+    await firestore.collection("users").doc(currentUserId).update({
+      "likedUsers": FieldValue.arrayRemove([artist])
+    });
+    debugPrint('Artista eliminado de likedUsers');
+  } catch (e) {
+    debugPrint('Error eliminando de likedUsers: $e');
+  }
+}
+
+Future<void> _decrementUserLikes(String artist) async {
+  try {
+    await firestore.collection("users").doc(artist).update({
+      "userWhoLikedMeIds": FieldValue.arrayRemove([currentUserId]),
+      "likes": FieldValue.increment(-1)
+    });
+    debugPrint('Contadores actualizados en artista');
+  } catch (e) {
+    debugPrint('Error actualizando contadores: $e');
+  }
+}
+
+Future<void> _updateStatistics(String artist) async {
+  try {
+    final statisticsRef = firestore
         .collection("UserStatistics")
         .doc(artist)
         .collection("phases")
         .doc("fase1")
         .collection("Statistics");
 
+    final statisticsSnapshot = await statisticsRef.get();
+
+    for (var doc in statisticsSnapshot.docs) {
+      try {
+        final userLikes = doc.data()['userLikes'];
+        if (userLikes != null && userLikes is int && doc.id.toLowerCase() != 'default') {
+          await doc.reference.update({'userLikes': FieldValue.increment(-1)});
+          debugPrint('Estadística actualizada: ${doc.id}');
+          break;
+        }
+      } catch (e) {
+        debugPrint('Error actualizando estadística ${doc.id}: $e');
+      }
+    }
+  } catch (e) {
+    debugPrint('Error accediendo a estadísticas: $e');
+  }
+}
+  void onLikeClick(String artist, String currentUserId) async {
+    if (artist.isEmpty) {
+      return;
+    }
+
+    final currentUserRef = firestore.collection("users").doc(currentUserId);
+    final otherUserRef = firestore.collection("users").doc(artist);
+
     try {
+      await currentUserRef.update({
+        "likedUsers": FieldValue.arrayUnion([artist]),
+      });
+
+      await otherUserRef.update({
+        "userWhoLikedMeIds": FieldValue.arrayUnion([currentUserId]),
+      });
+
+      final document = await otherUserRef.get();
+      if (document.exists) {
+        final userWhoLikedMeIds = List<String>.from(
+          document.data()?['userWhoLikedMeIds'] ?? [],
+        );
+        if (userWhoLikedMeIds.contains(currentUserId)) {
+          await otherUserRef.update({"userLiked": true});
+        }
+      }
+
+      final statisticsRef = firestore
+          .collection("UserStatistics")
+          .doc(artist)
+          .collection("phases")
+          .doc("fase1")
+          .collection("Statistics");
+
       final statisticsSnapshot = await statisticsRef.get();
 
       for (var doc in statisticsSnapshot.docs) {
@@ -408,13 +442,13 @@ class FavoritesProvider extends ChangeNotifier {
         if (userLikes != null &&
             userLikes is int &&
             doc.id.toLowerCase() != 'default') {
-          // Sumar +1 al campo userLikes
           await doc.reference.update({'userLikes': FieldValue.increment(1)});
-
-          break; // Solo sumamos en el primer documento que cumpla la condición
+          break;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error in onLikeClick: $e');
+    }
   }
 
   void fetchLikedUsersListsFromRoom() {
@@ -436,14 +470,13 @@ class FavoritesProvider extends ChangeNotifier {
 
   void removeLikedUserList(String listId) {
     if (currentUserId != null) {
-      FirebaseFirestore.instance
+      firestore
           .collection("users")
           .doc(currentUserId)
           .collection("usersLiked")
           .doc(listId)
           .delete()
-          .then((_) {})
-          .catchError((e) {});
+          .catchError((e) => debugPrint('Error removing liked user list: $e'));
 
       likedUsersListDao.delete(listId);
     }
@@ -454,16 +487,14 @@ class FavoritesProvider extends ChangeNotifier {
       return;
     }
 
-    final db = FirebaseFirestore.instance;
-
-    likedUsersListener = db
+    likedUsersListener = firestore
         .collection('users')
         .doc(currentUserId)
         .collection('usersLiked')
         .snapshots()
         .listen(
           (snapshot) async {
-            List<String> allUserIds = []; // Para recolectar todos los IDs
+            List<String> allUserIds = [];
 
             for (var document in snapshot.docs) {
               if (!document.exists) {
@@ -481,38 +512,62 @@ class FavoritesProvider extends ChangeNotifier {
                   likedUsersList.map((id) => id.toString()).toSet().toList();
               allUserIds.addAll(uniqueUserIds);
 
-              // Procesar cada usuario para guardar en Room
               for (String userId in uniqueUserIds) {
                 if (userId.isEmpty) continue;
 
                 try {
-                  final userDocument =
-                      await db.collection('users').doc(userId).get();
-                  if (!userDocument.exists) continue;
+                  final serviceDoc = await firestore
+                      .collection('services')
+                      .doc(userId)
+                      .get();
+                  if (!serviceDoc.exists) continue;
+
+                  final serviceData = serviceDoc.data() as Map<String, dynamic>?;
+                  final servicesMap = serviceData?['service'] as Map<String, dynamic>?;
+                  
+                  final name = servicesMap?['name']?.toString() ?? '';
+                  final imageUrl = servicesMap?['imageUrl']?.toString() ?? '';
+
+                  double price = 0.0;
+                  final servicesSnapshot = await firestore
+                      .collection('services')
+                      .doc(userId)
+                      .collection('service')
+                      .get();
+                  
+                  if (servicesSnapshot.docs.isNotEmpty) {
+                    final prices = servicesSnapshot.docs
+                        .map((doc) => (doc.data()['price'] as num?)?.toDouble() ?? 0.0)
+                        .toList();
+                    price = prices.reduce(
+                        (min, current) => current < min ? current : min);
+                  }
 
                   final likedProfile = LikedProfile(
                     userId: userId,
-                    profileImageUrl: userDocument.get('profileImageUrl') ?? '',
-                    name: userDocument.get('name') ?? '',
-                    price: (userDocument.get('price') ?? 0).toDouble(),
+                    profileImageUrl: imageUrl,
+                    name: name,
+                    price: price,
                     timestamp: DateTime.now().millisecondsSinceEpoch,
-                    userLiked: userDocument.get('userLiked') ?? false,
+                    userLiked: true,
                   );
 
                   final database = await AppDatabase.getInstance();
                   await database.likedProfileDao.insert(likedProfile);
-                } catch (e) {}
+                } catch (e) {
+                  debugPrint('Error getting service data for $userId: $e');
+                }
               }
             }
 
-            // Después de procesar todos los documentos, actualizar la UI
             if (allUserIds.isNotEmpty) {
               loadProfilesByIds(allUserIds);
             } else {
-              _likedProfiles.add([]); // Limpiar si no hay IDs
+              _likedProfiles.add([]);
             }
           },
           onError: (error) {
+            debugPrint('Error in likedUsersListener: $error');
             _likedProfiles.addError(error);
           },
         );
@@ -533,6 +588,7 @@ class FavoritesProvider extends ChangeNotifier {
             _likedProfiles.add(profiles);
           },
           onError: (e) {
+            debugPrint('Error loading profiles by IDs: $e');
             _likedProfiles.add([]);
           },
         );
@@ -553,31 +609,43 @@ class FavoritesProvider extends ChangeNotifier {
         _recentlyViewedProfiles.add(profiles);
       });
     } catch (e) {
-      // Handle error
-      print('$e');
+      debugPrint('Error fetching recently viewed profiles: $e');
     }
   }
 
   Future<UserProfile?> getUserProfileDetails(String profileId) async {
     try {
-      final document =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(profileId)
-              .get();
+      final serviceDoc = await firestore.collection('services').doc(profileId).get();
+      if (!serviceDoc.exists) return null;
 
-      if (!document.exists) {
-        return null;
+      final serviceData = serviceDoc.data() as Map<String, dynamic>?;
+      final servicesMap = serviceData?['service'] as Map<String, dynamic>?;
+      
+      final name = servicesMap?['name']?.toString() ?? '';
+      final imageUrl = servicesMap?['imageUrl']?.toString() ?? '';
+
+      double price = 0.0;
+      final servicesSnapshot = await firestore
+          .collection('services')
+          .doc(profileId)
+          .collection('service')
+          .get();
+      
+      if (servicesSnapshot.docs.isNotEmpty) {
+        final prices = servicesSnapshot.docs
+            .map((doc) => (doc.data()['price'] as num?)?.toDouble() ?? 0.0)
+            .toList();
+        price = prices.reduce((min, current) => current < min ? current : min);
       }
 
-      final data = document.data()!;
       return UserProfile(
         id: profileId,
-        profileImageUrl: data['profileImageUrl']?.toString() ?? '',
-        name: data['name']?.toString() ?? '',
-        price: (data['price'] as num?)?.toDouble() ?? 0.0,
+        profileImageUrl: imageUrl,
+        name: name,
+        price: price,
       );
     } catch (e) {
+      debugPrint('Error getting user profile details: $e');
       return null;
     }
   }
@@ -596,44 +664,46 @@ class FavoritesProvider extends ChangeNotifier {
           for (final doc in snapshot.docs) {
             final data = doc.data();
             final profileId = data['profileId']?.toString() ?? doc.id;
-            final timestamp =
-                (data['timestamp'] is Timestamp)
-                    ? (data['timestamp'] as Timestamp)
-                        .toDate()
-                        .millisecondsSinceEpoch
-                    : DateTime.now().millisecondsSinceEpoch;
+            final timestamp = (data['timestamp'] is Timestamp)
+                ? (data['timestamp'] as Timestamp).toDate().millisecondsSinceEpoch
+                : DateTime.now().millisecondsSinceEpoch;
 
             try {
-              final profileSnap =
-                  await firestore.collection('users').doc(profileId).get();
-              final profileData = profileSnap.data();
+              final serviceDoc = await firestore.collection('services').doc(profileId).get();
+              if (!serviceDoc.exists) continue;
 
-              if (profileData != null) {
-                final profileImageUrl =
-                    profileData['profileImageUrl']?.toString() ?? '';
-                final name = profileData['name']?.toString() ?? '';
-                final price =
-                    (profileData['price'] is num)
-                        ? (profileData['price'] as num).toDouble()
-                        : 0.0;
-                final userLiked =
-                    (profileData['userLiked'] is bool)
-                        ? profileData['userLiked'] as bool
-                        : false;
+              final serviceData = serviceDoc.data() as Map<String, dynamic>?;
+              final servicesMap = serviceData?['service'] as Map<String, dynamic>?;
+              
+              final imageUrl = servicesMap?['imageUrl']?.toString() ?? '';
+              final name = servicesMap?['name']?.toString() ?? '';
 
-                perfiles.add(
-                  RecentlyViewedProfile(
-                    userId: profileId,
-                    profileImageUrl: profileImageUrl,
-                    name: name,
-                    price: price,
-                    timestamp: timestamp,
-                    userLiked: userLiked,
-                  ),
-                );
+              double price = 0.0;
+              final servicesSnapshot = await firestore
+                  .collection('services')
+                  .doc(profileId)
+                  .collection('service')
+                  .get();
+              
+              if (servicesSnapshot.docs.isNotEmpty) {
+                final prices = servicesSnapshot.docs
+                    .map((doc) => (doc.data()['price'] as num?)?.toDouble() ?? 0.0)
+                    .toList();
+                price = prices.reduce((min, current) => current < min ? current : min);
               }
+
+              perfiles.add(
+                RecentlyViewedProfile(
+                  userId: profileId,
+                  profileImageUrl: imageUrl,
+                  name: name,
+                  price: price,
+                  timestamp: timestamp,
+                  userLiked: true,
+                ),
+              );
             } catch (e) {
-              print('Error al obtener datos del perfil $profileId: $e');
+              debugPrint('Error getting recently viewed profile data: $e');
             }
           }
 
@@ -642,9 +712,7 @@ class FavoritesProvider extends ChangeNotifier {
   }
 
   Future<void> syncWithRoom(List<Artist> profiles) async {
-    debugPrint(
-      "syncWithRoom: Iniciando sincronización con ${profiles.length} perfiles",
-    );
+    debugPrint("syncWithRoom: Starting sync with ${profiles.length} profiles");
 
     try {
       final database = await AppDatabase.getInstance();
@@ -657,7 +725,7 @@ class FavoritesProvider extends ChangeNotifier {
         await database.artistDao.insert(artist);
       }
     } catch (e) {
-      debugPrint(" $e");
+      debugPrint("Error syncing with Room: $e");
     }
   }
 
@@ -665,18 +733,21 @@ class FavoritesProvider extends ChangeNotifier {
     final currentUserId = this.currentUserId;
     if (currentUserId == null) return null;
 
-    final snapshot =
-        await firestore
-            .collection("users")
-            .doc(currentUserId)
-            .collection("usersLiked")
-            .get();
+    try {
+      final snapshot = await firestore
+          .collection("users")
+          .doc(currentUserId)
+          .collection("usersLiked")
+          .get();
 
-    for (final doc in snapshot.docs) {
-      final likedUsers = List<String>.from(doc['likedUsersList'] ?? []);
-      if (likedUsers.contains(userId)) {
-        return doc['name'];
+      for (final doc in snapshot.docs) {
+        final likedUsers = List<String>.from(doc['likedUsersList'] ?? []);
+        if (likedUsers.contains(userId)) {
+          return doc['name'] as String?;
+        }
       }
+    } catch (e) {
+      debugPrint('Error getting list name containing user: $e');
     }
     return null;
   }
@@ -691,19 +762,25 @@ class FavoritesProvider extends ChangeNotifier {
       "likedUsersList": [userId],
     };
 
-    final listRef =
-        firestore
-            .collection("users")
-            .doc(currentUserId)
-            .collection("usersLiked")
-            .doc();
+    try {
+      final listRef = firestore
+          .collection("users")
+          .doc(currentUserId)
+          .collection("usersLiked")
+          .doc();
 
-    await listRef.set(listData);
+      await listRef.set(listData);
+    } catch (e) {
+      debugPrint('Error creating favorites list: $e');
+    }
   }
 
   void addUserToList(String listId, String userId) {
     final currentUserId = this.currentUserId;
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      debugPrint("Current user ID is null, cannot add user to list.");
+      return;
+    }
 
     final listRef = firestore
         .collection("users")
@@ -711,14 +788,11 @@ class FavoritesProvider extends ChangeNotifier {
         .collection("usersLiked")
         .doc(listId);
 
-    listRef
-        .update({
-          "likedUsersList": FieldValue.arrayUnion([userId]),
-        })
-        .then((_) {})
-        .catchError((error) {
-          print(" $error");
-        });
+    listRef.update({
+      "likedUsersList": FieldValue.arrayUnion([userId]),
+    }).catchError((error) {
+      debugPrint("Error adding user to list: $error");
+    });
   }
 
   void addUserToLikedList(
@@ -736,16 +810,13 @@ class FavoritesProvider extends ChangeNotifier {
         .collection("usersLiked")
         .doc(listId);
 
-    likedListRef
-        .update({
-          "likedUsersList": FieldValue.arrayUnion([userId]),
-        })
-        .then((_) {
-          onSuccess();
-        })
-        .catchError((error) {
-          onError(error);
-        });
+    likedListRef.update({
+      "likedUsersList": FieldValue.arrayUnion([userId]),
+    }).then((_) {
+      onSuccess();
+    }).catchError((error) {
+      onError(error as Exception);
+    });
   }
 
   Future<void> removeUserFromLikedList({
@@ -760,7 +831,7 @@ class FavoritesProvider extends ChangeNotifier {
         throw Exception('User not authenticated');
       }
 
-      final likedListRef = FirebaseFirestore.instance
+      final likedListRef = firestore
           .collection('users')
           .doc(currentUser.uid)
           .collection('usersLiked')
@@ -770,12 +841,11 @@ class FavoritesProvider extends ChangeNotifier {
       final data = snapshot.data();
 
       if (data == null || data['likedUsersList'] == null) {
-        throw Exception('Lista no encontrada');
+        throw Exception('List not found');
       }
 
       final List<dynamic> likedUsers = List.from(data['likedUsersList']);
       if (likedUsers.length <= 1 && likedUsers.contains(userId)) {
-        // Solo hay uno, y es el que se intenta eliminar: no hacer nada
         onSuccess();
         return;
       }
@@ -794,7 +864,7 @@ class FavoritesProvider extends ChangeNotifier {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
-    FirebaseFirestore.instance
+    firestore
         .collection('users')
         .doc(currentUserId)
         .collection('usersLiked')
@@ -805,16 +875,15 @@ class FavoritesProvider extends ChangeNotifier {
           final lists = await Future.wait(
             snapshot.docs.map((document) async {
               final listId = document.id;
-              final name = document.get('name') ?? '';
-              final creationDate = document.get('creationDate') ?? 0;
+              final name = document.get('name') as String? ?? '';
+              final creationDate = document.get('creationDate') as int? ?? 0;
               final likedUsersList = List<String>.from(
                 document.get('likedUsersList') ?? [],
               );
 
-              final profileImageUrl =
-                  likedUsersList.isNotEmpty
-                      ? await getUserProfileImage(likedUsersList.first)
-                      : '';
+              final profileImageUrl = likedUsersList.isNotEmpty
+                  ? await getServiceProfileImage(likedUsersList.first)
+                  : '';
 
               return LikedUsersList(
                 listId: listId,
@@ -841,34 +910,39 @@ class FavoritesProvider extends ChangeNotifier {
       "timestamp": timestamp,
     };
 
-    final userRecentlyViewedRef = FirebaseFirestore.instance
+    final userRecentlyViewedRef = firestore
         .collection("users")
         .doc(currentUserId)
         .collection("recentlyViewedProfiles")
-        .doc(profileId); // El documento tendrá como ID el profileId
+        .doc(profileId);
 
-    userRecentlyViewedRef
-        .set(
-          recentlyViewedProfile,
-        ) // Usa set para crear o actualizar el documento
-        .then((_) {})
-        .catchError((error) {
-          print(" $error");
-        });
+    userRecentlyViewedRef.set(recentlyViewedProfile).catchError((error) {
+      debugPrint("Error saving recently viewed profile: $error");
+    });
   }
 
-  Future<String> getUserProfileImage(String userId) async {
+  Future<String> getServiceProfileImage(String userId) async {
     try {
-      final document = await firestore.collection("users").doc(userId).get();
-      return document.get("profileImageUrl") ?? "";
+      final document = await firestore.collection("services").doc(userId).get();
+      if (!document.exists) return "";
+      
+      final serviceData = document.data() as Map<String, dynamic>?;
+      final servicesMap = serviceData?['service'] as Map<String, dynamic>?;
+      
+      return servicesMap?['imageUrl']?.toString() ?? "";
     } catch (e) {
+      debugPrint('Error getting service profile image: $e');
       return "";
     }
   }
 
   Future<void> syncLikedUsersWithRoom(List<LikedUsersList> lists) async {
-    for (var likedUsersList in lists) {
-      likedUsersListDao.insert(likedUsersList);
+    try {
+      for (var likedUsersList in lists) {
+        await likedUsersListDao.insert(likedUsersList);
+      }
+    } catch (e) {
+      debugPrint('Error syncing liked users with Room: $e');
     }
   }
 }
@@ -886,7 +960,6 @@ class UserProfile {
     required this.price,
   });
 
-  // Opcional: Método para convertir a Map (útil para Firestore)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -896,7 +969,6 @@ class UserProfile {
     };
   }
 
-  // Opcional: Factory constructor para crear desde Map (útil para Firestore)
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
       id: map['id'] ?? '',
@@ -906,13 +978,11 @@ class UserProfile {
     );
   }
 
-  // Opcional: Sobrescribir toString para debugging
   @override
   String toString() {
     return 'UserProfile(id: $id, name: $name, price: $price, profileImageUrl: $profileImageUrl)';
   }
 
-  // Opcional: Implementar igualdad (==) y hashCode si necesitas comparar objetos
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

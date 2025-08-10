@@ -22,70 +22,66 @@ import 'package:flutter/material.dart';
 
 /// Clase que contiene los colores específicos para el Modo Oscuro.
 class DarkModeColors {
-  static const primaryColor = Color(
-    0xFF000000,
-  ); // Color primario (negro absoluto)
+  static const primaryColor = Color(0xFF000000); // Negro absoluto
   static const primaryColorLight = Color(
     0xFF111112,
   ); // Variante más clara del primario
-  static const essentialColor = Color(
-    0xFFB00000,
-  ); // Color esencial (rojo fuerte)
-  static const secondaryColor = Color(0xFFFFFFFF); // Color secundario (blanco)
+  static const essentialColor = Color(0xFFB00000); // Rojo fuerte
+  static const secondaryColor = Color(0xFFFFFFFF); // Blanco
+  static const secondaryColorLight = Color.fromARGB(92, 255, 255, 255);
   static const secondaryColorLittleDark = Color(
     0x80FFFFFF,
-  ); // Blanco con opacidad (50%)
-  static const mainColorGray = Color(0xFF2C2C2C); // Gris principal
-  static const toolBarColor = Color(
-    0xFF0E0E0E,
-  ); // Color de la barra de herramientas
-  static const selectedButtonColor = Color(
-    0xFF1C1C1C,
-  ); // Color para botón seleccionado
-  static const primarySecondColor = Color(0xFF0A0A0A); // Segundo color primario
-  static const correctGreen = Color(0xFF228B22); // Verde para indicar correcto
-  static const gray757 = Color(0xFF686868); // Gris más suave
-  static const redColor = Color(0xFFBA0707); // Rojo para advertencias o errores
+  ); // Blanco con opacidad
+  static const mainColorGray = Color(0xFF2C2C2C); // Gris oscuro
+  static const toolBarColor = Color(0xFF0E0E0E); // Casi negro
+  static const selectedButtonColor = Color(0xFF1C1C1C); // Gris muy oscuro
+  static const primarySecondColor = Color(0xFF0A0A0A); // Negro casi absoluto
+  static const correctGreen = Color(0xFF228B22); // Verde fuerte
+  static const gray757 = Color(0xFF686868); // Gris medio
+  static const redColor = Color(0xFFBA0707); // Rojo fuerte
   static const redColorLight = Color(0x99FF0000); // Rojo con transparencia
-  static const blueColor = Color(0xFF005EFF); // Azul principal
+  static const blueColor = Color(0xFF005EFF); // Azul fuerte
 }
 
 /// Clase que contiene los colores específicos para el Modo Claro.
-/// Actualmente reutiliza los mismos valores que DarkModeColors,
-/// lo que sugiere que puede expandirse o personalizarse en el futuro.
 class LightModeColors {
-  static const primaryColor = Color(0xFF000000);
-  static const primaryColorLight = Color(0xFF111112);
-  static const essentialColor = Color(0xFFB00000);
-  static const secondaryColor = Color(0xFFFFFFFF);
-  static const secondaryColorLittleDark = Color(0x80FFFFFF);
-  static const mainColorGray = Color(0xFF2C2C2C);
-  static const toolBarColor = Color(0xFF0E0E0E);
-  static const selectedButtonColor = Color(0xFF1C1C1C);
-  static const primarySecondColor = Color(0xFF0A0A0A);
-  static const correctGreen = Color(0xFF228B22);
-  static const gray757 = Color(0xFF686868);
-  static const redColor = Color(0xFFBA0707);
-  static const redColorLight = Color(0x99FF0000);
-  static const blueColor = Color(0xFF005EFF);
+  static const primaryColor = Color(0xFFFFFFFF); // Blanco absoluto
+  static const primaryColorLight = Color.fromARGB(
+    255,
+    223,
+    223,
+    223,
+  ); // Variante más oscura del blanco
+  static const essentialColor = Color(0xFF1A1A1A); // Rojo más claro
+  static const secondaryColor = Color(0xFF000000); // Negro para contraste
+  static const secondaryColorLight = Color.fromARGB(141, 3, 3, 3);
+  static const secondaryColorLittleDark = Color(
+    0x80000000,
+  ); // Negro con opacidad (50%)
+  static const mainColorGray = Color(0xFFE0E0E0); // Gris claro
+  static const toolBarColor = Color(0xFFF0F0F0); // Gris muy claro para barra
+  static const selectedButtonColor = Color(
+    0xFFD6D6D6,
+  ); // Gris más notorio pero claro
+  static const primarySecondColor = Color(0xFFFFFFFF); // Blanco
+  static const correctGreen = Color(0xFF32CD32); // Verde más claro (LimeGreen)
+  static const gray757 = Color(0xFFA0A0A0); // Gris claro equivalente
+  static const redColor = Color(0xFFE53935); // Rojo claro
+  static const redColorLight = Color(
+    0x99FF8A80,
+  ); // Rojo claro con transparencia
+  static const blueColor = Color(0xFF4D90FE); // Azul claro
 }
 
-/// Clase utilitaria que selecciona dinámicamente la paleta de colores
-/// adecuada dependiendo del modo actual del dispositivo (oscuro o claro).
+/// Clase que devuelve la paleta de colores según el tema activo (no solo por brillo).
 class ColorPalette {
-  /// Obtiene la paleta de colores basándose en el brillo del dispositivo.
-  ///
-  /// Devuelve un mapa (`Map<String, Color>`) que contiene los nombres de los colores
-  /// como claves y sus valores correspondientes.
+  /// Devuelve la paleta basada en el tema actual de la app (light/dark).
   static Map<String, Color> getPalette(BuildContext context) {
-    var brightness =
-        MediaQuery.of(
-          context,
-        ).platformBrightness; // Detecta si es modo oscuro o claro.
+    final brightness = Theme.of(context).brightness;
 
     if (brightness == Brightness.dark) {
-      // Retorna la paleta de modo oscuro.
       return {
+        'secondaryColorLight': DarkModeColors.secondaryColorLight,
         'primaryColor': DarkModeColors.primaryColor,
         'primaryColorLight': DarkModeColors.primaryColorLight,
         'essentialColor': DarkModeColors.essentialColor,
@@ -102,8 +98,8 @@ class ColorPalette {
         'blueColor': DarkModeColors.blueColor,
       };
     } else {
-      // Retorna la paleta de modo claro.
       return {
+        'secondaryColorLight': LightModeColors.secondaryColorLight,
         'primaryColor': LightModeColors.primaryColor,
         'primaryColorLight': LightModeColors.primaryColorLight,
         'essentialColor': LightModeColors.essentialColor,

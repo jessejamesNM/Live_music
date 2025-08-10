@@ -55,7 +55,7 @@ class SearchFunScreen extends StatelessWidget {
           colorScheme[AppStrings.primaryColor], // Establece el color de fondo.
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: Padding(
         padding: const EdgeInsets.only(
@@ -238,10 +238,6 @@ class UserItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    userProvider.fetchAndSaveUserProfile(
-      userData.userId,
-    ); // Carga y guarda el perfil del usuario.
-
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(

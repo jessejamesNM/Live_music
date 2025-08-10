@@ -41,7 +41,7 @@ class SettingsScreen extends StatelessWidget {
       // Barra de navegación inferior que varía según el tipo de usuario.
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       // Contenido principal de la pantalla.
       body: SafeArea(

@@ -36,7 +36,19 @@ class ButtonRowWS extends StatelessWidget {
     // Lista de botones con sus textos, formas y selecciones (strings)
     final buttons = [
       ButtonDataWS(
-        text: AppStrings.works, // Texto del primer botón
+        text: "Servicio", // Texto del primer botón (nuevo)
+        shape: const BorderRadius.only(
+          topLeft: Radius.circular(8),
+          bottomLeft: Radius.circular(8),
+          bottomRight: Radius.circular(8),
+          topRight: Radius.circular(8),
+        ),
+        selection:
+            AppStrings
+                .servicesSelectionWS, // String de selección asociado al botón
+      ),
+      ButtonDataWS(
+        text: AppStrings.works, // Texto del segundo botón
         shape: const BorderRadius.only(
           topLeft: Radius.circular(8),
           bottomLeft: Radius.circular(8),
@@ -48,7 +60,7 @@ class ButtonRowWS extends StatelessWidget {
                 .worksSelectionWS, // String de selección asociado al botón
       ),
       ButtonDataWS(
-        text: AppStrings.availability, // Texto del segundo botón
+        text: AppStrings.availability, // Texto del tercer botón
         shape: BorderRadius.only(
           topLeft: Radius.circular(8),
           bottomLeft: Radius.circular(8),
@@ -60,7 +72,7 @@ class ButtonRowWS extends StatelessWidget {
                 .availabilitySelectionWS, // String de selección asociado al botón
       ),
       ButtonDataWS(
-        text: AppStrings.information, // Texto del tercer botón
+        text: AppStrings.information, // Texto del cuarto botón
         shape: BorderRadius.only(
           topLeft: Radius.circular(8),
           bottomLeft: Radius.circular(8),
@@ -72,7 +84,7 @@ class ButtonRowWS extends StatelessWidget {
                 .informationSelectionWS, // String de selección asociado al botón
       ),
       ButtonDataWS(
-        text: AppStrings.reviews, // Texto del cuarto botón
+        text: AppStrings.reviews, // Texto del quinto botón
         shape: const BorderRadius.only(
           topLeft: Radius.circular(8),
           bottomLeft: Radius.circular(8),

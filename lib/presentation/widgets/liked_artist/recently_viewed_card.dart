@@ -35,57 +35,40 @@ import '../../../data/sources/local/internal_data_base.dart';
 class RecentlyViewedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el proveedor de favoritos desde el contexto
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
-    // Obtenemos el esquema de colores de la aplicación
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Utilizamos StreamBuilder para escuchar los perfiles recientemente vistos
     return StreamBuilder<List<RecentlyViewedProfile>>(
-      stream:
-          favoritesProvider
-              .recentlyViewedProfiles, // El stream de perfiles recientemente vistos
+      stream: favoritesProvider.recentlyViewedProfiles,
       builder: (context, snapshot) {
-        // Mientras la conexión esté esperando, mostramos un indicador de carga
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Obtenemos los perfiles recientes desde el snapshot
         final recentProfiles = snapshot.data ?? [];
-        // Si hay perfiles, obtenemos el primero (el más reciente)
         final mostRecent =
             recentProfiles.isNotEmpty ? recentProfiles.first : null;
 
-        // Contenedor principal que será interactivo (Gestor de Taps)
         return GestureDetector(
           onTap: () {
-            // Al hacer clic, navegamos a la ruta de recientemente vistos
-            context.push(AppStrings.recentlyViewedRoute);
+            context.push(AppStrings.recentlyViewedScreenRoutes);
           },
           child: Container(
-            margin: const EdgeInsets.symmetric(
-              horizontal: 6,
-            ), // Margen horizontal
+            margin: const EdgeInsets.symmetric(horizontal: 6),
             child: Column(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12), // Bordes redondeados
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    width: 170, // Ancho de la tarjeta
-                    height: 170, // Alto de la tarjeta
+                    width: 170,
+                    height: 170,
                     decoration: BoxDecoration(
-                      color:
-                          colorScheme[AppStrings
-                              .primaryColorLight], // Fondo con color primario
+                      color: colorScheme[AppStrings.primaryColorLight],
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1), // Sombra sutil
+                          color: Colors.black.withOpacity(0.1),
                           blurRadius: 10,
-                          offset: const Offset(
-                            0,
-                            4,
-                          ), // Desplazamiento de la sombra
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -94,24 +77,20 @@ class RecentlyViewedCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Container(
-                            width:
-                                double
-                                    .infinity, // Ancho al 100% de su contenedor
+                            width: double.infinity,
                             color: colorScheme[AppStrings.primaryColorLight]!
-                                .withOpacity(0.4), // Fondo con opacidad
+                                .withOpacity(0.4),
                             child:
                                 mostRecent == null
-                                    // Si no hay un perfil reciente, mostramos un ícono de "repetir"
                                     ? Center(
                                       child: Icon(
                                         Icons.replay_outlined,
                                         size: 60,
                                         color:
                                             colorScheme[AppStrings
-                                                .essentialColor], // Color del ícono
+                                                .essentialColor],
                                       ),
                                     )
-                                    // Si hay un perfil reciente, mostramos la imagen en caché
                                     : CachedNetworkImage(
                                       imageUrl: mostRecent.profileImageUrl,
                                       fit: BoxFit.cover,
@@ -124,16 +103,20 @@ class RecentlyViewedCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 6),
                 Text(
-                  AppStrings.recentlyViewedTitle, // Título de la sección
+                  AppStrings.recentlyViewedTitle,
                   style: TextStyle(
-                    fontSize: 16, // Tamaño de fuente
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color del texto
-                    fontWeight: FontWeight.w600, // Peso de la fuente
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme[AppStrings.secondaryColor],
+                    fontFamily: null, // Usa fuente por defecto del sistema
+                    decoration:
+                        TextDecoration.none, // Asegura que no tenga subrayado
+                    shadows: [], // Elimina sombras heredadas
+                    backgroundColor: Colors.transparent, // Sin fondo raro
                   ),
-                  textAlign: TextAlign.center, // Alineación centrada
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

@@ -269,9 +269,7 @@ class _BottomFavoritesListCreatorDialogState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color:
-                              colorScheme[AppStrings
-                                  .secondaryColor], // Color del texto del botón.
+                          color: Colors.white, // Color del texto del botón.
                         ),
                       ),
                     ),

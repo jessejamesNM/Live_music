@@ -26,25 +26,20 @@ import 'package:live_music/data/provider_logics/nav_buttom_bar_components/favori
 import '../../../data/model/liked_artist/profile_base.dart';
 import 'artis_profile_card.dart';
 
-/// `ArtistGrid` es un widget reutilizable para mostrar una lista de artistas en formato de cuadrícula.
+/// Widget que muestra una cuadrícula de artistas
 class ArtistGrid<T extends ProfileBase> extends StatelessWidget {
-  // Parámetros necesarios para la funcionalidad del widget
-  final GoRouter goRouter; // Proveedor de la ruta para la navegación
-  final FavoritesProvider
-  favoritesProvider; // Proveedor de la lógica de favoritos
-  final List<T> profiles; // Lista de perfiles de artistas
-  final String currentUserId; // ID del usuario actual
-  final VoidCallback
-  toggleFavoritesDialog; // Función para mostrar el diálogo de favoritos
-  final bool isEditMode; // Indica si está en modo edición
-  final Future<void> Function({
-    required String currentUserId, // ID del usuario actual
-    required String userIdToRemove, // ID del usuario a eliminar de favoritos
-  })
-  removeUserFromFavoritesList; // Función para eliminar un perfil de la lista de favoritos
+  final GoRouter goRouter;
+  final FavoritesProvider favoritesProvider;
+  final List<T> profiles;
+  final String currentUserId;
+  final VoidCallback toggleFavoritesDialog;
+  final bool isEditMode;
+  final Function({
+    required String currentUserId,
+    required String userIdToRemove,
+  }) removeUserFromFavoritesList;
 
-  // Constructor del widget
-  ArtistGrid({
+  const ArtistGrid({
     required this.goRouter,
     required this.favoritesProvider,
     required this.profiles,
@@ -52,45 +47,58 @@ class ArtistGrid<T extends ProfileBase> extends StatelessWidget {
     required this.toggleFavoritesDialog,
     required this.isEditMode,
     required this.removeUserFromFavoritesList,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[ArtistGrid] Building grid with ${profiles.length} profiles');
+    debugPrint('[ArtistGrid] Current user ID: $currentUserId');
+    debugPrint('[ArtistGrid] Edit mode: $isEditMode');
+
     return GridView.builder(
-      padding: const EdgeInsets.all(8), // Espaciado interno de la cuadrícula
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, // Dos columnas en la cuadrícula
-        crossAxisSpacing: 8, // Espaciado entre las columnas
-        mainAxisSpacing: 8, // Espaciado entre las filas
+        crossAxisCount: 2,
+        childAspectRatio: 0.8,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
-      itemCount: profiles.length, // Número de perfiles a mostrar
-      itemBuilder: (context, i) {
-        final p =
-            profiles[i]; // Obtenemos el perfil del artista en la posición i
+      itemCount: profiles.length,
+      itemBuilder: (context, index) {
+        final profile = profiles[index];
+        
+        // Log detallado de cada perfil
+        debugPrint('[ArtistGrid] Profile at index $index:');
+        debugPrint('  - User ID: ${profile.userId}');
+        debugPrint('  - Name: ${profile.name}');
+        debugPrint('  - Price: ${profile.price}');
+        debugPrint('  - Image URL: ${profile.profileImageUrl}');
+        debugPrint('  - Liked: ${profile.userLiked}');
+        debugPrint('  - Timestamp: ${profile.timestamp}');
+
         return ArtistProfileCard(
-          key: ValueKey(
-            p.userId,
-          ), // Usamos el ID del usuario como clave única para cada tarjeta
-          profileImageUrl:
-              p.profileImageUrl, // URL de la imagen de perfil del artista
-          name: p.name, // Nombre del artista
-          price: p.price, // Precio del artista
-          userId: p.userId, // ID del usuario
-          userLiked: p.userLiked, // Estado de "me gusta" del usuario
-          onLikeClick:
-              () {}, // Función vacía para el clic en "like" (aún no implementado)
-          onUnlikeClick:
-              () => removeUserFromFavoritesList(
-                currentUserId: currentUserId, // El ID del usuario actual
-                userIdToRemove:
-                    p.userId, // El ID del usuario a eliminar de favoritos
-              ),
-          toggleFavoritesDialog:
-              toggleFavoritesDialog, // Función para mostrar el diálogo de favoritos
-          isEditMode: isEditMode, // Determina si está en modo edición
-          currentUserId: currentUserId, // El ID del usuario actual
-          goRouter: goRouter, // Proveedor de navegación
-          favoritesProvider: favoritesProvider, // Proveedor de favoritos
+          profileImageUrl: profile.profileImageUrl,
+          name: profile.name,
+          price: profile.price,
+          userId: profile.userId,
+          userLiked: profile.userLiked,
+          onLikeClick: () {
+            debugPrint('[ArtistGrid] Like clicked for user ${profile.userId}');
+            favoritesProvider.onLikeClick(profile.userId, currentUserId);
+          },
+          onUnlikeClick: () {
+            debugPrint('[ArtistGrid] Unlike clicked for user ${profile.userId}');
+            favoritesProvider.onUnlikeClick(profile.userId);
+          },
+          toggleFavoritesDialog: () {
+            debugPrint('[ArtistGrid] Favorites dialog toggled');
+            toggleFavoritesDialog();
+          },
+          isEditMode: isEditMode,
+          currentUserId: currentUserId,
+          goRouter: goRouter,
+          favoritesProvider: favoritesProvider,
         );
       },
     );

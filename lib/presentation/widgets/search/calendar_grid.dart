@@ -193,11 +193,14 @@ class _CalendarGridState extends State<CalendarGrid> {
                   ); // Verifica si el día no está disponible.
 
                   Color? bgColor;
-                  Color textColor = Colors.white;
+                  Color textColor =
+                      colorScheme[AppStrings.secondaryColorLight] ??
+                      Colors.white; // Color del texto por defecto.
 
                   // Determina el color de fondo y el texto según el estado del día.
                   if (isSelected) {
                     bgColor = colorScheme[AppStrings.essentialColor];
+                    textColor = Colors.white;
                   } else if (isPast) {
                     bgColor = Colors.grey.withOpacity(
                       0.2,
@@ -250,7 +253,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                                           : FontWeight.w500,
                                 ),
                               ),
-                            ),           
+                            ),
                           ],
                         ),
                       ),

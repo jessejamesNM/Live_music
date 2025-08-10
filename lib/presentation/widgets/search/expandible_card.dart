@@ -39,9 +39,7 @@ class ExpandableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtiene la paleta de colores definida en el tema.
+    final colorScheme = ColorPalette.getPalette(context);
 
     return GestureDetector(
       // Detecta el clic para cambiar el estado de la tarjeta (expandir o contraer).
@@ -55,7 +53,9 @@ class ExpandableCard extends StatelessWidget {
               colorScheme[AppStrings
                   .primaryColor], // Color de fondo de la tarjeta.
           border: Border.all(
-            color: Colors.white,
+            color:
+                colorScheme[AppStrings
+                    .secondaryColor]!, // Color del borde de la tarjeta.
             width: 2,
           ), // Borde blanco con grosor de 2.
           borderRadius: BorderRadius.circular(
@@ -77,9 +77,8 @@ class ExpandableCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18, // Tamaño de fuente del título.
                     color:
-                        Theme.of(context)
-                            .colorScheme
-                            .onPrimary, // Color del texto según el tema.
+                        colorScheme[AppStrings
+                            .secondaryColor], // Color del texto según el tema.
                   ),
                 ),
               if (isExpanded) ...[

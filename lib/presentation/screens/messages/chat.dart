@@ -39,6 +39,7 @@ import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:live_music/data/provider_logics/nav_buttom_bar_components/messages/messages_provider.dart';
 import 'package:live_music/data/provider_logics/user/user_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../widgets/animated_visibility.dart';
 import '../../widgets/chat/message_item.dart';
 import 'package:live_music/presentation/resources/colors.dart';
@@ -56,9 +57,8 @@ class ChatScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _ChatScreenState createState() => _ChatScreenState(
-    userProvider: userProvider,
-  );
+  _ChatScreenState createState() =>
+      _ChatScreenState(userProvider: userProvider);
 }
 
 // ChatScreen State
@@ -88,7 +88,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Obtener el ID del usuario actual desde Firebase Auth
     currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _otherUserId = userProvider.otherUserId;
     _initializeChat();
@@ -136,7 +135,6 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final snapshot = await userDoc.get();
       if (!snapshot.exists || !snapshot.data()!.containsKey("fcmToken")) {
-        // Si no existe el token, obtén y guárdalo
         FirebaseUtils.getDeviceToken(
           onTokenReceived: (token) async {
             await FirebaseUtils.saveTokenToFirestore(
@@ -222,6 +220,108 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _handleLocationSharing() async {
+    if (_iAmBlocked) {
+      setState(() => _showBlockedDialog = true);
+      return;
+    }
+
+    if (_iBlocked) {
+      setState(() => _showUnblockDialog = true);
+      return;
+    }
+
+    // Always request location permission when button is clicked
+    final status = await Permission.location.request();
+
+    if (!status.isGranted) {
+      // If denied, show explanation and request again
+      if (await Permission.location.shouldShowRequestRationale) {
+        // Show explanation why permission is needed
+        await showDialog(
+          context: context,
+          builder:
+              (BuildContext context) => AlertDialog(
+                title: Text('Permisos de ubicación requeridos'),
+                content: Text(
+                  'Necesitamos acceso a tu ubicación para compartirla en el chat. '
+                  'Por favor, concede los permisos cuando se te solicite.',
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text('Entendido'),
+                  ),
+                ],
+              ),
+        );
+
+        // Request permission again after explanation
+        final newStatus = await Permission.location.request();
+        if (!newStatus.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No se puede compartir ubicación sin permisos'),
+            ),
+          );
+          return;
+        }
+      } else {
+        // Permission permanently denied
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Los permisos de ubicación fueron denegados permanentemente. '
+              'Puedes habilitarlos en la configuración de la aplicación.',
+            ),
+            action: SnackBarAction(
+              label: 'Abrir configuración',
+              onPressed: () => openAppSettings(),
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    // Permissions granted, proceed with location
+    widget.messagesProvider.getCurrentLocationForChat(widget.messagesProvider, (
+      location,
+    ) {
+      if (location != null && mounted) {
+        setState(() {
+          _currentLatitude = location['latitude'];
+          _currentLongitude = location['longitude'];
+        });
+        widget.messagesProvider.showLocationBottomSheetModal(
+          context,
+          _currentLatitude!,
+          _currentLongitude!,
+          ColorPalette.getPalette(context),
+          () {
+            widget.messagesProvider.sendLocation(
+              context,
+              _currentLatitude!,
+              _currentLongitude!,
+              currentUserId,
+              _otherUserId,
+            );
+            Navigator.pop(context);
+            sendNotification(
+              "Te ah compartido su ubicación",
+              _artistName,
+              token,
+            );
+          },
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppStrings.locationError)));
+      }
+    });
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -246,7 +346,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 duration: Duration(milliseconds: 500),
                 child: Container(
                   width: double.infinity,
-                  height: 95, // Altura reducida en 15
+                  height: 95,
                   decoration: BoxDecoration(
                     color: colorScheme[AppStrings.primaryColor],
                     borderRadius: BorderRadius.only(
@@ -259,14 +359,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       top: 8.0,
                       left: 16,
                       right: 16,
-                    ), // Padding en el top interno
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start, // Pegado al top
-                      children: [
-                        // Aquí van tus botones o widgets dentro de la barra
-                      ],
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [],
                     ),
                   ),
                 ),
@@ -408,60 +505,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 color: colorScheme[AppStrings.essentialColor],
                                 size: 30,
                               ),
-                              onPressed: () {
-                                if (_iAmBlocked) {
-                                  setState(() => _showBlockedDialog = true);
-                                } else if (_iBlocked) {
-                                  setState(() => _showUnblockDialog = true);
-                                } else {
-                                  widget.messagesProvider.getCurrentLocationForChat(
-                                    widget.messagesProvider,
-                                    (location) {
-                                      if (location != null && mounted) {
-                                        setState(() {
-                                          _currentLatitude =
-                                              location['latitude'];
-                                          _currentLongitude =
-                                              location['longitude'];
-                                        });
-                                        widget.messagesProvider
-                                            .showLocationBottomSheetModal(
-                                              context,
-                                              _currentLatitude!,
-                                              _currentLongitude!,
-                                              colorScheme,
-                                              () {
-                                                widget.messagesProvider
-                                                    .sendLocation(
-                                                      context,
-                                                      _currentLatitude!,
-                                                      _currentLongitude!,
-                                                      currentUserId,
-                                                      _otherUserId,
-                                                    );
-                                                Navigator.pop(context);
-                                                sendNotification(
-                                                  "Te ah compartido su ubicación",
-                                                  _artistName,
-                                                  token,
-                                                );
-                                              },
-                                            );
-                                      } else {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              AppStrings.locationError,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  );
-                                }
-                              },
+                              onPressed: _handleLocationSharing,
                             ),
                             SizedBox(width: 8),
                             Expanded(

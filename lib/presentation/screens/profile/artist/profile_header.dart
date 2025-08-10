@@ -27,14 +27,13 @@ import 'dart:async';
 import '../../../../../data/provider_logics/user/user_provider.dart';
 import 'package:dio/dio.dart';
 
-
 class ProfileHeader extends StatefulWidget {
   final String? profileImageUrl;
   final String userName;
   final String nickname;
   final bool isUploading;
   final String currentUserId;
-final GoRouter goRouter;
+  final GoRouter goRouter;
   const ProfileHeader({
     Key? key,
     required this.profileImageUrl,
@@ -67,7 +66,7 @@ class _ProfileHeaderState extends State<ProfileHeader> {
     _showSnackBar('Procesando imagen...');
 
     setState(() => _isUploading = true);
-    
+
     try {
       final croppedFile = await _cropImage(File(pickedFile.path));
       if (croppedFile == null) {
@@ -81,12 +80,12 @@ class _ProfileHeaderState extends State<ProfileHeader> {
         _showSnackBar('Imagen de perfil actualizada con éxito');
       }
     } catch (e) {
-      if (e.toString().toLowerCase().contains('inapropiado') || 
+      if (e.toString().toLowerCase().contains('inapropiado') ||
           e.toString().toLowerCase().contains('pornográfico') ||
           e.toString().toLowerCase().contains('violento')) {
         _showErrorDialog(
-          'Contenido inapropiado', 
-          'La imagen ha sido rechazada por nuestro sistema de moderación. Por favor, sube una imagen apropiada para tu perfil.'
+          'Contenido inapropiado',
+          'La imagen ha sido rechazada por nuestro sistema de moderación. Por favor, sube una imagen apropiada para tu perfil.',
         );
       } else {
         _showSnackBar('Error: ${e.toString()}', isError: true);
@@ -126,16 +125,16 @@ class _ProfileHeaderState extends State<ProfileHeader> {
         imageFile,
         widget.currentUserId,
       );
-      
+
       if (response.error != null) {
-        if (response.error!.toLowerCase().contains('inapropiado') || 
+        if (response.error!.toLowerCase().contains('inapropiado') ||
             response.error!.toLowerCase().contains('pornográfico') ||
             response.error!.toLowerCase().contains('violento')) {
           throw Exception('Contenido inapropiado: ${response.error}');
         }
         throw Exception(response.error);
       }
-      
+
       return response.url;
     } on DioError catch (e) {
       if (e.response?.statusCode == 403) {
@@ -155,138 +154,139 @@ class _ProfileHeaderState extends State<ProfileHeader> {
   }
 
   Future<void> _pickImageForWorks() async {
-  _showSnackBar('Procesando imagen...');
+    _showSnackBar('Procesando imagen...');
 
-  setState(() => _isUploading = true);
-  try {
-    await ProfileImageHandler.handle(
-      context: context,
-      imageType: 'works',
-      userProvider: Provider.of<UserProvider>(context, listen: false),
-      onImageUploaded: (url) {
+    setState(() => _isUploading = true);
+    try {
+      await ProfileImageHandler.handle(
+        context: context,
+        imageType: 'works',
+        userProvider: Provider.of<UserProvider>(context, listen: false),
+        onImageUploaded: (url) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MediaPreviewer(mediaUrls: [url], initialIndex: 0),
+            ),
+          );
+          _showSnackBar('Imagen subida exitosamente');
+        },
+      ).catchError((error) {
+        if (error.toString().toLowerCase().contains('inapropiado') ||
+            error.toString().toLowerCase().contains('pornográfico') ||
+            error.toString().toLowerCase().contains('violento')) {
+          _showErrorDialog(
+            'Contenido inapropiado',
+            'La imagen ha sido rechazada por nuestro sistema de moderación. Por favor, sube una imagen apropiada.',
+          );
+        } else {
+          _showSnackBar('Error: $error', isError: true);
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    _showSnackBar('Procesando video...');
+
+    setState(() => _isUploading = true);
+    try {
+      final pickedFile = await _picker.pickVideo(source: ImageSource.gallery);
+      if (pickedFile == null) return;
+
+      final file = File(pickedFile.path);
+      final resp = await _api.uploadVideo(file, widget.currentUserId);
+
+      if (resp.url != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => MediaPreviewer(mediaUrls: [url], initialIndex: 0),
+            builder:
+                (_) => MediaPreviewer(mediaUrls: [resp.url!], initialIndex: 0),
           ),
         );
-        _showSnackBar('Imagen subida exitosamente');
-      },
-    ).catchError((error) {
-      if (error.toString().toLowerCase().contains('inapropiado') || 
-          error.toString().toLowerCase().contains('pornográfico') ||
-          error.toString().toLowerCase().contains('violento')) {
+        _showSnackBar('Video subido exitosamente');
+      } else if (resp.error != null) {
+        if (resp.error!.toLowerCase().contains('inapropiado') ||
+            resp.error!.toLowerCase().contains('pornográfico') ||
+            resp.error!.toLowerCase().contains('violento')) {
+          _showErrorDialog(
+            'Contenido inapropiado',
+            'El video ha sido rechazado por nuestro sistema de moderación. Por favor, sube un video apropiado.',
+          );
+        } else {
+          _showSnackBar('Error: ${resp.error}', isError: true);
+        }
+      }
+    } catch (e) {
+      if (e.toString().toLowerCase().contains('inapropiado') ||
+          e.toString().toLowerCase().contains('pornográfico') ||
+          e.toString().toLowerCase().contains('violento')) {
         _showErrorDialog(
-          'Contenido inapropiado', 
-          'La imagen ha sido rechazada por nuestro sistema de moderación. Por favor, sube una imagen apropiada.'
+          'Contenido inapropiado',
+          'El video ha sido rechazado por nuestro sistema de moderación. Por favor, sube un video apropiado.',
         );
       } else {
-        _showSnackBar('Error: $error', isError: true);
+        _showSnackBar('Error al subir video: $e', isError: true);
       }
-    });
-  } finally {
-    if (mounted) setState(() => _isUploading = false);
-  }
-}
-Future<void> _pickVideo() async {
-  _showSnackBar('Procesando video...');
-
-  setState(() => _isUploading = true);
-  try {
-    final pickedFile = await _picker.pickVideo(source: ImageSource.gallery);
-    if (pickedFile == null) return;
-    
-    final file = File(pickedFile.path);
-    final resp = await _api.uploadVideo(file, widget.currentUserId);
-    
-    if (resp.url != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MediaPreviewer(
-            mediaUrls: [resp.url!],
-            initialIndex: 0,
-          ),
-        ),
-      );
-      _showSnackBar('Video subido exitosamente');
-    } else if (resp.error != null) {
-      if (resp.error!.toLowerCase().contains('inapropiado') || 
-          resp.error!.toLowerCase().contains('pornográfico') ||
-          resp.error!.toLowerCase().contains('violento')) {
-        _showErrorDialog(
-          'Contenido inapropiado', 
-          'El video ha sido rechazado por nuestro sistema de moderación. Por favor, sube un video apropiado.'
-        );
-      } else {
-        _showSnackBar('Error: ${resp.error}', isError: true);
-      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
-  } catch (e) {
-    if (e.toString().toLowerCase().contains('inapropiado') || 
-        e.toString().toLowerCase().contains('pornográfico') ||
-        e.toString().toLowerCase().contains('violento')) {
-      _showErrorDialog(
-        'Contenido inapropiado', 
-        'El video ha sido rechazado por nuestro sistema de moderación. Por favor, sube un video apropiado.'
-      );
-    } else {
-      _showSnackBar('Error al subir video: $e', isError: true);
-    }
-  } finally {
-    if (mounted) setState(() => _isUploading = false);
   }
-}
 
   void _onAddPressed() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.image),
-              title: const Text('Subir imagen'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImageForWorks();
-              },
+      builder:
+          (_) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Subir imagen'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageForWorks();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.videocam),
+                  title: const Text('Subir video'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickVideo();
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text('Subir video'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickVideo();
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   void _showErrorDialog(String title, String message) {
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -302,9 +302,7 @@ Future<void> _pickVideo() async {
         duration: const Duration(seconds: 4),
         backgroundColor: isError ? Colors.red[700] : Colors.green[700],
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(10),
       ),
     );
@@ -331,47 +329,47 @@ Future<void> _pickVideo() async {
                   child: CircleAvatar(
                     radius: 60,
                     backgroundColor: colorScheme[AppStrings.primaryColorLight],
-                    child: _isUploading
-                        ? CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                               colorScheme[AppStrings.secondaryColor]!,
-
-                            ),
-                          )
-                        : widget.profileImageUrl != null
-                            ? ClipOval(
-                                child: Image.network(
-                                  widget.profileImageUrl!,
-                                  width: 110,
-                                  height: 110,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, progress) {
-                                    if (progress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value: progress.expectedTotalBytes != null
-                                            ? progress.cumulativeBytesLoaded /
-                                                progress.expectedTotalBytes!
-                                            : null,
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color:  colorScheme[AppStrings.secondaryColor],
-
-                                    );
-                                  },
-                                ),
-                              )
-                            : Icon(
-                                Icons.person,
-                                size: 60,
-                                color:  colorScheme[AppStrings.secondaryColor],
-
+                    child:
+                        _isUploading
+                            ? CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorScheme[AppStrings.secondaryColor]!,
                               ),
+                            )
+                            : widget.profileImageUrl != null
+                            ? ClipOval(
+                              child: Image.network(
+                                widget.profileImageUrl!,
+                                width: 110,
+                                height: 110,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, progress) {
+                                  if (progress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value:
+                                          progress.expectedTotalBytes != null
+                                              ? progress.cumulativeBytesLoaded /
+                                                  progress.expectedTotalBytes!
+                                              : null,
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person,
+                                    size: 60,
+                                    color:
+                                        colorScheme[AppStrings.secondaryColor],
+                                  );
+                                },
+                              ),
+                            )
+                            : Icon(
+                              Icons.person,
+                              size: 60,
+                              color: colorScheme[AppStrings.secondaryColor],
+                            ),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -379,8 +377,7 @@ Future<void> _pickVideo() async {
                   widget.userName,
                   style: TextStyle(
                     fontSize: 24,
-                    color:colorScheme[AppStrings.secondaryColor],
-
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -389,7 +386,6 @@ Future<void> _pickVideo() async {
                   style: TextStyle(
                     fontSize: 16,
                     color: colorScheme[AppStrings.grayColor],
-
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -415,21 +411,19 @@ Future<void> _pickVideo() async {
                       child: Icon(
                         Icons.add,
                         color: colorScheme[AppStrings.secondaryColor],
-
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => widget.goRouter.push(
-                    AppStrings.settingsScreenRoute,
-                  ),
+                  onTap:
+                      () =>
+                          widget.goRouter.push(AppStrings.settingsScreenRoute),
                   child: Icon(
                     Icons.settings,
                     size: 42,
                     color: colorScheme[AppStrings.grayColor],
-
                   ),
                 ),
               ],
@@ -440,6 +434,7 @@ Future<void> _pickVideo() async {
     );
   }
 }
+
 class ButtonRow extends StatelessWidget {
   final ValueNotifier<int> selectedButtonIndex;
   final Function(int) onButtonSelect;
@@ -450,10 +445,10 @@ class ButtonRow extends StatelessWidget {
     Key? key,
   }) : super(key: key);
 
-  // Listado de botones con su texto y forma
+  // Updated list of buttons to include "Servicios"
   final List<ButtonData> buttons = [
     ButtonData(
-      text: AppStrings.works,
+      text: 'Servicios', // New button for Services
       shape: const BorderRadius.only(
         topLeft: Radius.circular(8),
         bottomLeft: Radius.circular(8),
@@ -463,8 +458,8 @@ class ButtonRow extends StatelessWidget {
       index: 0,
     ),
     ButtonData(
-      text: AppStrings.availability,
-      shape: BorderRadius.only(
+      text: AppStrings.works,
+      shape: const BorderRadius.only(
         topLeft: Radius.circular(8),
         bottomLeft: Radius.circular(8),
         bottomRight: Radius.circular(8),
@@ -473,7 +468,7 @@ class ButtonRow extends StatelessWidget {
       index: 1,
     ),
     ButtonData(
-      text: AppStrings.dates,
+      text: AppStrings.availability,
       shape: BorderRadius.only(
         topLeft: Radius.circular(8),
         bottomLeft: Radius.circular(8),
@@ -483,6 +478,16 @@ class ButtonRow extends StatelessWidget {
       index: 2,
     ),
     ButtonData(
+      text: AppStrings.dates,
+      shape: BorderRadius.only(
+        topLeft: Radius.circular(8),
+        bottomLeft: Radius.circular(8),
+        bottomRight: Radius.circular(8),
+        topRight: Radius.circular(8),
+      ),
+      index: 3,
+    ),
+    ButtonData(
       text: AppStrings.review,
       shape: const BorderRadius.only(
         topLeft: Radius.circular(8),
@@ -490,7 +495,7 @@ class ButtonRow extends StatelessWidget {
         bottomRight: Radius.circular(8),
         topRight: Radius.circular(8),
       ),
-      index: 3,
+      index: 4,
     ),
   ];
 
@@ -521,10 +526,7 @@ class ButtonRow extends StatelessWidget {
                                 : colorScheme[AppStrings.primaryColorLight],
                         child: InkWell(
                           borderRadius: button.shape,
-                          onTap:
-                              () => onButtonSelect(
-                                button.index,
-                              ), // Acción al seleccionar el botón
+                          onTap: () => onButtonSelect(button.index),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,

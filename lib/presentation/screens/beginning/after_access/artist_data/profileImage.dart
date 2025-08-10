@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,10 +8,12 @@ import '../../../../../data/provider_logics/beginning/beginning_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
+
 class ProfileImageScreen extends StatefulWidget {
   final GoRouter goRouter;
 
-  const ProfileImageScreen({required this.goRouter, Key? key}) : super(key: key);
+  const ProfileImageScreen({required this.goRouter, Key? key})
+    : super(key: key);
 
   @override
   _ProfileImageScreenState createState() => _ProfileImageScreenState();
@@ -31,9 +34,8 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
       currentUserID = user.uid;
       _loadProfileImageUrl();
     } else {
-      // Manejar el caso cuando no hay usuario autenticado
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pop(); // O cualquier otra acción apropiada
+        Navigator.of(context).pop();
       });
     }
   }
@@ -93,11 +95,44 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
     }
   }
 
+  Future<void> _onContinuePressed() async {
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserID)
+            .get();
+    final userType = doc.data()?['userType'];
+
+    // Definir los tipos que se consideran "artistas" (incluyendo los nuevos)
+    final isArtistType = [
+      'artist',
+      'bakery',
+      'place',
+      'decoration',
+      'furniture',
+      'entertainment',
+    ].contains(userType);
+
+    if (mounted) {
+      if (isArtistType) {
+        if (userType == 'artist') {
+          widget.goRouter.go(AppStrings.musicGenresScreenRoute);
+        } else {
+          widget.goRouter.go(AppStrings.eventSpecializationScreenRoute);
+        }
+      } else if (userType == 'contractor') {
+        widget.goRouter.go(AppStrings.welcomeScreenRoute);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de usuario no válido')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    );
+    final colorScheme = ColorPalette.getPalette(context);
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
@@ -149,54 +184,58 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
                       ),
                     ],
                   ),
-                  child: _isUploading
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              colorScheme[AppStrings.secondaryColor]!,
-                            ),
-                          ),
-                        )
-                      : _profileImageUrl != null
-                          ? ClipOval(
-                              child: Image.network(
-                                _profileImageUrl!,
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (
-                                  BuildContext context,
-                                  Widget child,
-                                  ImageChunkEvent? loadingProgress,
-                                ) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes !=
-                                              null
-                                          ? loadingProgress.cumulativeBytesLoaded /
-                                              loadingProgress.expectedTotalBytes!
-                                          : null,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        colorScheme[AppStrings.secondaryColor]!,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.person,
-                                    size: 80,
-                                    color: colorScheme[AppStrings.secondaryColor],
-                                  );
-                                },
+                  child:
+                      _isUploading
+                          ? Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorScheme[AppStrings.secondaryColor]!,
                               ),
-                            )
-                          : Icon(
-                              Icons.add_a_photo,
-                              size: 50,
-                              color: colorScheme[AppStrings.secondaryColor],
                             ),
+                          )
+                          : _profileImageUrl != null
+                          ? ClipOval(
+                            child: Image.network(
+                              _profileImageUrl!,
+                              width: 200,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (
+                                context,
+                                child,
+                                loadingProgress,
+                              ) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      colorScheme[AppStrings.secondaryColor]!,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.person,
+                                  size: 80,
+                                  color: colorScheme[AppStrings.secondaryColor],
+                                );
+                              },
+                            ),
+                          )
+                          : Icon(
+                            Icons.add_a_photo,
+                            size: 50,
+                            color: colorScheme[AppStrings.secondaryColor],
+                          ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -204,11 +243,7 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      widget.goRouter.go(
-                        AppStrings.musicGenresScreenRoute,
-                      );
-                    },
+                    onPressed: _onContinuePressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme[AppStrings.essentialColor],
                       foregroundColor: colorScheme[AppStrings.primaryColor],

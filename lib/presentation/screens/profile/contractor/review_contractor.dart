@@ -62,7 +62,7 @@ class ReviewsContractorScreen extends StatelessWidget {
     return Scaffold(
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: Container(
         color: Colors.black, // Se establece el color de fondo de la pantalla

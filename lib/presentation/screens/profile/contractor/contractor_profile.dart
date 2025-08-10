@@ -37,12 +37,11 @@ import '../../buttom_navigation_bar.dart';
 import '../settings/components/settings.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
 class ContractorProfileScreen extends StatefulWidget {
-  final GoRouter goRouter; // Navegación de la aplicación
-  final UploadProfileImagesToServer
-  uploadProfileImagesToServer; // Función para subir imágenes de perfil
-  final UserProvider
-  userProvider; // Proveedor de usuario para obtener el tipo de usuario
+  final GoRouter goRouter;
+  final UploadProfileImagesToServer uploadProfileImagesToServer;
+  final UserProvider userProvider;
 
   const ContractorProfileScreen({
     super.key,
@@ -57,31 +56,25 @@ class ContractorProfileScreen extends StatefulWidget {
 }
 
 class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
-  bool _isUploadingProfileImage = false; // Indicador de carga de imagen
-  String? _profileImageUrl; // URL de la imagen de perfil
+  bool _isUploadingProfileImage = false;
+  String? _profileImageUrl;
 
-  // Función para manejar el evento cuando se toca la imagen de perfil
   Future<void> _onProfileImageTapped() async {
-    // Si ya se está subiendo una imagen, no hacer nada
     if (_isUploadingProfileImage) return;
-
-    // Cambiar estado para indicar que se está subiendo una imagen
     setState(() => _isUploadingProfileImage = true);
 
-    // Manejar la carga de la imagen de perfil
     await ProfileImageHandler.handle(
       context: context,
-      imageType: AppStrings.profilePhoto, // Usando el tipo de imagen de perfil
+      imageType: AppStrings.profilePhoto,
       userProvider: widget.userProvider,
       onImageUploaded: (url) {
         setState(() {
-          _profileImageUrl = url; // Actualizar la URL de la imagen
-          _isUploadingProfileImage = false; // Cambiar el estado de carga
+          _profileImageUrl = url;
+          _isUploadingProfileImage = false;
         });
       },
     );
 
-    // Si el widget aún está montado, asegurar que el estado se actualice correctamente
     if (mounted) {
       setState(() => _isUploadingProfileImage = false);
     }
@@ -90,14 +83,12 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Obtener el ID del usuario actual desde Firebase
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId != null) {
       FirebaseFirestore.instance.collection('users').doc(userId).get().then((
         doc,
       ) {
         if (doc.exists) {
-          // Si la imagen de perfil está disponible en la base de datos, actualizarla
           setState(() {
             _profileImageUrl =
                 doc.data()?.containsKey('profileImageUrl') == true
@@ -111,55 +102,50 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtener esquema de colores
-    final userType = widget.userProvider.userType; // Obtener tipo de usuario
-    final isArtist =
-        userType == AppStrings.artist; // Verificar si el usuario es artista
+    final colorScheme = ColorPalette.getPalette(context);
+    final userType = widget.userProvider.userType;
+    final isArtist = userType == AppStrings.artist;
 
     return Scaffold(
-      backgroundColor: colorScheme[AppStrings.primaryColorLight],
+      backgroundColor: colorScheme[AppStrings.primaryColor], // ✅ actualizado
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist:
-            isArtist, // Pasar el estado de artista al widget de navegación
-        goRouter: widget.goRouter, // Pasar el router para la navegación
+        userType: userType,
+        goRouter: widget.goRouter,
       ),
       body: SafeArea(
         child: Container(
-          color: Colors.black, // Fondo negro para la pantalla
+          color:
+              colorScheme[AppStrings
+                  .primaryColor], // ✅ fondo oscuro en light theme
           child: Column(
             children: [
-              // Encabezado del perfil con la imagen de perfil
               Container(
                 width: double.infinity,
-                color: colorScheme[AppStrings.primaryColorLight],
+                color: colorScheme[AppStrings.primaryColor], // ✅ también aquí
                 height: 180,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 20),
-                    // Gestor para tocar y cambiar la imagen de perfil
                     GestureDetector(
                       onTap: _onProfileImageTapped,
                       child: CircleAvatar(
                         radius: 52.5,
-                        backgroundColor:
-                            colorScheme[AppStrings.primaryColorLight],
+                        backgroundColor: colorScheme[AppStrings.primaryColor],
                         child:
                             _isUploadingProfileImage
-                                ? const CircularProgressIndicator() // Indicador de carga
+                                ? const CircularProgressIndicator()
                                 : _profileImageUrl != null
                                 ? ClipOval(
                                   child: Image.network(
-                                    _profileImageUrl!, // Mostrar imagen de perfil
+                                    _profileImageUrl!,
                                     width: 105,
                                     height: 105,
                                     fit: BoxFit.cover,
                                   ),
                                 )
                                 : SvgPicture.asset(
-                                  'assets/svg/ic_user_default.svg', // Imagen por defecto si no hay imagen
+                                  'assets/svg/ic_user_default.svg',
                                   width: 105,
                                   height: 105,
                                   color:
@@ -168,7 +154,7 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
                                 ),
                       ),
                     ),
-                    UserName(fontSize: 23.5), // Mostrar el nombre de usuario
+                    UserName(fontSize: 23.5),
                   ],
                 ),
               ),
@@ -176,7 +162,6 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Título de configuración
                     Text(
                       AppStrings.settings,
                       style: TextStyle(
@@ -186,7 +171,6 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
                       textAlign: TextAlign.start,
                     ),
                     const SizedBox(height: 8),
-                    // Componente de configuración que maneja la navegación a otras pantallas
                     SettingsComponent(router: widget.goRouter),
                   ],
                 ),

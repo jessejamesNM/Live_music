@@ -32,6 +32,7 @@ import 'package:live_music/presentation/widgets/media/media_previewer_for_works.
 import 'package:live_music/presentation/widgets/media/videp_tumb_nail_for_works.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 
 import 'dart:io';
 import 'dart:async';
@@ -60,7 +61,6 @@ class WorksContentState extends State<WorksContent> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _eventBus = EventBus();
-    
     _eventBus.subscribe<MediaUploadEvent>(_handleMediaUpload);
     fetchMedia();
   }
@@ -85,6 +85,14 @@ class WorksContentState extends State<WorksContent> {
     } catch (_) {}
   }
 
+  // Función para manejar la eliminación de medios
+  void _handleMediaDeleted(String deletedUrl) {
+    if (!mounted) return;
+    setState(() {
+      mediaUrls.remove(deletedUrl);
+    });
+  }
+
   Future<void> _pickImage() async {
     await ProfileImageHandler.handle(
       context: context,
@@ -95,11 +103,16 @@ class WorksContentState extends State<WorksContent> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => MediaPreviewer(mediaUrls: mediaUrls, initialIndex: 0),
+            builder:
+                (_) => MediaPreviewer(
+                  mediaUrls: mediaUrls,
+                  initialIndex: 0,
+                  onMediaDeleted: _handleMediaDeleted, // Pasamos el callback
+                ),
           ),
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.imageUploadSuccess)),
+          const SnackBar(content: Text('Imagen subida correctamente')),
         );
       },
     );
@@ -110,55 +123,81 @@ class WorksContentState extends State<WorksContent> {
       source: ImageSource.gallery,
     );
     if (pickedFile == null) return;
-    final file = File(pickedFile.path);
+
+    final videoFile = File(pickedFile.path);
+    final videoDuration = await _getVideoDuration(videoFile);
+
+    if (videoDuration.inMinutes > 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Los videos no pueden durar más de 3 minutos'),
+        ),
+      );
+      return;
+    }
+
     try {
-      final resp = await _api.uploadVideo(file, currentUserId);
+      final resp = await _api.uploadVideo(videoFile, currentUserId);
       if (resp.url != null) {
         setState(() => mediaUrls.insert(0, resp.url!));
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => MediaPreviewer(mediaUrls: mediaUrls, initialIndex: 0),
+            builder:
+                (_) => MediaPreviewer(
+                  mediaUrls: mediaUrls,
+                  initialIndex: 0,
+                  onMediaDeleted: _handleMediaDeleted, // Pasamos el callback
+                ),
           ),
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.videoUploadSuccess)),
+          const SnackBar(content: Text('Video subido correctamente')),
         );
       } else {
-        throw Exception(resp.error ?? AppStrings.unknownError);
+        throw Exception(resp.error ?? 'Error desconocido');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${AppStrings.videoUploadError} $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al subir el video: $e')));
     }
+  }
+
+  Future<Duration> _getVideoDuration(File videoFile) async {
+    final player = VideoPlayerController.file(videoFile);
+    await player.initialize();
+    final duration = player.value.duration;
+    await player.dispose();
+    return duration;
   }
 
   void _onAddPressed() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.image),
-              title: const Text(AppStrings.uploadImage),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage();
-              },
+      builder:
+          (_) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Subir imagen'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.videocam),
+                  title: const Text('Subir video'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickVideo();
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text(AppStrings.uploadVideo),
-              onTap: () {
-                Navigator.pop(context);
-                _pickVideo();
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -168,7 +207,11 @@ class WorksContentState extends State<WorksContent> {
     return videoExtensions.any((ext) => lowerUrl.endsWith(ext));
   }
 
-  Widget _buildMediaItem(String url, int index, Map<String, Color> colorScheme) {
+  Widget _buildMediaItem(
+    String url,
+    int index,
+    Map<String, Color> colorScheme,
+  ) {
     final isVideo = _isVideo(url);
 
     return GestureDetector(
@@ -176,7 +219,12 @@ class WorksContentState extends State<WorksContent> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => MediaPreviewer(mediaUrls: mediaUrls, initialIndex: index),
+            builder:
+                (_) => MediaPreviewer(
+                  mediaUrls: mediaUrls,
+                  initialIndex: index,
+                  onMediaDeleted: _handleMediaDeleted, // Pasamos el callback
+                ),
           ),
         );
       },
@@ -184,25 +232,27 @@ class WorksContentState extends State<WorksContent> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: isVideo
-                ? VideoThumbnail(
-                    url: url,
-                    width: double.infinity,
-                    height: double.infinity,
-                  )
-                : Image.network(
-                    url,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: colorScheme['primaryColorLight']!,
-                      child: Icon(
-                        Icons.broken_image,
-                        color: colorScheme['secondaryColor'],
-                      ),
+            child:
+                isVideo
+                    ? VideoThumbnail(
+                      url: url,
+                      width: double.infinity,
+                      height: double.infinity,
+                    )
+                    : Image.network(
+                      url,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder:
+                          (_, __, ___) => Container(
+                            color: colorScheme['primaryColorLight']!,
+                            child: Icon(
+                              Icons.broken_image,
+                              color: colorScheme['secondaryColor'],
+                            ),
+                          ),
                     ),
-                  ),
           ),
           if (isVideo)
             const Positioned.fill(

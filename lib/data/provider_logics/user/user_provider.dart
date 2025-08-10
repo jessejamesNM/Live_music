@@ -101,6 +101,138 @@ class UserProvider with ChangeNotifier {
     notifyListeners(); // Notifica a los widgets que dependen de este provider
   }
 
+  String? _currentServiceName;
+  List<String> _currentServiceImageUrls = [];
+  String? _currentServiceId;
+  String?
+  _currentServiceField; // Nuevo campo para almacenar el nombre del campo (service0, service1, etc.)
+
+  String? get currentServiceName => _currentServiceName;
+  List<String> get currentServiceImageUrls => _currentServiceImageUrls;
+  String? get currentServiceId => _currentServiceId;
+  String? get currentServiceField => _currentServiceField;
+
+  // Método para cargar datos de un servicio específico
+  Future<void> loadServiceData(String userId, String serviceField) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('User not logged in.');
+      return;
+    }
+
+    try {
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('services')
+              .doc(userId)
+              .get();
+
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        final serviceData = data?[serviceField] as Map<String, dynamic>?;
+
+        if (serviceData != null) {
+          _currentServiceName = serviceData['name'] as String?;
+          _currentServiceImageUrls = List<String>.from(
+            serviceData['imageUrls'] ?? [],
+          );
+          _currentServiceId = serviceData['id'] as String?;
+          _currentServiceField = serviceField;
+          notifyListeners();
+        } else {
+          print('Service field $serviceField not found in document.');
+          _clearServiceData();
+        }
+      } else {
+        print('User document not found.');
+        _clearServiceData();
+      }
+    } catch (e) {
+      print('Error loading service data: $e');
+      _clearServiceData();
+    }
+  }
+
+  // Método para actualizar las URLs de las imágenes
+  Future<void> updateServiceImageUrls(List<String> newImageUrls) async {
+    if (_currentServiceField == null) {
+      print('Service field not set.');
+      return;
+    }
+
+    _currentServiceImageUrls = newImageUrls;
+    notifyListeners();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('User not logged in.');
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('services')
+          .doc(user.uid)
+          .update({'$_currentServiceField.imageUrls': newImageUrls});
+      print('Image URLs updated successfully in Firestore.');
+    } catch (e) {
+      print('Error updating image URLs in Firestore: $e');
+    }
+  }
+
+  // Método para actualizar el nombre del servicio
+  Future<void> updateServiceName(String newName) async {
+    if (_currentServiceField == null) {
+      print('Service field not set.');
+      return;
+    }
+
+    _currentServiceName = newName;
+    notifyListeners();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('User not logged in.');
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('services')
+          .doc(user.uid)
+          .update({'$_currentServiceField.name': newName});
+      print('Service name updated successfully in Firestore.');
+    } catch (e) {
+      print('Error updating service name in Firestore: $e');
+    }
+  }
+
+  // Método para establecer el servicio actual
+  void setCurrentService(
+    String serviceField,
+    String serviceName,
+    List<String> imageUrls,
+    String serviceId,
+  ) {
+    _currentServiceField = serviceField;
+    _currentServiceName = serviceName;
+    _currentServiceImageUrls = imageUrls;
+    _currentServiceId = serviceId;
+    notifyListeners();
+  }
+
+  void clearCurrentService() {
+    _clearServiceData();
+  }
+
+  void _clearServiceData() {
+    _currentServiceName = null;
+    _currentServiceImageUrls = [];
+    _currentServiceId = null;
+    _currentServiceField = null;
+    notifyListeners();
+  }
+
   set setNickname(String newNickname) {
     _nickname = newNickname;
     notifyListeners(); // Notifica a los listeners que el valor ha cambiado
@@ -139,7 +271,6 @@ class UserProvider with ChangeNotifier {
     _otherUserId = value;
     notifyListeners(); // Notificar a los listeners para actualizar la UI
   }
-
 
   set addFavorite(bool value) {
     _addFavorite = value;
@@ -208,15 +339,14 @@ class UserProvider with ChangeNotifier {
   }
 
   // Esta función guarda la fecha de creación de la cuenta del usuario en Firestore.
-  void saveAccountCreationDate() async {
+
+  Future<void> saveAccountCreationDate() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      final userDocRef = FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('users')
-          .doc(currentUser.uid);
-      await userDocRef.update({
-        'accountCreationDate': FieldValue.serverTimestamp(),
-      });
+          .doc(currentUser.uid)
+          .update({'accountCreationDate': FieldValue.serverTimestamp()});
     }
   }
 
@@ -354,6 +484,7 @@ class UserProvider with ChangeNotifier {
   // Función para obtener la URL de la imagen de perfil de Firestore.
   Future<void> fetchProfileImageUrl(String userId) async {
     try {
+      print("Cargando datos del usuario44: $userId");
       final doc = await _firestore.collection("users").doc(userId).get();
       final url = doc.data()?["profileImageUrl"] as String?;
 
@@ -400,46 +531,6 @@ class UserProvider with ChangeNotifier {
     } catch (e) {
       // Si hay un error al obtener el nickname, se captura.
       return null;
-    }
-  }
-
-  // Función para obtener el perfil del usuario desde la base de datos local (Room).
-  Future<Profile?> getProfileFromLocalDB(String userId) async {
-    try {
-      final db = await AppDatabase.getInstance();
-      return await db.profileDao.getProfileById(userId);
-    } catch (e) {
-      // Si hay un error al obtener el perfil desde la base de datos local, se captura.
-      return null;
-    }
-  }
-
-  // Función para obtener y guardar el perfil del usuario desde Firestore a la base de datos local.
-  Future<void> fetchAndSaveUserProfile(String userId) async {
-    try {
-      final doc = await _firestore.collection("users").doc(userId).get();
-
-      final name = doc.data()?["name"] as String?;
-      final profileImageUrl = doc.data()?["profileImageUrl"] as String?;
-      final isOfficial = doc.data()?["isOfficial"] as bool? ?? false;
-      final nickname = doc.data()?["nickname"] as String?;
-
-      if (name == null || nickname == null) {
-        throw Exception("Nombre o nickname no encontrado");
-      }
-
-      final profile = Profile(
-        userId: userId,
-        profileImageUrl: profileImageUrl,
-        name: name,
-        nickname: nickname,
-        isOfficial: isOfficial,
-      );
-
-      final db = await AppDatabase.getInstance();
-      await db.profileDao.insertOrUpdate(profile);
-    } catch (e) {
-      // Si hay un error al obtener o guardar el perfil, se captura.
     }
   }
 
@@ -520,10 +611,6 @@ class UserProvider with ChangeNotifier {
     otherUserId.value = '';
   }
 
-
-
-
-
   // Establecer el ID de otro usuario
   void setOtherUserId(String id) {
     _otherUserId = id;
@@ -532,6 +619,7 @@ class UserProvider with ChangeNotifier {
 
   // Cargar datos del usuario desde Firebase y guardar en la base de datos local
   void loadUserData(String userId) {
+    print("Cargando datos del usuario: $userId");
     final userRef = FirebaseFirestore.instance.collection("users").doc(userId);
     userRef.snapshots().listen((document) {
       if (document.exists) {
@@ -552,14 +640,36 @@ class UserProvider with ChangeNotifier {
   }
 
   // Obtener datos del usuario desde la base de datos local
-  void getUserData(String userId) {
-    _cachedDataDao.getById(userId).then((cachedData) {
-      if (cachedData != null) {
-        final parts = cachedData.content.split("|");
-        userName = parts[0];
-        profileImageUrl = parts[1];
+  Future<void> getUserData(String userId) async {
+    final cachedData = await _cachedDataDao.getById(userId);
+    if (cachedData != null) {
+      final parts = cachedData.content.split("|");
+      _userName = parts[0];
+      _profileImageUrl = parts[1];
+      notifyListeners();
+    }
+  }
+
+  // Actualizar datos desde un documento de Firestore
+  void updateUserDataFromDocument(DocumentSnapshot document) {
+    if (document.exists) {
+      final name = document.get("name") ?? "Nombre no disponible";
+      final imageUrl = document.get("profileImageUrl") ?? "";
+      final nickname = document.get("nickname") ?? "Sin apodo";
+
+      if (_userName != name ||
+          _profileImageUrl != imageUrl ||
+          _nickname != nickname) {
+        _userName = name;
+        _profileImageUrl = imageUrl;
+        _nickname = nickname;
+
+        _cachedDataDao.insert(
+          CachedData(id: document.id, content: "$name|$imageUrl"),
+        );
+        notifyListeners();
       }
-    });
+    }
   }
 
   // Autenticar al usuario
@@ -640,53 +750,55 @@ class UserProvider with ChangeNotifier {
           }
         });
   }
-// Añadir likes a un usuario
-void addLikes(String userId) async {
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
-  // Obtener el ID del usuario actual desde Firebase Auth
-  String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-  // Verificar que hay un usuario autenticado
-  if (currentUserId == null) {
-    print('No hay usuario autenticado');
-    return;
-  }
+  // Añadir likes a un usuario
+  void addLikes(String userId) async {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+    // Obtener el ID del usuario actual desde Firebase Auth
+    String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-  QuerySnapshot querySnapshot = await firestore
-      .collection("UserStatistics")
-      .doc(userId)
-      .collection("phases")
-      .doc("fase1")
-      .collection("Statistics")
-      .limit(1)
-      .get();
+    // Verificar que hay un usuario autenticado
+    if (currentUserId == null) {
+      print('No hay usuario autenticado');
+      return;
+    }
 
-  if (querySnapshot.docs.isNotEmpty) {
-    DocumentSnapshot firstDocument = querySnapshot.docs.first;
-    String documentPath = firstDocument.reference.path;
-    DocumentReference documentRef = firestore.doc(documentPath);
-    DocumentReference userRef = firestore.collection("users").doc(userId);
+    QuerySnapshot querySnapshot =
+        await firestore
+            .collection("UserStatistics")
+            .doc(userId)
+            .collection("phases")
+            .doc("fase1")
+            .collection("Statistics")
+            .limit(1)
+            .get();
 
-    DocumentSnapshot document = await documentRef.get();
-    if (document.exists) {
-      List<String> userWhoLikedMeIds = [];
+    if (querySnapshot.docs.isNotEmpty) {
+      DocumentSnapshot firstDocument = querySnapshot.docs.first;
+      String documentPath = firstDocument.reference.path;
+      DocumentReference documentRef = firestore.doc(documentPath);
+      DocumentReference userRef = firestore.collection("users").doc(userId);
 
-      DocumentSnapshot userDocument = await userRef.get();
-      userWhoLikedMeIds = List<String>.from(
-        userDocument.get("userWhoLikedMeIds") ?? [],
-      );
+      DocumentSnapshot document = await documentRef.get();
+      if (document.exists) {
+        List<String> userWhoLikedMeIds = [];
 
-      int currentLikes = (document.get("userLikes") ?? 0) as int;
+        DocumentSnapshot userDocument = await userRef.get();
+        userWhoLikedMeIds = List<String>.from(
+          userDocument.get("userWhoLikedMeIds") ?? [],
+        );
 
-      if (!userWhoLikedMeIds.contains(currentUserId)) {
-        await documentRef.update({"userLikes": currentLikes + 1});
-        await userRef.update({
-          "userWhoLikedMeIds": FieldValue.arrayUnion([currentUserId]),
-        });
+        int currentLikes = (document.get("userLikes") ?? 0) as int;
+
+        if (!userWhoLikedMeIds.contains(currentUserId)) {
+          await documentRef.update({"userLikes": currentLikes + 1});
+          await userRef.update({
+            "userWhoLikedMeIds": FieldValue.arrayUnion([currentUserId]),
+          });
+        }
       }
     }
   }
-}
 
   // Subir estadísticas de usuario
   Future<void> uploadStatistics(String userId, int startDateMillis) async {
@@ -808,7 +920,11 @@ void addLikes(String userId) async {
         });
         final oldest = realDocs.first;
         final data = Map<String, dynamic>.from(oldest.data());
-        data["itemValue"] = (data["itemValue"] as double) * 0.8425;
+        data["itemValue"] =
+            (data["itemValue"] is int
+                ? (data["itemValue"] as int).toDouble()
+                : data["itemValue"] as double) *
+            0.8425;
 
         final dest = firestore
             .collection("UserStatistics")
