@@ -27,6 +27,8 @@
 /// - El widget incluye constantes de diseño como márgenes y espaciamientos para garantizar una UI consistente.
 ///
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -38,7 +40,6 @@ import '../../../../../../data/provider_logics/auth/register_wigh_google_provide
 import '../../../../../../data/provider_logics/user/user_provider.dart';
 import '../../../../../resources/colors.dart';
 import '../../../../../resources/strings.dart';
-
 class RegisterOptionsArtistScreen extends StatelessWidget {
   final GoRouter goRouter;
 
@@ -50,11 +51,13 @@ class RegisterOptionsArtistScreen extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => RegisterWithGoogleProvider()),
+        ChangeNotifierProvider(create: (_) => RegisterWithAppleProvider()),
       ],
-      child: Consumer2<RegisterWithGoogleProvider, UserProvider>(
-        builder: (context, googleProvider, userProvider, child) {
+      child: Consumer3<RegisterWithGoogleProvider, RegisterWithAppleProvider, UserProvider>(
+        builder: (context, googleProvider, appleProvider, userProvider, child) {
           return RegisterOptionsArtistUI(
             registerWithGoogleProvider: googleProvider,
+            registerWithAppleProvider: appleProvider,
             userProvider: userProvider,
             goRouter: goRouter,
           );
@@ -66,12 +69,14 @@ class RegisterOptionsArtistScreen extends StatelessWidget {
 
 class RegisterOptionsArtistUI extends StatelessWidget {
   final RegisterWithGoogleProvider registerWithGoogleProvider;
+  final RegisterWithAppleProvider registerWithAppleProvider;
   final UserProvider userProvider;
   final GoRouter goRouter;
 
   const RegisterOptionsArtistUI({
     Key? key,
     required this.registerWithGoogleProvider,
+    required this.registerWithAppleProvider,
     required this.userProvider,
     required this.goRouter,
   }) : super(key: key);
@@ -151,10 +156,8 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   buttonPaddingHorizontal: buttonPaddingHorizontal,
                   buttonBorderWidth: buttonBorderWidth,
                   backgroundColor: AppStrings.essentialColor,
-                  textColor:
-                      Colors.white, // Texto en blanco para el botón de correo
-                  iconColor:
-                      Colors.white, // Icono en blanco para el botón de correo
+                  textColor: Colors.white,
+                  iconColor: Colors.white,
                 ),
                 const SizedBox(height: textFieldSpacing),
 
@@ -164,9 +167,7 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                     AppStrings.googleIconPath,
                     width: svgIconSize,
                     height: svgIconSize,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Mantiene secondaryColor
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
                   text: AppStrings.continueWithGoogle,
                   onPressed: () {
@@ -188,10 +189,42 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   buttonBorderWidth: buttonBorderWidth,
                   backgroundColor: AppStrings.primaryColor,
                   borderColor: AppStrings.secondaryColor,
-                  textColor:
-                      colorScheme[AppStrings
-                          .secondaryColor], // Mantiene secondaryColor
+                  textColor: colorScheme[AppStrings.secondaryColor],
                 ),
+                
+                const SizedBox(height: textFieldSpacing),
+                
+                // Registro con Apple - Nuevo botón
+                if (Platform.isIOS)
+               // Cambia esta parte del código donde creas el botón de Apple
+_buildAuthButton(
+  iconWidget: SvgPicture.asset(
+    'assets/svg/apple_logo.svg',
+    width: svgIconSize,
+    height: svgIconSize,
+    color: Colors.white,
+  ),
+  text: AppStrings.continueWithApple,
+  onPressed: () {
+    if (userType.isNotEmpty) {
+      registerWithAppleProvider.signInWithApple(
+        context,
+        userProvider,
+        goRouter,
+        userType,
+      );
+    } else {
+      _showUserTypeError(context);
+    }
+  },
+  colorScheme: colorScheme,
+  buttonHeight: buttonHeight,
+  buttonIconSize: buttonIconSize,
+  buttonPaddingHorizontal: buttonPaddingHorizontal,
+  buttonBorderWidth: buttonBorderWidth,
+  backgroundColor: 'black', // Cambiado a String en lugar de Colors.black
+  textColor: Colors.white,
+),
 
                 const SizedBox(height: textFieldSpacing),
                 Padding(
@@ -247,11 +280,14 @@ class RegisterOptionsArtistUI extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme[backgroundColor] ?? Colors.white,
+          backgroundColor: backgroundColor == 'black' 
+              ? Colors.black 
+              : colorScheme[backgroundColor] ?? Colors.white,
           side: BorderSide(
-            color:
-                borderColor.isNotEmpty
-                    ? colorScheme[borderColor] ?? Colors.black
+            color: borderColor.isNotEmpty
+                ? colorScheme[borderColor] ?? Colors.black
+                : backgroundColor == 'black'
+                    ? Colors.black
                     : colorScheme[backgroundColor] ?? Colors.black,
             width: buttonBorderWidth,
           ),
@@ -267,12 +303,10 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                   left: 0,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 12.0),
-                    child:
-                        iconWidget ??
+                    child: iconWidget ??
                         Icon(
                           icon,
-                          color:
-                              iconColor ??
+                          color: iconColor ??
                               colorScheme[AppStrings.secondaryColor] ??
                               Colors.black,
                           size: buttonIconSize,
@@ -283,8 +317,7 @@ class RegisterOptionsArtistUI extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    color:
-                        textColor ??
+                    color: textColor ??
                         colorScheme[AppStrings.secondaryColor] ??
                         Colors.black,
                   ),

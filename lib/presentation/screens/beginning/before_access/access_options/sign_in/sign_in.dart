@@ -261,6 +261,65 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
     }
   }
 
+  Future<void> _signInWithApple() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = "";
+    });
+
+    try {
+      // Crear el proveedor de Apple
+      final appleProvider = AppleAuthProvider();
+      
+      // Iniciar sesión con Apple
+      final UserCredential userCredential = 
+          await widget.auth.signInWithProvider(appleProvider);
+      
+      User? currentUser = userCredential.user;
+
+      if (currentUser != null) {
+        DocumentSnapshot userDoc =
+            await widget.firestore
+                .collection('users')
+                .doc(currentUser.uid)
+                .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            isRegistered = userDoc.get('isRegistered') ?? false;
+          });
+
+          if (!isRegistered) {
+            setState(() {
+              errorMessage = AppStrings.unregisteredUser;
+            });
+            await widget.auth.signOut();
+          } else {
+            final initialRoute = await _determineInitialRoute();
+            widget.goRouter.go(initialRoute);
+          }
+        } else {
+          setState(() {
+            errorMessage = AppStrings.unregisteredUser;
+          });
+          await widget.auth.signOut();
+        }
+      } else {
+        setState(() {
+          errorMessage = AppStrings.invalidUserIdError;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "${AppStrings.loginError}: ${e.toString()}";
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
@@ -428,6 +487,53 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                     ),
                   ),
                 ),
+
+                SizedBox(height: textFieldSpacing),
+
+                // Apple button (solo para iOS)
+                if (Theme.of(context).platform == TargetPlatform.iOS)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: buttonPaddingHorizontal,
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                        side: BorderSide(
+                          color:
+                              colorScheme[AppStrings.secondaryColor] ??
+                              Colors.black,
+                          width: buttonBorderWidth,
+                        ),
+                      ),
+                      onPressed: _signInWithApple,
+                      child: SizedBox(
+                        height: buttonHeight,
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Positioned(
+                              left: 0,
+                              child: Icon(
+                                Icons.apple,
+                                color: Colors.white,
+                                size: buttonIconSize,
+                              ),
+                            ),
+                            Center(
+                              child: Text(
+                                AppStrings.continueWithApple,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
 
