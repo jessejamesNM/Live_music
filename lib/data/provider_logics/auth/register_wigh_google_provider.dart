@@ -31,170 +31,219 @@ import 'package:live_music/presentation/resources/strings.dart';
 import '../user/user_provider.dart';
 import 'package:go_router/go_router.dart';
 
-// Provider que maneja el registro de usuarios usando Google Sign-In
 class RegisterWithGoogleProvider with ChangeNotifier {
-  // Instancias de Firebase Auth y Firestore
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  RegisterWithGoogleProvider();
+  bool _isSigningIn = false;
 
-  // Método principal para iniciar sesión con Google y registrar usuario
   Future<void> signInWithGoogle(
     BuildContext context,
     UserProvider userProvider,
-    GoRouter _goRouter,
-    String userType, // 'artist' o 'contractor'
+    GoRouter goRouter,
+    String userType,
   ) async {
-    try {
-      // 1. Inicia el flujo de autenticación de Google
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return; // El usuario canceló el proceso
+    if (_isSigningIn) return;
+    _isSigningIn = true;
 
-      // 2. Obtiene las credenciales de autenticación
+    try {
+      // 1. Iniciar el flujo de Google Sign-In
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // Usuario canceló el flujo
+        return;
+      }
+
+      // 2. Obtener la autenticación de Google
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+
+      // 3. Crear credenciales para Firebase
       final AuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
         accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
-      // 3. Usa las credenciales para autenticar en Firebase
+      // 4. Iniciar sesión en Firebase con las credenciales
       final UserCredential authResult = await _auth.signInWithCredential(
         credential,
       );
       final User? user = authResult.user;
 
-      if (user != null) {
-        // 4. Referencia al documento del usuario en Firestore
-        final userDocRef = _firestore
-            .collection(AppStrings.usersCollection)
-            .doc(user.uid);
-        final doc = await userDocRef.get();
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'null-user',
+          message: 'El usuario de Firebase es nulo después del login.',
+        );
+      }
 
-        if (doc.exists) {
-          // Caso: Usuario ya existe
-          final isRegistered =
-              doc.data()?[AppStrings.isRegisteredField] ?? false;
-          final existingUserType = doc.data()?[AppStrings.userTypeField];
+      // 5. Verificar/crear documento en Firestore
+      final userDocRef = _firestore
+          .collection(AppStrings.usersCollection)
+          .doc(user.uid);
+      final doc = await userDocRef.get();
 
-          if (isRegistered) {
-            // Usuario ya completó su registro antes
-            if (existingUserType != userType) {
-              // Tipo de usuario no coincide
-              _showUserTypeMismatchDialog(context, _goRouter);
-            } else {
-              // Usuario registrado correctamente
-              _showAlreadyRegisteredDialog(context, _goRouter);
-            }
+      if (doc.exists) {
+        final isRegistered = doc.data()?[AppStrings.isRegisteredField] ?? false;
+        final existingUserType = doc.data()?[AppStrings.userTypeField];
+
+        if (isRegistered) {
+          if (existingUserType != userType) {
+            _showUserTypeMismatchDialog(context, goRouter);
           } else {
-            // Usuario no completó su registro anteriormente
-            await userDocRef.update({
-              AppStrings.isRegisteredField: true,
-              AppStrings.userTypeField: userType,
-              AppStrings.registerNameField:
-                  user.displayName ?? AppStrings.noName,
-            });
-            userProvider.saveAccountCreationDate();
-            _goToCorrectScreen(userType, _goRouter);
+            _showAlreadyRegisteredDialog(context, goRouter);
           }
         } else {
-          // Caso: Nuevo usuario
-          await userDocRef.set({
+          await userDocRef.update({
             AppStrings.isRegisteredField: true,
             AppStrings.userTypeField: userType,
-            AppStrings.emailField: user.email,
             AppStrings.registerNameField: user.displayName ?? AppStrings.noName,
-            AppStrings.isVerifiedField:
-                true, // Email verificado automáticamente
+            'accountCreationDate': FieldValue.serverTimestamp(),
           });
-          userProvider.saveAccountCreationDate();
-          _goToCorrectScreen(userType, _goRouter);
+          _goToCorrectScreen(userType, goRouter);
         }
+      } else {
+        await userDocRef.set({
+          AppStrings.isRegisteredField: true,
+          AppStrings.userTypeField: userType,
+          AppStrings.emailField: user.email,
+          AppStrings.registerNameField: user.displayName ?? AppStrings.noName,
+          AppStrings.isVerifiedField: true,
+          'accountCreationDate': FieldValue.serverTimestamp(),
+        });
+        _goToCorrectScreen(userType, goRouter);
       }
+
+      // 6. Guardar fecha de creación
+      userProvider.saveAccountCreationDate();
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: $e');
+      _showError(context, 'Error de autenticación: ${e.message}');
+    } on FirebaseException catch (e) {
+      debugPrint('Firestore Error: $e');
+      _showError(context, 'Error de base de datos: ${e.message}');
     } catch (e) {
-      // En caso de error, muestra un SnackBar al usuario
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.googleSignInFailed)),
-      );
+      debugPrint('Google Sign-In Error: $e');
+      _showError(context, AppStrings.googleSignInFailed);
+    } finally {
+      _isSigningIn = false;
     }
   }
-void _showAlreadyRegisteredDialog(BuildContext context, GoRouter _goRouter) {
- final colorScheme = ColorPalette.getPalette(context);
 
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showAlreadyRegisteredDialog(BuildContext context, GoRouter goRouter) {
+    final colorScheme = ColorPalette.getPalette(context);
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: colorScheme[AppStrings.primaryColor],
+            title: Text(
+              AppStrings.accountRegisteredTitle,
+              style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+            ),
+            content: Text(
+              AppStrings.accountRegisteredContent,
+              style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  AppStrings.no,
+                  style: TextStyle(
+                    color: colorScheme[AppStrings.secondaryColor],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  goRouter.go(AppStrings.loginOptionsScreenRoute);
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  AppStrings.yes,
+                  style: TextStyle(
+                    color: colorScheme[AppStrings.secondaryColor],
+                  ),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+void _showUserTypeMismatchDialog(BuildContext context, GoRouter goRouter) {
+  final colorScheme = ColorPalette.getPalette(context);
+  
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       title: Text(
-        AppStrings.accountRegisteredTitle,
-        style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+        "Cuenta ya registrada",
+        style: TextStyle(
+          color: colorScheme[AppStrings.secondaryColor],
+        ),
       ),
       content: Text(
-        AppStrings.accountRegisteredContent,
-        style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+        "Ya está registrada esta cuenta, ¿quieres iniciar sesión?",
+        style: TextStyle(
+          color: colorScheme[AppStrings.secondaryColor],
+        ),
       ),
       actions: [
-        // Botón "No" a la izquierda
+        // Botón No a la izquierda
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            AppStrings.no,
-            style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+            "No",
+            style: TextStyle(
+              color: colorScheme[AppStrings.secondaryColor],
+            ),
           ),
         ),
-        // Botón "Sí" a la derecha
+        // Botón Sí (Aceptar) a la derecha
         TextButton(
           onPressed: () {
-            _goRouter.go(AppStrings.loginOptionsScreenRoute);
+            goRouter.go(AppStrings.loginOptionsScreenRoute);
             Navigator.of(context).pop();
           },
           child: Text(
-            AppStrings.yes,
-            style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+            AppStrings.accept,
+            style: TextStyle(
+              color: colorScheme[AppStrings.secondaryColor],
+            ),
           ),
         ),
       ],
     ),
   );
 }
-  // Muestra un diálogo si el tipo de usuario no coincide con el registro
-  void _showUserTypeMismatchDialog(BuildContext context, GoRouter _goRouter) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text(AppStrings.unblockUserTitle),
-            content: const Text(AppStrings.unblockUserMessage),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  _goRouter.go(AppStrings.loginOptionsScreenRoute);
-                  Navigator.of(context).pop();
-                },
-                child: const Text(AppStrings.accept),
-              ),
-            ],
-          ),
-    );
+
+  void _goToCorrectScreen(String userType, GoRouter goRouter) {
+    goRouter.go(AppStrings.ageTermsScreenRoute);
   }
 
-  // Redirige a la pantalla correcta según el tipo de usuario
-  void _goToCorrectScreen(String userType, GoRouter _goRouter) {
-    _goRouter.go(
-      userType == AppStrings.artist
-          ? AppStrings.ageTermsScreenRoute
-          : AppStrings.ageTermsScreenRoute,
-    );
-  }
-
-  // Método alternativo para registro usando Google, más genérico
   Future<void> registerWithGoogle(
     String userType,
-    Function(RegisterResult) onResult, // Callback para devolver el resultado
+    Function(RegisterResult) onResult,
   ) async {
+    if (_isSigningIn) return;
+    _isSigningIn = true;
+
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         onResult(RegisterResult.failure);
         return;
@@ -217,11 +266,13 @@ void _showAlreadyRegisteredDialog(BuildContext context, GoRouter _goRouter) {
         onResult(RegisterResult.failure);
       }
     } catch (e) {
+      debugPrint('registerWithGoogle Error: $e');
       onResult(RegisterResult.failure);
+    } finally {
+      _isSigningIn = false;
     }
   }
 
-  // Verifica si el usuario ya existe en Firestore
   Future<void> _checkUserExists(
     String uid,
     String userType,
@@ -239,26 +290,23 @@ void _showAlreadyRegisteredDialog(BuildContext context, GoRouter _goRouter) {
         final isRegistered = userDoc.get(AppStrings.isRegisteredField);
 
         if (isRegistered == true) {
-          // Usuario ya registrado
           existingUserType != userType
               ? onResult(RegisterResult.userAlreadyExists)
               : onResult(RegisterResult.success);
         } else {
-          // Usuario incompleto, se guarda correctamente
           await _saveUserToFirestore(uid, userType);
           onResult(RegisterResult.success);
         }
       } else {
-        // Nuevo usuario, se guarda
         await _saveUserToFirestore(uid, userType);
         onResult(RegisterResult.success);
       }
     } catch (e) {
+      debugPrint('_checkUserExists Error: $e');
       onResult(RegisterResult.failure);
     }
   }
 
-  // Guarda la información del usuario en Firestore
   Future<void> _saveUserToFirestore(String uid, String userType) async {
     try {
       final user = _auth.currentUser;
@@ -266,12 +314,17 @@ void _showAlreadyRegisteredDialog(BuildContext context, GoRouter _goRouter) {
 
       await _firestore.collection(AppStrings.usersCollection).doc(uid).set({
         AppStrings.emailField: user.email,
+        AppStrings.userTypeField: userType,
+        AppStrings.registerNameField: user.displayName ?? AppStrings.noName,
+        AppStrings.isRegisteredField: true,
+        AppStrings.isVerifiedField: true,
+        'accountCreationDate': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      // Manejo de errores (sin exponer información)
+      debugPrint('_saveUserToFirestore Error: $e');
+      rethrow;
     }
   }
 }
 
-// Enum para representar los posibles resultados del registro
 enum RegisterResult { success, failure, userAlreadyExists }

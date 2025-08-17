@@ -27,6 +27,7 @@ import 'package:provider/provider.dart';
 import '../../../../../../data/provider_logics/user/user_provider.dart';
 import '../../../../buttom_navigation_bar.dart';
 import 'package:live_music/presentation/resources/colors.dart';
+
 class FinalConfirmation extends HookWidget {
   final GoRouter goRouter;
 
@@ -48,7 +49,7 @@ class FinalConfirmation extends HookWidget {
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: SafeArea(
         child: Padding(
@@ -92,7 +93,9 @@ class FinalConfirmation extends HookWidget {
                 width: double.infinity,
                 child: Text(
                   AppStrings.deleteWarning,
-                  style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+                  style: TextStyle(
+                    color: colorScheme[AppStrings.secondaryColor],
+                  ),
                   textAlign: TextAlign.justify,
                 ),
               ),
@@ -138,7 +141,8 @@ class FinalConfirmation extends HookWidget {
                       },
                       onFailure: (message) {
                         isLoading.value = false;
-                        errorMessage.value = message; // Muestra mensaje de error
+                        errorMessage.value =
+                            message; // Muestra mensaje de error
                       },
                     );
                   } else {

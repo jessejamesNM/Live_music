@@ -14,11 +14,15 @@
 // - Uso de un SnackBar para notificar al usuario cuando una función está en desarrollo.
 // - Dependencia de `GoRouter` para la navegación entre pantallas.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:live_music/presentation/resources/colors.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io' show Platform;
 
 class SettingsComponent extends StatelessWidget {
   final GoRouter router;
@@ -28,106 +32,114 @@ class SettingsComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el esquema de colores para usar en los componentes de la UI
     final colorScheme = ColorPalette.getPalette(context);
-
-    // Si no se pasa un color de texto personalizado, se utiliza el color secundario del esquema
     final defaultTextColor =
         textColor ?? colorScheme[AppStrings.secondaryColor];
-
-    // Calculamos la altura de la pantalla para usar en la escala de los botones
     final screenHeight = MediaQuery.of(context).size.height;
     final baseButtonHeight = screenHeight * 0.075;
 
-    // Función para calcular el tamaño proporcional de los iconos y textos basado en la altura de la pantalla
     double proportionalSize(double originalSize) =>
         (originalSize / 60) * baseButtonHeight;
 
-    // Construcción de la interfaz
-    return Column(
-      children: [
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.inviteFriendsIconPath,
-          text: AppStrings.inviteFriends,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 32,
-          onPressed: () {},
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.defaultUserImagePath,
-          text: AppStrings.myAccount,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 34,
-          onPressed: () => router.push(AppStrings.myAccountScreenRoute),
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.blockedAccountsIconPath,
-          text: AppStrings.blockedAccountsTitle,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 35,
-          onPressed: () => router.push(AppStrings.blockedAccountsRoute),
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.languageIconPath,
-          text: AppStrings.language,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 35,
-          onPressed: () => _showInDevelopmentSnackbar(context, colorScheme),
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.appearanceIconPath,
-          text: AppStrings.appearance,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 43,
-          onPressed: () => _showInDevelopmentSnackbar(context, colorScheme),
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.suggestionsIconPath,
-          text: AppStrings.suggestions,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 37,
-          onPressed: () => router.push(AppStrings.suggestionsRoute),
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-        _buildButton(
-          baseHeight: baseButtonHeight,
-          iconPath: AppStrings.helpIconPath,
-          text: AppStrings.help,
-          textColor: defaultTextColor,
-          iconColor: defaultTextColor,
-          originalIconSize: 32,
-          onPressed: () => router.push(AppStrings.helpRoute),
-          proportionalSize: proportionalSize,
-        ),
-        _buildDivider(colorScheme, proportionalSize),
-      ],
+    return Container(
+      color: colorScheme[AppStrings.primaryColor],
+      child: Column(
+        children: [
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.inviteFriendsIconPath,
+            text: AppStrings.inviteFriends,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 32,
+            onPressed: () => _shareApp(context),
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.defaultUserImagePath,
+            text: AppStrings.myAccount,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 34,
+            onPressed: () => router.push(AppStrings.myAccountScreenRoute),
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.blockedAccountsIconPath,
+            text: AppStrings.blockedAccountsTitle,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 35,
+            onPressed: () => router.push(AppStrings.blockedAccountsRoute),
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.languageIconPath,
+            text: AppStrings.language,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 35,
+            onPressed: () => _showInDevelopmentSnackbar(context, colorScheme),
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.appearanceIconPath,
+            text: AppStrings.appearance,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 43,
+            onPressed:
+                () => router.push(
+                  AppStrings.themeSettingsRoute,
+                ), // Actualizado para navegar a la pantalla de tema
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.suggestionsIconPath,
+            text: AppStrings.suggestions,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 37,
+            onPressed: () => router.push(AppStrings.suggestionsRoute),
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+          _buildButton(
+            baseHeight: baseButtonHeight,
+            iconPath: AppStrings.helpIconPath,
+            text: AppStrings.help,
+            textColor: defaultTextColor,
+            iconColor: defaultTextColor,
+            originalIconSize: 32,
+            onPressed: () => router.push(AppStrings.helpRoute),
+            proportionalSize: proportionalSize,
+          ),
+          _buildDivider(colorScheme, proportionalSize),
+        ],
+      ),
     );
   }
 
-  // Método que crea un divisor entre cada botón
+  void _shareApp(BuildContext context) {
+    String androidUrl =
+        'https://play.google.com/store/apps/details?id=com.jesse.live_music';
+    String iosUrl = 'https://apps.apple.com/app/id6747364802';
+    String message =
+        '¡Descarga la app my events y descubre nuevas experiencias musicales! \n\n${Platform.isAndroid ? androidUrl : iosUrl}';
+
+    Share.share(message);
+  }
+
   Widget _buildDivider(
     Map<String, Color?> colorScheme,
     double Function(double) proportionalSize,
@@ -139,7 +151,6 @@ class SettingsComponent extends StatelessWidget {
     );
   }
 
-  // Muestra un SnackBar para indicar que una opción está en desarrollo
   void _showInDevelopmentSnackbar(
     BuildContext context,
     Map<String, Color?> colorScheme,
@@ -155,7 +166,6 @@ class SettingsComponent extends StatelessWidget {
     );
   }
 
-  // Construye un botón personalizado con icono, texto y acción
   Widget _buildButton({
     required double baseHeight,
     required String iconPath,

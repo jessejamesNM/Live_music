@@ -282,7 +282,7 @@ class _BottomSaveToFavoritesDialogState
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: colorScheme[AppStrings.secondaryColor],
+                                color: Colors.white,
                               ),
                             ),
                           ),

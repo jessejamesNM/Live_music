@@ -40,7 +40,7 @@ class ChangePassword extends StatelessWidget {
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: SafeArea(
         child: Padding(

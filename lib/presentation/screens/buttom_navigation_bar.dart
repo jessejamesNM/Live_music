@@ -23,24 +23,37 @@ import 'package:go_router/go_router.dart'; // Importa go_router
 
 // Widget que representa la barra de navegación inferior
 class BottomNavigationBarWidget extends StatelessWidget {
-  final bool isArtist; // Define si el usuario es un artista o no
+  final String
+  userType; // Define el tipo de usuario (artist, bakery, place, decoration, etc.)
   final GoRouter goRouter; // Instancia de GoRouter para la navegación
 
   // Constructor que recibe el tipo de usuario y la instancia de goRouter
   const BottomNavigationBarWidget({
     Key? key,
-    required this.isArtist,
+    required this.userType,
     required this.goRouter,
   }) : super(key: key);
+
+  // Determina si el usuario es de tipo artista o relacionados
+  bool get isArtistType {
+    return [
+      'artist',
+      'bakery',
+      'place',
+      'decoration',
+      'furniture', // Nuevo tipo de usuario
+      'entertainment', // Nuevo tipo de usuario
+    ].contains(userType.toLowerCase());
+  }
 
   @override
   Widget build(BuildContext context) {
     // Se obtiene el esquema de colores para usar en la UI
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Definición de los elementos de navegación, dependiendo si es un artista o no
+    // Definición de los elementos de navegación, dependiendo del tipo de usuario
     final items =
-        isArtist
+        isArtistType
             ? [
               NavigationItem.home,
               NavigationItem.search,

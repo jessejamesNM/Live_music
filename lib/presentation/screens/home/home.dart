@@ -39,14 +39,11 @@ import '../../../data/provider_logics/nav_buttom_bar_components/search/search_pr
 import '../../../data/provider_logics/user/user_provider.dart';
 import '../../../data/provider_logics/user/review_provider.dart';
 import '../../widgets/artist_item.dart';
-import '../../widgets/category_selection.dart';
 import '../buttom_navigation_bar.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:go_router/go_router.dart';
 
-// Widget principal de tipo Stateful que representa la pantalla de inicio de la app
 class Home extends StatefulWidget {
-  // Inyección de dependencias necesarias
   final FirebaseAuth auth;
   final UserProvider userProvider;
   final HomeProvider homeProvider;
@@ -73,38 +70,25 @@ class Home extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-// Estado interno del widget Home
 class _HomeScreenState extends State<Home> {
-  late List<String> artistsIds; // Lista de IDs de artistas obtenidos
-  late String searchQuery; // Consulta actual del buscador
-  late List<Map<String, dynamic>>
-  artistsDetails; // Detalles de artistas para mostrar
-  bool showFavoritesDialog =
-      false; // Controla si se muestra el diálogo de favoritos
-  late List<String> selectedGenres; // Géneros seleccionados
+  late List<String> artistsIds;
+  late String searchQuery;
+  late List<Map<String, dynamic>> artistsDetails;
+  bool showFavoritesDialog = false;
+  late List<String> selectedEventTypes;
+  late String selectedService;
 
   @override
   void initState() {
     super.initState();
-    // Inicialización de variables
     artistsIds = [];
     searchQuery = '';
     artistsDetails = [];
-    selectedGenres = [
-      AppStrings.band,
-      AppStrings.nortStyle,
-      AppStrings.corridos,
-      AppStrings.mariachi,
-      AppStrings.montainStyle,
-      AppStrings.cumbia,
-      AppStrings.reggaeton,
-    ];
+    selectedEventTypes = [];
+    selectedService = 'Música';
 
-    // Se ejecuta después del primer frame para evitar errores de contexto
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      
-      _fetchArtists();
-     
+      _fetchInitialData();
       widget.beginningProvider.checkAndSaveUserLocation(
         context,
         widget.goRouter,
@@ -112,41 +96,29 @@ class _HomeScreenState extends State<Home> {
     });
   }
 
-
-
-  // Obtiene los artistas según la ubicación del usuario y géneros seleccionados
-  void _fetchArtists() {
+  void _fetchInitialData() {
     final currentUserId = widget.auth.currentUser?.uid;
-
     if (currentUserId != null) {
       FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserId)
           .get()
           .then((document) {
-            final country =
-                document.data()?.containsKey('country') == true
-                    ? document['country']
-                    : '';
-            final state =
-                document.data()?.containsKey('state') == true
-                    ? document['state']
-                    : '';
+            final country = document.data()?['country']?.toString() ?? '';
+            final state = document.data()?['state']?.toString() ?? '';
 
-            // Si no hay país o estado, se obtiene desde el dispositivo
             if (country.isEmpty || state.isEmpty) {
               widget.userProvider.getCountryAndState();
             } else {
-              // Si hay ubicación válida, se obtienen artistas filtrados
               widget.homeProvider.getUsersByCountry(
                 currentUserId,
                 country,
                 state,
-                selectedGenres,
+                selectedEventTypes,
+                selectedService,
                 (ids) {
                   setState(() {
                     artistsIds = ids;
-                   
                   });
                 },
               );
@@ -155,173 +127,462 @@ class _HomeScreenState extends State<Home> {
     }
   }
 
+  void _onServiceSelected(String service) {
+    setState(() {
+      selectedService = service;
+      artistsIds = [];
+      artistsDetails = [];
+    });
+    _fetchInitialData();
+  }
+
+  void _onEventTypeSelected(String eventType) {
+    setState(() {
+      if (selectedEventTypes.contains(eventType)) {
+        selectedEventTypes.remove(eventType);
+      } else {
+        selectedEventTypes.add(eventType);
+      }
+      artistsIds = [];
+      artistsDetails = [];
+    });
+    _fetchInitialData();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Asegura que el tipo de usuario está actualizado
     widget.userProvider.fetchUserType();
-
     final userType = widget.userProvider.userType;
-    widget.userProvider.isUserTypeArtist(userType);
-    final isArtist = userType == 'artist';
     final artists = widget.homeProvider.artistsForHome;
     final currentUserId = widget.auth.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
     final goRouter = widget.goRouter;
 
-  
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist: isArtist,
+        userType: userType,
         goRouter: goRouter,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-          child: Column(
-            children: [
-              // Título principal
-              Text(
-                AppStrings.explore,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme[AppStrings.secondaryColor],
-                ),
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 16.0,
               ),
-              const SizedBox(height: 15),
-
-              // Campo de búsqueda
-              TextField(
-                onChanged: (query) {
-                  setState(() {
-                    searchQuery = query;
-                  });
-                },
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
-                decoration: InputDecoration(
-                  hintText: AppStrings.searchGroupsOrCategories,
-                  hintStyle: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor]?.withOpacity(
-                      0.6,
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Título Explore centrado
+                  Center(
+                    child: Text(
+                      AppStrings.explore,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
                     ),
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      Icons.send,
-                      color: colorScheme[AppStrings.essentialColor],
+                  const SizedBox(height: 15),
+
+                  // Barra de búsqueda
+                  TextField(
+                    onChanged: (query) => setState(() => searchQuery = query),
+                    style: TextStyle(
+                      color: colorScheme[AppStrings.secondaryColor],
                     ),
-                    onPressed: () {
-                      if (searchQuery.isNotEmpty) {
-                        widget.searchFunProvider.searchUsers(searchQuery);
-                        widget.goRouter.go(AppStrings.searchFunScreenRoute);
-                      }
-                    },
-                  ),
-                  filled: true,
-                  fillColor: colorScheme[AppStrings.primaryColor],
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: colorScheme[AppStrings.secondaryColor]!,
+                    decoration: InputDecoration(
+                      hintText: AppStrings.searchGroupsOrCategories,
+                      hintStyle: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor]
+                            ?.withOpacity(0.6),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          Icons.send,
+                          color: colorScheme[AppStrings.essentialColor],
+                        ),
+                        onPressed: () {
+                          if (searchQuery.isNotEmpty) {
+                            widget.searchFunProvider.searchUsers(searchQuery);
+                            widget.goRouter.go(AppStrings.searchFunScreenRoute);
+                          }
+                        },
+                      ),
+                      filled: true,
+                      fillColor: colorScheme[AppStrings.primaryColor],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: colorScheme[AppStrings.secondaryColor]!,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: colorScheme[AppStrings.essentialColor]!,
+                        ),
+                      ),
                     ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: colorScheme[AppStrings.essentialColor]!,
+
+                  const SizedBox(height: 20),
+
+                  // Sección de Servicios
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Servicios",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+
+                  ServicesSection(
+                    onServiceSelected: _onServiceSelected,
+                    selectedService: selectedService,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Sección de Categorías
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Categorías",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  EventTypesSection(
+                    onEventTypeSelected: _onEventTypeSelected,
+                    selectedEventTypes: selectedEventTypes,
+                  ),
+
+                  const SizedBox(height: 20),
+                ]),
+              ),
+            ),
+
+            // Título Artistas Destacados
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.featuredArtists,
+                      style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
-
-              // Sección de categorías musicales
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  AppStrings.categories,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
+            // Lista de artistas destacados (horizontal)
+            SliverToBoxAdapter(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(
+                  left: 12.0,
+                  right: 12.0,
+                  bottom: 20.0,
                 ),
-              ),
-              const SizedBox(height: 10),
-
-              // Widget personalizado que muestra las categorías disponibles
-              CategoriesSection(
-                onCategoryClick: (selectedCategory) {
-                  setState(() {
-                    artistsIds = [];
-                    artistsDetails = [];
-                    selectedGenres = [selectedCategory];
-                    _fetchArtists();
-                  });
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // Sección de artistas destacados
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  AppStrings.featuredArtists,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Lista horizontal de artistas destacados
-              Expanded(
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: artists.length,
-                  separatorBuilder:
-                      (context, index) => const SizedBox(width: 16),
-                  itemBuilder: (context, index) {
-                    final artist = artists[index];
-                    return ArtistItem(
-                      artist: artist,
-                      reviewProvider: widget.reviewProvider,
-                      onLikeClick: () {
-                        widget.favoritesProvider.onLikeClick(
-                          artist['id'],
-                          currentUserId,
+                child: Row(
+                  children:
+                      artists.map((artist) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: MediaQuery.of(context).size.width * 0.8,
+                            ),
+                            child: ArtistItem(
+                              artist: artist,
+                              reviewProvider: widget.reviewProvider,
+                              onLikeClick: () {
+                                widget.favoritesProvider.onLikeClick(
+                                  artist['id'],
+                                  currentUserId,
+                                );
+                              },
+                              onUnlikeClick: () {
+                                widget.favoritesProvider.onUnlikeClick(
+                                  artist['id'],
+                                );
+                              },
+                              toggleFavoritesDialog: () {
+                                setState(
+                                  () =>
+                                      showFavoritesDialog =
+                                          !showFavoritesDialog,
+                                );
+                              },
+                              favoritesProvider: widget.favoritesProvider,
+                              currentUserId: currentUserId!,
+                              userProvider: widget.userProvider,
+                              goRouter: widget.goRouter,
+                            ),
+                          ),
                         );
-                      },
-                      onUnlikeClick: () {
-                        widget.favoritesProvider.onUnlikeClick(artist['id']);
-                      },
-                      toggleFavoritesDialog: () {
-                        setState(() {
-                          showFavoritesDialog = !showFavoritesDialog;
-                        });
-                      },
-                      favoritesProvider: widget.favoritesProvider,
-                      currentUserId: currentUserId!,
-                      userProvider: widget.userProvider,
-                      goRouter: widget.goRouter,
-                    );
-                  },
+                      }).toList(),
                 ),
+              ),
+            ),
+
+            const SliverPadding(padding: EdgeInsets.only(bottom: 80.0)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ServicesSection extends StatelessWidget {
+  final Function(String) onServiceSelected;
+  final String selectedService;
+
+  ServicesSection({
+    required this.onServiceSelected,
+    required this.selectedService,
+  });
+
+  final List<Map<String, String>> services = [
+    {"title": "Música", "subtitle": ""},
+    {"title": "Repostería", "subtitle": "Alimentos"},
+    {"title": "Local", "subtitle": ""},
+    {"title": "Decoración", "subtitle": ""},
+    {"title": "Mueblería", "subtitle": "Mobiliario"}, // Nuevo servicio
+    {"title": "Entretenimiento", "subtitle": "Eventos"}, // Nuevo servicio
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+
+    return Container(
+      height: 55,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: services.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final service = services[index];
+          final isSelected = service['title'] == selectedService;
+          return ServiceCard(
+            title: service['title']!,
+            subtitle: service['subtitle']!,
+            isSelected: isSelected,
+            onTap: () => onServiceSelected(service['title']!),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ServiceCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const ServiceCard({
+    required this.title,
+    required this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+    final textColor = colorScheme[AppStrings.secondaryColor]!;
+    final cardColor =
+        isSelected
+            ? colorScheme[AppStrings.primaryColor]
+            : colorScheme[AppStrings.primaryColorLight] ?? Colors.grey;
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color:
+              isSelected
+                  ? colorScheme[AppStrings.essentialColor]!
+                  : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      color: cardColor,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 120,
+          height: 52,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (subtitle.isNotEmpty)
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: textColor,
+                    fontFamily: AppStrings.customFont,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: _calculateFontSize(title),
+                  color: textColor,
+                  fontFamily: AppStrings.customFont,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  double _calculateFontSize(String text) {
+    if (text == "Repostería") return 12;
+    if (text == "Entretenimiento") return 11; // Ajuste para texto largo
+    if (text.length > 10) return 12;
+    return 14;
+  }
+}
+
+class EventTypesSection extends StatelessWidget {
+  final Function(String) onEventTypeSelected;
+  final List<String> selectedEventTypes;
+
+  EventTypesSection({
+    required this.onEventTypeSelected,
+    required this.selectedEventTypes,
+  });
+
+  final List<String> eventTypes = [
+    "Bodas",
+    "15 años",
+    "Fiestas casuales",
+    "Eventos públicos",
+    "Cumpleaños",
+    "Conferencias",
+    "Posadas",
+    "Graduaciones",
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+
+    return Container(
+      height: 55,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: eventTypes.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final eventType = eventTypes[index];
+          final isSelected = selectedEventTypes.contains(eventType);
+          return EventTypeCard(
+            eventType: eventType,
+            isSelected: isSelected,
+            onTap: () => onEventTypeSelected(eventType),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class EventTypeCard extends StatelessWidget {
+  final String eventType;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const EventTypeCard({
+    required this.eventType,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+    final textColor = colorScheme[AppStrings.secondaryColor]!;
+    final cardColor =
+        isSelected
+            ? colorScheme[AppStrings.primaryColor]
+            : colorScheme[AppStrings.primaryColorLight] ?? Colors.grey;
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color:
+              isSelected
+                  ? colorScheme[AppStrings.essentialColor]!
+                  : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      color: cardColor,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 120,
+          height: 52,
+          alignment: Alignment.center,
+          child: Text(
+            eventType,
+            style: TextStyle(
+              fontSize: _calculateFontSize(eventType),
+              color: textColor,
+              fontFamily: AppStrings.customFont,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
+  double _calculateFontSize(String text) {
+    if (text.length > 12) return 12;
+    return 14;
   }
 }

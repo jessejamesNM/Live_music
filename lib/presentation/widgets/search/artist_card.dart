@@ -19,6 +19,7 @@
 // - Utiliza `Provider` para manejar el estado de los favoritos y las vistas recientes del perfil.
 
 import 'package:flutter/material.dart';
+import 'package:live_music/data/provider_logics/user/user_provider.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -55,6 +56,9 @@ class ArtistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(
+      context,
+    ); // Proveedor de datos del usuario.
     // Obtener el esquema de colores de la aplicación
     final colorScheme = ColorPalette.getPalette(context);
     final favoritesViewModel = Provider.of<FavoritesProvider>(
@@ -64,7 +68,7 @@ class ArtistCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // Actualizar el ID del artista seleccionado y guardar el perfil reciente del usuario
+        userProvider.setOtherUserId(userId);
         favoritesViewModel.updateSelectedArtistId(userId);
         favoritesViewModel.saveRecentlyViewedProfileToFirestore(
           currentUserId,
@@ -73,9 +77,9 @@ class ArtistCard extends StatelessWidget {
         favoritesViewModel.listenAndSaveRecentlyViewedProfiles(
           currentUserId: currentUserId,
         );
-
+        goRouter.push(AppStrings.servicePreviewScreen);
         // Mostrar un diálogo con la vista previa del perfil del artista
-        showDialog(
+        /* showDialog(
           context: context,
           barrierDismissible:
               true, // Permite cerrar el diálogo al hacer clic fuera
@@ -94,7 +98,7 @@ class ArtistCard extends StatelessWidget {
               favoritesProvider: favoritesViewModel,
             );
           },
-        );
+        );*/
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4), // Margen horizontal

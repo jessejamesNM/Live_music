@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:live_music/data/provider_logics/auth/register_wigh_google_provider.dart'
     show RegisterWithGoogleProvider;
 import 'package:live_music/data/provider_logics/nav_buttom_bar_components/profile/profile_provider.dart';
+import 'package:live_music/data/provider_logics/theme_provider/theme_provider.dart';
 import 'package:live_music/data/repositories/providers_repositories/user_repository.dart';
 import 'package:live_music/data/repositories/sources_repositories/imageRepository.dart';
 import 'package:live_music/data/repositories/sources_repositories/messageRepository.dart';
 import 'package:live_music/data/repositories/sources_repositories/reviewResitory.dart';
 import 'package:live_music/data/widgets/firebase_utils.dart';
+import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:live_music/presentation/screens/beginning/after_access/age_and_legal_data.dart';
 import 'package:live_music/presentation/screens/beginning/after_access/contractor_data/name_screen.dart';
@@ -36,10 +36,12 @@ import 'package:live_music/presentation/screens/beginning/before_access/access_o
 import 'package:live_music/presentation/screens/beginning/before_access/access_options/sign_up/Sign_up_artist.dart';
 import 'package:live_music/presentation/screens/beginning/before_access/access_options/sign_up/sign_up_contractor.dart';
 import 'package:live_music/presentation/screens/beginning/before_access/waiting_confirmation.dart';
+import 'package:live_music/presentation/screens/beginning/what_you_offer.dart';
 import 'package:live_music/presentation/screens/home/home.dart';
 import 'package:live_music/presentation/screens/liked_artist/liked_artist.dart';
 import 'package:live_music/presentation/screens/liked_artist/liked_users_list.dart';
-import 'package:live_music/presentation/screens/liked_artist/recently_viewed.dart';
+
+import 'package:live_music/presentation/screens/liked_artist/recently_viewed_screens.dart';
 import 'package:live_music/presentation/screens/messages/chat.dart';
 import 'package:live_music/presentation/screens/messages/image_preview.dart';
 import 'package:live_music/presentation/screens/messages/messages.dart';
@@ -54,11 +56,14 @@ import 'package:live_music/presentation/screens/profile/settings/components/dele
 import 'package:live_music/presentation/screens/profile/settings/components/delete_account/final_confirmation.dart';
 import 'package:live_music/presentation/screens/profile/settings/components/help.dart';
 import 'package:live_music/presentation/screens/profile/settings/components/suggestions.dart';
+import 'package:live_music/presentation/screens/profile/settings/components/theme.dart';
 import 'package:live_music/presentation/screens/profile/settings/settings_screen.dart';
 import 'package:live_music/presentation/screens/search/search.dart';
+import 'package:live_music/presentation/screens/search/service_preview.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/profile_artist_ws.dart';
 import 'package:live_music/presentation/screens/search_fun/search_fun.dart';
 import 'package:live_music/presentation/widgets/loading.dart';
+import 'package:live_music/presentation/widgets/services/services_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -121,6 +126,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(
           create:
+              (_) => ThemeProvider(
+                firestore: FirebaseFirestore.instance,
+                auth: FirebaseAuth.instance,
+              )..initializeTheme(),
+        ),
+        ChangeNotifierProvider(
+          create:
               (_) => UserProvider(
                 auth: FirebaseAuth.instance,
                 firestore: FirebaseFirestore.instance,
@@ -140,7 +152,7 @@ void main() async {
         ChangeNotifierProvider(
           create:
               (_) => FavoritesProvider(
-                dao: appDatabase.likedUsersListDao,
+                likedUsersListDao: appDatabase.likedUsersListDao,
                 authInstance: FirebaseAuth.instance,
                 firestoreInstance: FirebaseFirestore.instance,
                 recentlyViewedDao: recentlyViewedDao,
@@ -326,7 +338,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<void> _initializeApp() async {
     // Inicialización de todos los providers
-
     _userProvider = Provider.of<UserProvider>(context, listen: false);
     _homeAlgorithmProvider = Provider.of<HomeProvider>(context, listen: false);
     _searchFunProvider = Provider.of<SearchFunProvider>(context, listen: false);
@@ -338,10 +349,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     _uploadProfileImagesToServer = UploadProfileImagesToServer();
     _uploadWorkImagesToServer = UploadWorkMediaToServer();
+
     // Obtiene el tipo de usuario
     await _userProvider.fetchUserType();
-
-
 
     // Determinar ruta inicial
     final initialRoute = await _determineInitialRoute();
@@ -354,6 +364,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         // Si la ruta entrante no está en la lista de rutas válidas, redirige a initialRoute
         final validPaths = [
           AppStrings.nicknameScreenRoute,
+          AppStrings.servicePreviewScreen,
           AppStrings.loadingScreenRoute,
           AppStrings.homeScreenRoute,
           AppStrings.selectionScreenRoute,
@@ -379,6 +390,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           AppStrings.blockedAccountsRoute,
           AppStrings.helpRoute,
           AppStrings.suggestionsRoute,
+          AppStrings.whatYouOfferRoute,
           AppStrings.likedArtistsGridRoute,
           AppStrings.likedUsersListScreenRoute,
           AppStrings.deleteAccountRoute,
@@ -397,9 +409,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           AppStrings.eventSpecializationScreenRoute,
           AppStrings.priceScreenRoute,
           AppStrings.welcomeScreenRoute,
-          AppStrings.recentlyViewedScreenRoute,
+          AppStrings.recentlyViewedScreenRoutes,
           AppStrings.imagePreviewScreenRoute,
+          AppStrings.serviceScreenRoute,
+          AppStrings.searchScreenRoute,
+          AppStrings.themeSettingsRoute,
         ];
+
         // Normaliza la ruta entrante
         final normalizedIncomingPath = normalizePath(state.subloc);
 
@@ -428,7 +444,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<String> _determineInitialRoute() async {
     final currentUser = _auth.currentUser;
 
-    // Si no hay usuario logueado
     if (currentUser == null) {
       return AppStrings.selectionScreenRoute;
     }
@@ -438,12 +453,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     try {
       final userDoc =
           await _firestore.collection('users').doc(currentUserId).get();
-
       final data = userDoc.data() ?? {};
 
-      // Si el documento no existe o no está registrado
       if (!userDoc.exists || (data['isRegistered'] ?? false) != true) {
         return AppStrings.selectionScreenRoute;
+      }
+
+      // Verificar si ya existe createdService
+      if (data.containsKey('createdService')) {
+        return AppStrings.homeScreenRoute;
       }
 
       final isVerified = data['isVerified'] ?? false;
@@ -454,45 +472,43 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final state = data['state'] ?? '';
       final genres = data['genres'] as List<dynamic>? ?? [];
       final specialty = data['specialty'] ?? '';
-      final price = data['price'];
       final countries = data['countries'] as List<dynamic>? ?? [];
       final states = data['states'] as List<dynamic>? ?? [];
       final userType = data['userType'] ?? '';
-      final isArtist = userType == 'artist';
-
       final age = data['age'];
       final acceptedTerms = data['acceptedTerms'];
       final acceptedPrivacy = data['acceptedPrivacy'];
 
-      // Si el correo no está verificado, se redirige a esperar confirmación
+      final isArtistType =
+          userType == 'artist' ||
+          userType == 'bakery' ||
+          userType == 'place' ||
+          userType == 'decoration' ||
+          userType == 'furniture' || // Nuevo userType
+          userType == 'entertainment'; // Nuevo userType
+
       if (!isVerified) {
         return AppStrings.waitingConfirmScreenRoute;
       }
 
       _beginningProvider.setRouteToGo(AppStrings.welcomeScreenRoute);
 
-      if (!isArtist) {
-        // ✅ Check de edad y términos justo antes de name
+      if (!isArtistType) {
         if (age == null || acceptedTerms != true || acceptedPrivacy != true) {
           return AppStrings.ageTermsScreenRoute;
         }
-
         if (name.isEmpty) {
           return AppStrings.usernameScreen;
         }
         if (nickname.isEmpty) {
           return AppStrings.nicknameScreenRoute;
         }
-      }
-
-      if (isArtist) {
+      } else {
         _beginningProvider.setRouteToGo(AppStrings.profileImageScreenRoute);
 
-        // ✅ Check de edad y términos justo antes de group name
         if (age == null || acceptedTerms != true || acceptedPrivacy != true) {
           return AppStrings.ageTermsScreenRoute;
         }
-
         if (isVerified && name.isEmpty) {
           return AppStrings.verifyEmailRoute;
         }
@@ -505,20 +521,52 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         if (profileImageUrl.isEmpty) {
           return AppStrings.profileImageScreenRoute;
         }
-        if (genres.isEmpty) {
+        // Solo mostrar géneros musicales para artistas, no para los nuevos tipos
+        if (userType == 'artist' && genres.isEmpty) {
           return AppStrings.musicGenresScreenRoute;
         }
         if (specialty.isEmpty) {
           return AppStrings.eventSpecializationScreenRoute;
-        }
-        if (price == null) {
-          return AppStrings.priceScreenRoute;
         }
         if (countries.isEmpty || states.isEmpty) {
           return AppStrings.userCanWorkCountryStateScreenRoute;
         }
         if (country.isEmpty || state.isEmpty) {
           return AppStrings.countryStateScreenRoute;
+        }
+
+        final serviceDoc =
+            await _firestore.collection('services').doc(currentUserId).get();
+
+        if (!serviceDoc.exists) {
+          return AppStrings.priceScreenRoute;
+        }
+
+        final serviceCollectionRef = _firestore
+            .collection('services')
+            .doc(currentUserId)
+            .collection('service');
+
+        for (int i = 0; i < 8; i++) {
+          final docId = 'service$i';
+          final doc = await serviceCollectionRef.doc(docId).get();
+
+          if (!doc.exists) {
+            continue;
+          }
+
+          final data = doc.data() ?? {};
+          final price = data['price'];
+          final info = data['information'];
+          final images = data['imageList'] as List<dynamic>?;
+
+          final isPriceValid = price != null && (price is num) && price > 0;
+          final isInfoValid = info != null && info.toString().trim().isNotEmpty;
+          final hasImages = images != null && images.isNotEmpty;
+
+          if (!isPriceValid || !isInfoValid || !hasImages) {
+            return AppStrings.priceScreenRoute;
+          }
         }
       }
 
@@ -565,23 +613,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         builder:
             (context, state) => SelectionScreen(
               onArtistClick: () {
-                context.go(AppStrings.registerOptionsArtistRoute);
+                context.push(AppStrings.whatYouOfferRoute);
               },
               onContractorClick: () {
-                context.go(AppStrings.registerOptionsContractorRoute);
+                context.push(AppStrings.registerOptionsContractorRoute);
               },
               onLoginClick: () {
-                context.go(AppStrings.loginOptionsScreenRoute);
+                context.push(AppStrings.loginOptionsScreenRoute);
               },
             ),
       ),
       GoRoute(
         path: AppStrings.loginOptionsScreenRoute,
-        builder: (context, state) => LoginOptionsScreen(goRouter: _goRouter),
+        builder:
+            (context, state) => LoginOptionsScreen(
+              goRouter: _goRouter,
+              auth: _auth,
+              firestore: _firestore,
+              beginningProvider: _beginningProvider,
+            ),
       ),
       GoRoute(
         path: AppStrings.usernameScreen,
         builder: (context, state) => UsernameScreen(goRouter: _goRouter),
+      ),
+      GoRoute(
+        path: AppStrings.servicePreviewScreen,
+        builder: (context, state) => ServicePreview(goRouter: _goRouter),
       ),
       GoRoute(
         path: AppStrings.reviewsScreenRoute,
@@ -614,6 +672,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 RegisterOptionsContractorScreen(goRouter: _goRouter),
       ),
       GoRoute(
+        path: AppStrings.whatYouOfferRoute,
+        builder: (context, state) => WhatYouOfferScreen(goRouter: _goRouter),
+      ),
+      GoRoute(
+        path: AppStrings.serviceScreenRoute,
+        builder: (context, state) => ServiceScreen(),
+      ),
+      GoRoute(
         path: AppStrings.registerArtistMailScreenRoute,
         builder: (context, state) => RegisterArtistMailScreen(),
       ),
@@ -624,23 +690,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       GoRoute(
         path: AppStrings.loginMailScreenRoute,
         builder:
-            (context, state) =>
-                LoginMailScreen(auth: _auth, goRouter: _goRouter),
+            (context, state) => LoginMailScreen(
+              auth: _auth,
+              goRouter: _goRouter,
+              firestore: _firestore,
+              beginningProvider: _beginningProvider,
+            ),
       ),
       GoRoute(
         path: AppStrings.ageTermsScreenRoute,
         builder: (context, state) => AgeTermsScreen(goRouter: _goRouter),
       ),
-
       GoRoute(
         path: AppStrings.searchScreenRoute,
-        redirect: (context, state) {
-          final userType = _userProvider.userType;
-          if (userType != "artist" && userType != "contractor") {
-            return AppStrings.selectionScreenRoute;
-          }
-          return null;
-        },
         builder:
             (context, state) =>
                 SearchScreen(goRouter: _goRouter, userProvider: _userProvider),
@@ -776,7 +838,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ),
       GoRoute(
         path: AppStrings.verifyEmailRoute,
-        builder: (context, state) => VerificationSuccessScreen(),
+        builder: (context, state) => VerificationSuccessContent(),
       ),
       GoRoute(
         path: AppStrings.waitingConfirmScreenRoute,
@@ -788,9 +850,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ),
       GoRoute(
         path: AppStrings.profileImageScreenRoute,
-        builder:
-            (context, state) =>
-                ProfileImageScreen(goRouter: _goRouter),
+        builder: (context, state) => ProfileImageScreen(goRouter: _goRouter),
       ),
       GoRoute(
         path: AppStrings.countryStateScreenRoute,
@@ -809,20 +869,26 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       GoRoute(
         path: AppStrings.eventSpecializationScreenRoute,
         builder:
-            (context, state) => EventSpecializationScreen(goRouter: _goRouter),
+            (context, state) => EventSpecializationScreen(
+              goRouter: _goRouter,
+              firestore: _firestore,
+              auth: _auth,
+            ),
       ),
       GoRoute(
         path: AppStrings.priceScreenRoute,
-        builder: (context, state) => PriceScreen(goRouter: _goRouter),
+        builder:
+            (context, state) =>
+                PriceScreen(goRouter: _goRouter, userProvider: _userProvider),
       ),
       GoRoute(
         path: AppStrings.welcomeScreenRoute,
         builder: (context, state) => WelcomeScreen(goRouter: _goRouter),
       ),
       GoRoute(
-        path: AppStrings.recentlyViewedScreenRoute,
+        path: AppStrings.recentlyViewedScreenRoutes,
         builder:
-            (context, state) => RecentlyViewedScreen(
+            (context, state) => RecentlyViewedScreens(
               userProvider: _userProvider,
               reviewProvider: _reviewProvider,
               favoritesProvider: _favoritesProvider,
@@ -832,6 +898,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       GoRoute(
         path: AppStrings.imagePreviewScreenRoute,
         builder: (context, state) => ImagePreviewScreen(),
+      ),
+      GoRoute(
+        path: AppStrings.themeSettingsRoute,
+        builder: (context, state) => ThemeSettingsScreen(),
       ),
     ];
   }
@@ -851,40 +921,67 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       );
     }
 
-    return MaterialApp.router(
-      routerConfig: _goRouter,
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('es', 'ES')],
-      builder: (context, child) {
-        // Escuchar deep links continuamente
-        DeepLinkHandler.deepLinkStream.listen((link) {
-          if (mounted && link.isNotEmpty) {
-            DeepLinkHandler.processDeepLink(context, _goRouter, link);
-          }
-        });
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        // Determinar el tema basado en la preferencia del usuario o el sistema
+        final brightness =
+            themeProvider.currentTheme == AppTheme.light
+                ? Brightness.light
+                : themeProvider.currentTheme == AppTheme.dark
+                ? Brightness.dark
+                : MediaQuery.of(context).platformBrightness;
 
-        return MultiProvider(
-          providers: [
-            ChangeNotifierProvider.value(value: _userProvider),
-            ChangeNotifierProvider.value(value: _homeAlgorithmProvider),
-            ChangeNotifierProvider.value(value: _searchFunProvider),
-            // ... otros providers
+        final isDarkMode = brightness == Brightness.dark;
+
+        return MaterialApp.router(
+          routerConfig: _goRouter,
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
           ],
-          child: Builder(
-            builder: (context) {
-              return MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.linear(1.0)),
-                child: child!,
-              );
-            },
-          ),
+          supportedLocales: const [Locale('es', 'ES')],
+          theme:
+              isDarkMode
+                  ? ThemeData.dark().copyWith(
+                    colorScheme: ColorScheme.dark(
+                      primary: DarkModeColors.primaryColor,
+                      secondary: DarkModeColors.secondaryColor,
+                    ),
+                  )
+                  : ThemeData.light().copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: LightModeColors.primaryColor,
+                      secondary: LightModeColors.secondaryColor,
+                    ),
+                  ),
+          builder: (context, child) {
+            // Escuchar deep links continuamente
+            DeepLinkHandler.deepLinkStream.listen((link) {
+              if (mounted && link.isNotEmpty) {
+                DeepLinkHandler.processDeepLink(context, _goRouter, link);
+              }
+            });
+
+            return MultiProvider(
+              providers: [
+                ChangeNotifierProvider.value(value: _userProvider),
+                ChangeNotifierProvider.value(value: _homeAlgorithmProvider),
+                ChangeNotifierProvider.value(value: _searchFunProvider),
+              ],
+              child: Builder(
+                builder: (context) {
+                  return MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(textScaler: TextScaler.linear(1.0)),
+                    child: child!,
+                  );
+                },
+              ),
+            );
+          },
         );
       },
     );

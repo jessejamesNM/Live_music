@@ -31,7 +31,6 @@ import '../../data/provider_logics/user/review_provider.dart';
 import '../../data/sources/local/internal_data_base.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-/// Widget que representa un elemento de artista en la lista
 class ArtistItem extends StatelessWidget {
   final Map<String, dynamic> artist;
   final ReviewProvider reviewProvider;
@@ -55,7 +54,6 @@ class ArtistItem extends StatelessWidget {
     required this.goRouter,
   });
 
-  /// Método seguro para castear valores dinámicos con manejo estricto de nulos
   T safeCast<T>(dynamic value, T defaultValue) {
     if (value == null) return defaultValue;
     try {
@@ -69,91 +67,93 @@ class ArtistItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Valores por defecto mejorados para los parámetros requeridos
     final String profileImageUrl = safeCast<String>(
       artist[AppStrings.profileImageUrlField],
-      'https://via.placeholder.com/245', // Imagen por defecto
+      'https://via.placeholder.com/245',
     );
-    
+
     final String name = safeCast<String>(
-      artist[AppStrings.nameField], 
-      'Nombre no disponible' // Nombre por defecto
+      artist[AppStrings.nameField],
+      'Nombre no disponible',
     );
-    
-    final double price = safeCast<num>(
-      artist[AppStrings.priceField], 
-      0.0 // Precio por defecto
-    ).toDouble();
-    
+
+    final double price =
+        safeCast<num>(artist[AppStrings.priceField], 0.0).toDouble();
+
     final String userId = safeCast<String>(
-      artist[AppStrings.userIdField], 
-      'default_user_id' // ID por defecto
+      artist[AppStrings.userIdField],
+      'default_user_id',
     );
 
-    return GestureDetector(
-      onTap: () {
-        favoritesProvider.updateSelectedArtistId(userId);
-        favoritesProvider.saveRecentlyViewedProfileToFirestore(
-          currentUserId,
-          userId,
-        );
-        favoritesProvider.listenAndSaveRecentlyViewedProfiles(
-          currentUserId: currentUserId,
-        );
-
-        showDialog(
-          context: context,
-          builder: (context) => ProfilePreviewCard(
-            profileImageUrl: profileImageUrl,
-            name: name,
-            price: artist["price"]?.toDouble() ?? 0.0,
-            userId: artist["userId"] ?? "",
-            onDismiss: () => Navigator.pop(context),
-            onLikeClick: onLikeClick,
-            onUnlikeClick: onUnlikeClick,
-            toggleFavoritesDialog: toggleFavoritesDialog,
-            goRouter: goRouter,
+    return Padding(
+      padding: const EdgeInsets.only(left: 16.0),
+      child: GestureDetector(
+        onTap: () {
+          userProvider.setOtherUserId(userId);
+          favoritesProvider.updateSelectedArtistId(userId);
+          favoritesProvider.saveRecentlyViewedProfileToFirestore(
+            currentUserId,
+            userId,
+          );
+          favoritesProvider.listenAndSaveRecentlyViewedProfiles(
             currentUserId: currentUserId,
-            favoritesProvider: favoritesProvider,
-          ),
-        );
-      },
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              profileImageUrl,
-              width: 245,
-              height: 245,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
+          );
+          goRouter.push(AppStrings.servicePreviewScreen);
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                profileImageUrl,
                 width: 245,
                 height: 245,
-                color: Colors.grey[300],
-                child: Icon(Icons.person, size: 60, color: Colors.grey[600]),
+                fit: BoxFit.cover,
+                errorBuilder:
+                    (context, error, stackTrace) => Container(
+                      width: 245,
+                      height: 245,
+                      color: Colors.grey[300],
+                      child: Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Colors.grey[600],
+                      ),
+                    ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-            child: Text(
-              name,
-              style: TextStyle(
-                fontSize: 24,
-                color: colorScheme[AppStrings.secondaryColor],
+            SizedBox(
+              width: 245, // Mismo ancho que la imagen
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  left: 4.0,
+                  top: 6.0,
+                  bottom: 6.0,
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 25, // Tamaño máximo inicial
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
+
 /// Diálogo que muestra una vista previa extendida del perfil del artista
 class ProfilePreviewCard extends StatefulWidget {
   final String profileImageUrl; // URL de la imagen de perfil
@@ -199,6 +199,7 @@ class _ProfilePreviewCardState extends State<ProfilePreviewCard> {
   @override
   void initState() {
     super.initState();
+
     // Obtener datos después de que el widget se construya
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final reviewProvider = Provider.of<ReviewProvider>(
@@ -555,6 +556,7 @@ class _ProfilePreviewCardState extends State<ProfilePreviewCard> {
           BottomSaveToFavoritesDialog(
             onDismiss: () => setState(() => showBottomSaveDialog = false),
             onCreateNewList: () {
+              print("userId: ${widget.userId}");
               setState(() {
                 showBottomSaveDialog = false;
                 showBottomFavoritesListCreatorDialog = true;
@@ -565,6 +567,7 @@ class _ProfilePreviewCardState extends State<ProfilePreviewCard> {
             userIdToSave: widget.userId,
             onUserAddedToList: _onUserAddedToList,
             onLikeClick: () {
+              print("userId: ${widget.userId}");
               widget.onLikeClick();
               userProvider.addLikes(widget.userId);
             },
@@ -575,11 +578,13 @@ class _ProfilePreviewCardState extends State<ProfilePreviewCard> {
           BottomFavoritesListCreatorDialog(
             userId: widget.userId,
             onDismiss: () {
+              print("userId: ${widget.userId}");
               setState(() => showBottomFavoritesListCreatorDialog = false);
               userProvider.addLikes(widget.userId);
             },
             favoritesProvider: favoritesProvider,
             onLikeClick: () {
+              print("userId: ${widget.userId}");
               widget.onLikeClick();
               userProvider.addLikes(widget.userId);
             },
@@ -590,6 +595,7 @@ class _ProfilePreviewCardState extends State<ProfilePreviewCard> {
           SaveMessage(
             list: selectedList!,
             onModifyClick: () {
+              print("userId: ${widget.userId}");
               setState(() {
                 showSaveMessage = false;
                 showBottomSaveDialog = true;
@@ -598,16 +604,19 @@ class _ProfilePreviewCardState extends State<ProfilePreviewCard> {
             },
             isVisible: showSaveMessage,
             onDismiss: () {
+              print("userId: ${widget.userId}");
               setState(() => showSaveMessage = false);
               userProvider.addLikes(widget.userId);
             },
             favoritesProvider: favoritesProvider,
             userIdToRemove: widget.userId,
             onLikeClick: () {
+              print("userId: ${widget.userId}");
               widget.onLikeClick();
               userProvider.addLikes(widget.userId);
             },
             onUnlikeClick: () {
+              print("userId: ${widget.userId}");
               widget.onUnlikeClick();
             },
             currentUserId: widget.userId,

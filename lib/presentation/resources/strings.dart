@@ -1,12 +1,12 @@
 class AppStrings {
-  static const String termsText = '''TÉRMINOS Y CONDICIONES DE USO DE LIVE MUSIC
+  static const String termsText = '''TÉRMINOS Y CONDICIONES DE USO DE MY EVENTS
 Última actualización: 12 de mayo de 2025
 
 1. Aceptación de los Términos
-Al registrarte, descargar o utilizar la aplicación Live Music ("la App"), aceptas vincularte legalmente por estos Términos y Condiciones ("Términos"). Si no aceptas estos Términos, no podrás acceder al servicio. Live Music (en adelante, "nosotros" o "la Empresa") se reserva el derecho de modificar estos Términos en cualquier momento. Los cambios entrarán en vigor al ser publicados en la App, y tu uso continuado constituirá aceptación de los mismos.
+Al registrarte, descargar o utilizar la aplicación My Events ("la App"), aceptas vincularte legalmente por estos Términos y Condiciones ("Términos"). Si no aceptas estos Términos, no podrás acceder al servicio. My Events (en adelante, "nosotros" o "la Empresa") se reserva el derecho de modificar estos Términos en cualquier momento. Los cambios entrarán en vigor al ser publicados en la App, y tu uso continuado constituirá aceptación de los mismos.
 
 2. Descripción del Servicio
-Live Music es una plataforma digital (marketplace) diseñada para conectar:
+My Events es una plataforma digital (marketplace) diseñada para conectar:
 • Artistas/músicos que ofrecen sus servicios.
 • Contratantes (particulares o empresas) que buscan talento musical para eventos.
 
@@ -65,7 +65,7 @@ Queda estrictamente prohibido subir contenido que:
 • Promueva actividades ilegales.
 
 5.3 Licencia de uso y derechos de contenido:
-Al subir contenido, nos otorgas una licencia no exclusiva, mundial y gratuita para mostrarlo en la App con fines de promoción del servicio. Los músicos y usuarios que suben contenido (como imágenes, videos y textos en sus perfiles) nos otorgan permiso para mostrar y distribuir ese contenido dentro de la plataforma. Este contenido es responsabilidad de quien lo publica, y solo se utiliza para los fines establecidos en la app. Live Music no reclama propiedad sobre dicho contenido, pero cuenta con autorización expresa para su exhibición y difusión dentro de la plataforma.
+Al subir contenido, nos otorgas una licencia no exclusiva, mundial y gratuita para mostrarlo en la App con fines de promoción del servicio. Los músicos y usuarios que suben contenido (como imágenes, videos y textos en sus perfiles) nos otorgan permiso para mostrar y distribuir ese contenido dentro de la plataforma. Este contenido es responsabilidad de quien lo publica, y solo se utiliza para los fines establecidos en la app. My Events no reclama propiedad sobre dicho contenido, pero cuenta con autorización expresa para su exhibición y difusión dentro de la plataforma.
 
 6. Pagos y Transacciones Futuras
 6.1 Funcionalidades futuras:
@@ -79,7 +79,7 @@ Las políticas de reembolso se especificarán cuando se implementen los pagos.
 
 7. Limitación de Responsabilidad
 7.1 Alcance del servicio:
-Live Music actúa como intermediario entre artistas y contratantes.
+My Events actúa como intermediario entre artistas y contratantes.
 No somos responsables por:
 • Acuerdos incumplidos entre usuarios.
 • Daños derivados de malentendidos en contrataciones.
@@ -90,8 +90,8 @@ No garantizamos que la App esté libre de errores o interrupciones.
 Podemos realizar mantenimiento sin previo aviso.
 
 8. Propiedad Intelectual
-8.1 Derechos de Live Music:
-El código, diseño, logotipos y nombre "Live Music" son propiedad de la Empresa.
+8.1 Derechos de My Events:
+El código, diseño, logotipos y nombre "My Events" son propiedad de la Empresa.
 Queda prohibida la reproducción no autorizada.
 
 8.2 Derechos de los usuarios:
@@ -112,10 +112,10 @@ Para preguntas o reportes:
 Email: livemusicofficialmx@gmail.com
 Tiempo de respuesta estimado: 72 horas hábiles.''';
 
-  static const String privacyText = '''POLÍTICA DE PRIVACIDAD DE LIVE MUSIC
+  static const String privacyText = '''POLÍTICA DE PRIVACIDAD DE MY EVENTS
 Última actualización: 12 de mayo de 2025
 
-Live Music ("nosotros", "la App" o "el Servicio") se compromete a proteger tu privacidad. Esta Política explica cómo recopilamos, usamos, compartimos y protegemos tu información personal. Al usar la App, aceptas estas prácticas.
+My Events ("nosotros", "la App" o "el Servicio") se compromete a proteger tu privacidad. Esta Política explica cómo recopilamos, usamos, compartimos y protegemos tu información personal. Al usar la App, aceptas estas prácticas.
 
 1. Información que Recopilamos
 1.1 Datos proporcionados por ti:
@@ -212,7 +212,7 @@ Para dudas o solicitudes relacionadas con la privacidad:
 
 
 Aviso Legal Adicional
-"Live Music cumple con la Ley Federal de Protección de Datos Personales (México). Para usuarios en EE.UU., seguimos las mejores prácticas de privacidad."''';
+"My Events cumple con la Ley Federal de Protección de Datos Personales (México). Para usuarios en EE.UU., seguimos las mejores prácticas de privacidad."''';
   static const String deepLinkError = "Error handling deep link";
   static const String error404 = "Error 404";
   static const String redirectLog = "Redirecting due to invalid path";
@@ -231,6 +231,12 @@ Aviso Legal Adicional
       "Error al solicitar la eliminación de cuenta";
   static const String problemDescriptionError =
       "Error al enviar la descripción del problema";
+  static const String appleSignInFailed = 'No se pudo iniciar sesión con Apple';
+  static const String continueWithApple = 'Continuar con Apple';
+  static const String appleIconPath = 'assets/icons/apple_icon.svg';
+  static const String appleSignInError = 'Error al iniciar sesión con Apple';
+  static const String appleNotAvailable =
+      'El inicio de sesión con Apple no está disponible en este dispositivo';
   static const String suggestionSendError = "Error al enviar la sugerencia";
   static const String openUrlError = "No se pudo abrir la URL";
   static const String currentUserLog = "[Navigation] Current Firebase user";
@@ -293,92 +299,92 @@ Aviso Legal Adicional
   static const String errorGettingEmail =
       "Error al obtener el correo electrónico.";
   static const String emailNotAvailable = "Usuario no autenticado.";
- static const List<String> statesMX = [
-  "aguascalientes",
-  "baja california",
-  "baja california sur",
-  "campeche",
-  "chiapas",
-  "chihuahua",
-  "coahuila",
-  "colima",
-  "durango",
-  "estado de mexico",
-  "guanajuato",
-  "guerrero",
-  "hidalgo",
-  "jalisco",
-  "michoacan",
-  "morelos",
-  "nayarit",
-  "nuevo leon",
-  "oaxaca",
-  "puebla",
-  "queretaro",
-  "quintana roo",
-  "san luis potosi",
-  "sinaloa",
-  "sonora",
-  "tabasco",
-  "tamaulipas",
-  "tlaxcala",
-  "veracruz",
-  "yucatan",
-  "zacatecas"
-];
+  static const List<String> statesMX = [
+    "aguascalientes",
+    "baja california",
+    "baja california sur",
+    "campeche",
+    "chiapas",
+    "chihuahua",
+    "coahuila",
+    "colima",
+    "durango",
+    "estado de mexico",
+    "guanajuato",
+    "guerrero",
+    "hidalgo",
+    "jalisco",
+    "michoacan",
+    "morelos",
+    "nayarit",
+    "nuevo leon",
+    "oaxaca",
+    "puebla",
+    "queretaro",
+    "quintana roo",
+    "san luis potosi",
+    "sinaloa",
+    "sonora",
+    "tabasco",
+    "tamaulipas",
+    "tlaxcala",
+    "veracruz",
+    "yucatan",
+    "zacatecas",
+  ];
 
-static const List<String> statesUS = [
-  "alabama",
-  "alaska",
-  "arizona",
-  "arkansas",
-  "california",
-  "colorado",
-  "connecticut",
-  "delaware",
-  "florida",
-  "georgia",
-  "hawai",
-  "idaho",
-  "illinois",
-  "indiana",
-  "iowa",
-  "kansas",
-  "kentucky",
-  "luisiana",
-  "maine",
-  "maryland",
-  "massachusetts",
-  "michigan",
-  "minnesota",
-  "misisipi",
-  "misuri",
-  "montana",
-  "nebraska",
-  "nevada",
-  "nuevo hampshire",
-  "nueva jersey",
-  "nuevo mexico",
-  "nueva york",
-  "carolina del norte",
-  "dakota del norte",
-  "ohio",
-  "oklahoma",
-  "oregon",
-  "pensilvania",
-  "rhode island",
-  "carolina del sur",
-  "dakota del sur",
-  "tennessee",
-  "texas",
-  "utah",
-  "vermont",
-  "virginia",
-  "washington",
-  "virginia occidental",
-  "wisconsin",
-  "wyoming"
-];
+  static const List<String> statesUS = [
+    "alabama",
+    "alaska",
+    "arizona",
+    "arkansas",
+    "california",
+    "colorado",
+    "connecticut",
+    "delaware",
+    "florida",
+    "georgia",
+    "hawai",
+    "idaho",
+    "illinois",
+    "indiana",
+    "iowa",
+    "kansas",
+    "kentucky",
+    "luisiana",
+    "maine",
+    "maryland",
+    "massachusetts",
+    "michigan",
+    "minnesota",
+    "misisipi",
+    "misuri",
+    "montana",
+    "nebraska",
+    "nevada",
+    "nuevo hampshire",
+    "nueva jersey",
+    "nuevo mexico",
+    "nueva york",
+    "carolina del norte",
+    "dakota del norte",
+    "ohio",
+    "oklahoma",
+    "oregon",
+    "pensilvania",
+    "rhode island",
+    "carolina del sur",
+    "dakota del sur",
+    "tennessee",
+    "texas",
+    "utah",
+    "vermont",
+    "virginia",
+    "washington",
+    "virginia occidental",
+    "wisconsin",
+    "wyoming",
+  ];
   static const String countryField = "country";
   static const String stateField = "state";
   static const String selectionScreenRoute = "/selectionscreen";
@@ -396,6 +402,7 @@ static const List<String> statesUS = [
       "/usercanworkcountrystatescreen";
   static const String countryStateScreenRoute = "/countrystatescreen";
   static const String loginOptionsScreenRoute = "/loginoptionsscreen";
+  static const String whatYouOfferRoute = '/what-you-offer';
   static const String registerOptionsArtistRoute = "/registeroptionsartist";
   static const String registerOptionsContractorRoute =
       "/registeroptionscontractor";
@@ -431,7 +438,8 @@ static const List<String> statesUS = [
   static const String finalConfirmationRoute = "/finalconfirmation";
   static const String searchFunScreenRoute = "/searchfunscreen";
   static const String resetPasswordRoute = "/resetpassword";
-  static const String recentlyViewedScreenRoute = "/recentlyviewedscreen";
+  static const String recentlyViewedScreenRoutes = "/recentlyviewedscreens";
+
   static const String imagePreviewScreenRoute = "/imagepreviewscreen";
   static const String welcomeScreenRoute = "/welcomescreen";
   static const String loadingScreenRoute = "/loadingscreen";
@@ -439,6 +447,7 @@ static const List<String> statesUS = [
   static const String myAccountScreenRoute = "/myaccountscreen";
   static const String settingsScreenRoute = "/settingsscreen";
   static const String usernameScreen = "/usernamescreen";
+  static const String servicePreviewScreen = "/servicePreviewScreen";
   static const String information = "Información";
   static const String from = "De";
   static const String lastTime = "Última vez";
@@ -539,7 +548,7 @@ static const List<String> statesUS = [
       "TopDropdown - Precio mínimo cambiado:";
   static const String maxPriceChangedLog =
       "TopDropdown - Precio máximo cambiado:";
-
+  static const String servicesSelectionWS = 'servicesSelectionWS';
   static const String worksSelectionWS = 'worksSelectionWS';
   static const String availabilitySelectionWS = 'availabilitySelectionWS';
   static const String informationSelectionWS = 'informationSelectionWS';
@@ -548,6 +557,7 @@ static const List<String> statesUS = [
   static const String passwordChangedSuccessfully =
       "Contraseña cambiada exitosamente.";
   static const String noReviewsYet = "Aún no tienes reseñas";
+  static const String noReviewsYetWS = "Aún no hay reseñas";
   static const String averageScore = "Puntuación promedio";
   static const String review = "reseña";
   static const String reviews = "reseñas";
@@ -654,7 +664,7 @@ static const List<String> statesUS = [
   static const String stateAndCountryQuestion = "¿De qué país y estado es?";
   static const String selectState = "Selecciona un estado";
   static const String selectCountry = "Selecciona un país";
-  static const String appName = "Live Music";
+  static const String appName = "My Events";
   static const String logIn = "Iniciar sesión";
   static const String mainColorGray = "mainColorGray";
 
@@ -740,9 +750,11 @@ static const List<String> statesUS = [
   static const String whereCanWorkQuestion = "¿En qué países puede trabajar?";
   static const String whereCanWorkStatesQuestion =
       "¿En qué estados puede trabajar?";
-        static const String updateRestrictionMessage = "No puedes actualizar esta información más de una vez cada 24 horas. Por favor espera antes de hacer nuevos cambios.";
-  
-  static const String errorSavingData = "Ocurrió un error al guardar los datos. Por favor intenta nuevamente.";
+  static const String updateRestrictionMessage =
+      "No puedes actualizar esta información más de una vez cada 24 horas. Por favor espera antes de hacer nuevos cambios.";
+  static const themeSettingsRoute = '/theme-settings';
+  static const String errorSavingData =
+      "Ocurrió un error al guardar los datos. Por favor intenta nuevamente.";
   static const String countries = "countries";
   static const String states = "states";
   static const String selectCountries = "Selecciona países";
@@ -766,7 +778,7 @@ static const List<String> statesUS = [
   static const String icMusicAsset = "assets/svg/ic_music.svg";
   static const String icContractorAsset = "assets/svg/ic_contractor.svg";
 
-  static const String featuredArtists = "Artistas destacados";
+  static const String featuredArtists = "Destacados";
   static const String deleteFavoritesList = "Eliminar lista de favoritos";
   static const String confirmDeleteFavoritesList =
       "¿Deseas eliminar esta lista de favoritos?";
@@ -775,7 +787,7 @@ static const List<String> statesUS = [
 
   static const String primaryColorLight =
       "primaryColorLight"; // Add if not exists
-
+  static const String secondaryColorLight = "secondaryColorLight";
   static const String allReady = "¡Todo listo!";
   static const String welcomeTo = "Bienvenido a";
   static const likedUsersListScreen = '/likeduserslistscreen';
@@ -903,7 +915,7 @@ static const List<String> statesUS = [
   static const String editName = "Editar Nombre";
   static const String optionsSection = "Opciones";
   static const String search = "Buscar";
-  static const String filterResults = "Filtrar resultados";
+  static const String filterResults = "Filtrar servicios";
   static const String filterResultsClicked = "Filtrar resultados clickeado";
   static const String overlayClicked = "Overlay clickeado";
   static const String closingTopDropdown = "cerrando TopDropdown";
@@ -995,7 +1007,7 @@ static const List<String> statesUS = [
   static const String homeTitle = "Home";
   static const String homeIconPath = "assets/svg/ic_house.svg";
   static const String homeRoute = "/homescreen";
-
+  static const String serviceScreenRoute = "/service_screen";
   static const String searchTitle = "Search";
   static const String searchIconPath = "assets/svg/ic_search.svg";
   static const String searchRoute = "/searchscreen";
@@ -1003,14 +1015,14 @@ static const List<String> statesUS = [
   static const String favoritesTitle = "Favorites";
   static const String favoritesIconPath = "assets/svg/ic_heart.svg";
   static const String favoritesRoute = "/likedartistsgrid";
-  static const String recentlyViewedRoute = "/recentlyviewedscreen";
+
   static const String colorBlue = "blueColor";
   static const String messageTitle = "Message";
   static const String messageIconPath = "assets/svg/ic_message_menu.svg";
   static const String messageRoute = "/messagesscreen";
   static const String fileDeletedSuccessfully =
       "Archivo eliminado exitosamente";
-  static const String fileDeleteError = "Error al eliminar el archivo";
+
   static const String profileArtistTitle = "ProfileArtist";
   static const String profileArtistIconPath =
       "assets/svg/ic_user_sample_menu.svg";
@@ -1051,6 +1063,7 @@ static const List<String> statesUS = [
   static const String noSpecialty = "Sin especialidad";
   static const String couldNotOpenLink = "No se pudo abrir el enlace";
   static const String selectBusyDays = "Seleccione los días que estará ocupado";
+  static const String busyDays = "días ocupados marcados en rojo";
 
   static const String customFontFamilyBold = "CustomFontFamilyBold";
   static const String customFontFamily = "CustomFontFamily";

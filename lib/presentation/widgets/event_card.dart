@@ -15,98 +15,64 @@ import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 
 class EventCard extends StatelessWidget {
-  final String
-  text; // Texto que describe el evento (ej. boda, fiesta de 15 años, etc.)
-  final bool isSelected; // Estado de selección de la tarjeta
-  final VoidCallback
-  onClick; // Callback que se ejecuta al hacer clic en la tarjeta
+  final String text;
+  final String? iconPath;
+  final bool isSelected;
+  final VoidCallback onClick;
 
-  // Constructor para inicializar las propiedades del widget
-  EventCard({
+  const EventCard({
     required this.text,
+    required this.iconPath,
     required this.isSelected,
     required this.onClick,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtiene la paleta de colores según el contexto del tema
-    String? iconPath; // Variable que almacenará el camino del ícono del evento
-
-    // Asigna el ícono correspondiente según el tipo de evento
-    switch (text) {
-      case AppStrings.wedding:
-        iconPath = AppStrings.weddingIcon; // Ícono para bodas
-        break;
-      case AppStrings.sweetFifteen:
-        iconPath = AppStrings.sweetFifteenIcon; // Ícono para fiestas de 15 años
-        break;
-      case AppStrings.casualParty:
-        iconPath = AppStrings.casualPartyIcon; // Ícono para fiestas casuales
-        break;
-      case AppStrings.publicEvent:
-        iconPath = AppStrings.publicEventIcon; // Ícono para eventos públicos
-        break;
-    }
+    final colorScheme = ColorPalette.getPalette(context);
 
     return GestureDetector(
-      onTap: onClick, // Ejecuta el callback cuando se hace clic en la tarjeta
+      onTap: onClick,
       child: Card(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            12,
-          ), // Bordes redondeados para la tarjeta
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(
             color:
                 isSelected
-                    ? colorScheme[AppStrings.secondaryColor] ??
-                        Colors
-                            .blue // Color de borde si está seleccionado
-                    : Colors
-                        .grey[300]!, // Color de borde si no está seleccionado
+                    ? colorScheme[AppStrings.secondaryColor] ?? Colors.blue
+                    : Colors.grey[300]!,
             width: 1,
           ),
         ),
         color:
             isSelected
-                ? colorScheme[AppStrings.essentialColor] ??
-                    Colors
-                        .red // Color de fondo si está seleccionado
-                : colorScheme[AppStrings.primaryColorLight] ??
-                    Colors.white, // Color de fondo si no está seleccionado
+                ? colorScheme[AppStrings.essentialColor] ?? Colors.red
+                : colorScheme[AppStrings.primaryColorLight] ?? Colors.white,
         child: SizedBox(
-          width: 140, // Ancho fijo para la tarjeta
-          height: 140, // Alto fijo para la tarjeta
+          width: 140,
+          height: 140,
           child: Padding(
-            padding: const EdgeInsets.all(12), // Espaciado interno
+            padding: const EdgeInsets.all(12),
             child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Centra el contenido verticalmente
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (iconPath != null)
                   SvgPicture.asset(
-                    iconPath, // Muestra el ícono según el tipo de evento
-                    width: 60, // Ancho del ícono
-                    height: 60, // Alto del ícono
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color del ícono según el esquema de colores
+                    iconPath!,
+                    width: 60,
+                    height: 60,
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
-                const SizedBox(
-                  height: 8,
-                ), // Espaciado entre el ícono y el texto
+                const SizedBox(height: 8),
                 Text(
-                  text, // Muestra el texto del evento
+                  text,
                   style: TextStyle(
-                    fontSize: 16, // Tamaño de fuente
-                    fontWeight: FontWeight.w500, // Peso de la fuente
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color del texto
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme[AppStrings.secondaryColor],
                   ),
-                  textAlign: TextAlign.center, // Centra el texto
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

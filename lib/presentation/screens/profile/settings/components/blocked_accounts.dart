@@ -132,7 +132,7 @@ class _BlockedAccountsState extends State<BlockedAccounts> {
 
     return Scaffold(
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist: isArtist,
+        userType: userType,
         goRouter: widget.goRouter,
       ),
       body: Container(
@@ -230,12 +230,11 @@ class _BlockedAccountsState extends State<BlockedAccounts> {
                     child: Text(AppStrings.cancel),
                   ),
                   TextButton(
-                    onPressed:
-                        () {
-                          if (currentUserId != null) {
-                            unblockUser(currentUserId, userToUnblock!.userId);
-                          }
-                        },
+                    onPressed: () {
+                      if (currentUserId != null) {
+                        unblockUser(currentUserId, userToUnblock!.userId);
+                      }
+                    },
                     style: TextButton.styleFrom(
                       foregroundColor: colorScheme[AppStrings.essentialColor],
                     ),

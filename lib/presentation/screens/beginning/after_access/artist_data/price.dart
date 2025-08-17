@@ -21,167 +21,1069 @@
 /// - Muestra `SnackBar` con mensajes de error si algo falla.
 /// -----------------------------------------------------------------------------
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:live_music/data/provider_logics/user/user_provider.dart';
+import 'package:live_music/data/repositories/render_http_client/images/upload_service_services.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-// Pantalla donde el usuario introduce su tarifa por hora.
-// La tarifa se guarda en Firestore y luego se navega a la siguiente pantalla.
-class PriceScreen extends StatelessWidget {
+class PriceScreen extends StatefulWidget {
   final GoRouter goRouter;
+  final UserProvider userProvider;
 
-  // Constructor que recibe el router para navegación
-  const PriceScreen({Key? key, required this.goRouter}) : super(key: key);
+  const PriceScreen({
+    super.key,
+    required this.goRouter,
+    required this.userProvider,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    // Paleta de colores personalizada
-    final colorScheme = ColorPalette.getPalette(context);
+  State<PriceScreen> createState() => _PriceScreenState();
+}
 
-    // Instancias de Firebase para acceder a Firestore y Auth
-    final db = FirebaseFirestore.instance;
-    final auth = FirebaseAuth.instance;
+class _PriceScreenState extends State<PriceScreen> {
+  Map<String, dynamic>? servicio;
+  bool _isLoading = true;
+  bool _validPackages = false;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>>?
+  _servicePackagesStream;
+  String? _userName;
+  String? _userProfileImageUrl;
+  String? _userType;
 
-    // Variable local para guardar el valor ingresado
-    String tarifa = '';
+  @override
+  void initState() {
+    super.initState();
+    _cargarServicioExistente();
+    _initServicePackagesStream();
+    _loadUserData();
+  }
 
-    return Scaffold(
-      backgroundColor: colorScheme[AppStrings.primaryColor],
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Título
-              Text(
-                AppStrings.enterHourlyRate,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme[AppStrings.secondaryColor],
-                ),
-                textAlign: TextAlign.center,
+  void _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      if (userDoc.exists) {
+        setState(() {
+          _userName = userDoc.data()?['name'];
+          _userProfileImageUrl = userDoc.data()?['profileImageUrl'];
+          _userType = userDoc.data()?['userType'];
+        });
+      }
+    }
+  }
+
+  String _getRecommendationMessage() {
+    switch (_userType) {
+      case 'artist':
+        return 'Se recomienda colocar el nombre de su grupo';
+      case 'bakery':
+      case 'decoration':
+        return 'Se recomienda colocar el nombre de su negocio';
+      case 'place':
+        return 'Se recomienda colocar el nombre de su local';
+      default:
+        return 'Se recomienda colocar un nombre descriptivo para su servicio';
+    }
+  }
+
+  void _initServicePackagesStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _servicePackagesStream =
+          FirebaseFirestore.instance
+              .collection('services')
+              .doc(user.uid)
+              .collection('service')
+              .snapshots();
+    } else {
+      _servicePackagesStream = null;
+    }
+  }
+
+  Future<void> _refreshServiceData() async {
+    setState(() => _isLoading = true);
+    await _cargarServicioExistente();
+  }
+
+  Future<void> _cargarServicioExistente() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final docSnap =
+          await FirebaseFirestore.instance
+              .collection('services')
+              .doc(user.uid)
+              .get();
+
+      if (docSnap.exists) {
+        final data = docSnap.data();
+        if (data != null && data.containsKey('service')) {
+          final serviceData = data['service'] as Map<String, dynamic>;
+          serviceData['imageUrls'] = [serviceData['imageUrl']];
+          serviceData['serviceId'] = 'service';
+
+          setState(() {
+            servicio = serviceData;
+            _isLoading = false;
+          });
+        } else {
+          setState(() => _isLoading = false);
+        }
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al cargar servicio: $e')));
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<File?> _cropImage(File imageFile) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: imageFile.path,
+      // Removed cropStyle parameter since it isn't defined.
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Recortar imagen',
+          toolbarColor: Colors.deepOrange,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+        ),
+        IOSUiSettings(title: 'Recortar imagen'),
+      ],
+    );
+
+    if (croppedFile != null) {
+      return File(croppedFile.path);
+    }
+    return null;
+  }
+
+  Future<void> _eliminarServicio() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || servicio == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('services')
+          .doc(user.uid)
+          .delete();
+
+      final subcollections =
+          await FirebaseFirestore.instance
+              .collection('services')
+              .doc(user.uid)
+              .collection('service')
+              .get();
+
+      for (final doc in subcollections.docs) {
+        await doc.reference.delete();
+      }
+
+      if (mounted) {
+        setState(() {
+          servicio = null;
+          _validPackages = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al eliminar servicio: $e')),
+        );
+      }
+    }
+  }
+
+  void _mostrarDialogoEliminar() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Eliminar servicio'),
+            content: const Text(
+              '¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
               ),
-              const SizedBox(height: 32),
-
-              // Campo de texto decorado para ingresar la tarifa
-              Container(
-                decoration: BoxDecoration(
-                  color: colorScheme[AppStrings.primaryColor],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme[AppStrings.secondaryColor]!.withOpacity(
-                      0.5,
-                    ),
-                    width: 1.5,
-                  ),
-                ),
-                child: TextField(
-                  // Se actualiza tarifa solo si son caracteres numéricos
-                  onChanged: (newValue) {
-                    if (newValue
-                        .split('')
-                        .every((char) => RegExp(r'[0-9]').hasMatch(char))) {
-                      tarifa = newValue;
-                    }
-                  },
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    prefixText: "\$",
-                    prefixStyle: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme[AppStrings.secondaryColor],
-                    ),
-                    hintText: AppStrings.rateExample,
-                    hintStyle: TextStyle(
-                      color: colorScheme[AppStrings.secondaryColor]
-                          ?.withOpacity(0.7),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 18,
-                    ),
-                  ),
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: colorScheme[AppStrings.secondaryColor],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Botón para continuar
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final currentUserId = auth.currentUser?.uid;
-
-                    // Validación: si el usuario está logueado y la tarifa no está vacía
-                    if (currentUserId != null && tarifa.isNotEmpty) {
-                      final priceInt = int.tryParse(tarifa) ?? 0;
-
-                      // Se actualiza el documento del usuario con la tarifa ingresada
-                      db
-                          .collection("users")
-                          .doc(currentUserId)
-                          .update({"price": priceInt})
-                          .then((_) {
-                            // Redirección a la siguiente pantalla
-                            goRouter.go(
-                              AppStrings.userCanWorkCountryStateScreenRoute,
-                            );
-                          })
-                          .catchError((e) {
-                            // Si hay error al guardar, muestra SnackBar
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "${AppStrings.errorSavingRate}: $e",
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          });
-                    } else {
-                      // Si los datos no son válidos, muestra mensaje de error
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(AppStrings.enterValidRate),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme[AppStrings.essentialColor],
-                    foregroundColor: colorScheme[AppStrings.primaryColor],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 4,
-                  ),
-                  child: Text(
-                    AppStrings.myContinue,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme[AppStrings.primaryColor],
-                    ),
-                  ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _eliminarServicio();
+                },
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.red),
                 ),
               ),
             ],
           ),
+    );
+  }
+
+  void _mostrarDialogoEditarServicio() {
+    File? serviceImageFile;
+    String nombreServicio = servicio?['name'] ?? '';
+    String? currentImageUrl = servicio?['imageUrls']?[0];
+    bool isUploading = false;
+    final imagePicker = ImagePicker();
+    final TextEditingController nombreServicioController =
+        TextEditingController(text: nombreServicio);
+
+    showDialog(
+      context: context,
+      barrierDismissible: !isUploading,
+      builder: (BuildContext context) {
+        final colorScheme = ColorPalette.getPalette(context);
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            nombreServicioController
+                .value = nombreServicioController.value.copyWith(
+              text: nombreServicio,
+              selection: TextSelection.collapsed(offset: nombreServicio.length),
+            );
+
+            final bool hasChanges =
+                serviceImageFile != null ||
+                (nombreServicio != servicio?['name'] &&
+                    nombreServicio.length >= 8);
+
+            Future<void> pickImage() async {
+              final pickedFile = await imagePicker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 85,
+              );
+              if (pickedFile != null) {
+                final croppedFile = await _cropImage(File(pickedFile.path));
+                if (croppedFile != null) {
+                  setDialogState(() => serviceImageFile = croppedFile);
+                }
+              }
+            }
+
+            Future<void> handleSave() async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) return;
+
+              setDialogState(() => isUploading = true);
+
+              String? imageUrl = currentImageUrl;
+              if (serviceImageFile != null) {
+                final uploadResponse = await RetrofitClientServices()
+                    .apiServiceServices
+                    .uploadServiceImage(serviceImageFile!, user.uid);
+                if (uploadResponse.url == null) {
+                  final errorMessage =
+                      uploadResponse.error ?? "Error al subir la imagen.";
+                  final errorDetails =
+                      uploadResponse.details != null
+                          ? '\n${uploadResponse.details}'
+                          : '';
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$errorMessage$errorDetails'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  setDialogState(() => isUploading = false);
+                  return;
+                }
+                imageUrl = uploadResponse.url!;
+              }
+
+              try {
+                await FirebaseFirestore.instance
+                    .collection('services')
+                    .doc(user.uid)
+                    .update({
+                      'service': {'name': nombreServicio, 'imageUrl': imageUrl},
+                    });
+
+                if (mounted) {
+                  await _refreshServiceData();
+                  Navigator.of(context).pop();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al actualizar servicio: $e')),
+                  );
+                }
+              }
+
+              if (mounted) setDialogState(() => isUploading = false);
+            }
+
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              backgroundColor: colorScheme[AppStrings.primaryColorLight],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: isUploading ? null : pickImage,
+                      child: Container(
+                        width: double.infinity,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: colorScheme[AppStrings.primaryColorLight],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme[AppStrings.secondaryColor]!
+                                .withOpacity(0.3),
+                          ),
+                        ),
+                        child:
+                            serviceImageFile != null
+                                ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: Image.file(
+                                    serviceImageFile!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                                : currentImageUrl != null
+                                ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: Image.network(
+                                    currentImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (_, __, ___) => Icon(
+                                          Icons.broken_image_rounded,
+                                          size: 60,
+                                          color:
+                                              colorScheme[AppStrings
+                                                  .primaryColor],
+                                        ),
+                                  ),
+                                )
+                                : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 60,
+                                      color:
+                                          colorScheme[AppStrings.primaryColor],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Añadir imagen del servicio',
+                                      style: TextStyle(
+                                        color:
+                                            colorScheme[AppStrings
+                                                .primaryColor],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Nombre del servicio',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme[AppStrings.secondaryColor],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: nombreServicioController,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          nombreServicio = value;
+                        });
+                      },
+                      maxLength: 50,
+                      decoration: InputDecoration(
+                        hintText: 'Mínimo 8 caracteres',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: colorScheme[AppStrings.secondaryColor]!,
+                          ),
+                        ),
+                      ),
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed:
+                            hasChanges && !isUploading ? handleSave : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              colorScheme[AppStrings.essentialColor],
+                          disabledBackgroundColor: colorScheme[AppStrings
+                                  .essentialColor]
+                              ?.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child:
+                            isUploading
+                                ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text(
+                                  'Guardar cambios',
+                                  style: TextStyle(
+                                    color: colorScheme[AppStrings.primaryColor],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _mostrarDialogoCrearServicio() {
+    File? serviceImageFile;
+    String nombreServicio = _userName ?? '';
+    bool isUploading = false;
+    final imagePicker = ImagePicker();
+    final TextEditingController nombreServicioController =
+        TextEditingController(text: _userName);
+
+    showDialog(
+      context: context,
+      barrierDismissible: !isUploading,
+      builder: (BuildContext context) {
+        final colorScheme = ColorPalette.getPalette(context);
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final bool canContinue =
+                (serviceImageFile != null || _userProfileImageUrl != null) &&
+                nombreServicio.length >= 8;
+
+            Future<void> pickImage() async {
+              final pickedFile = await imagePicker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 85,
+              );
+              if (pickedFile != null) {
+                final croppedFile = await _cropImage(File(pickedFile.path));
+                if (croppedFile != null) {
+                  setDialogState(() => serviceImageFile = croppedFile);
+                }
+              }
+            }
+
+            Future<void> handleContinue() async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null || !canContinue) return;
+
+              setDialogState(() => isUploading = true);
+
+              String? imageUrl;
+
+              if (serviceImageFile == null && _userProfileImageUrl != null) {
+                imageUrl = _userProfileImageUrl;
+              } else if (serviceImageFile != null) {
+                final uploadResponse = await RetrofitClientServices()
+                    .apiServiceServices
+                    .uploadServiceImage(serviceImageFile!, user.uid);
+
+                if (uploadResponse.url != null) {
+                  imageUrl = uploadResponse.url!;
+                } else {
+                  final errorMessage =
+                      uploadResponse.error ?? "Error al subir la imagen.";
+                  final errorDetails =
+                      uploadResponse.details != null
+                          ? '\n${uploadResponse.details}'
+                          : '';
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$errorMessage$errorDetails'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  setDialogState(() => isUploading = false);
+                  return;
+                }
+              }
+
+              if (imageUrl == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Debes seleccionar una imagen para el servicio',
+                      ),
+                    ),
+                  );
+                }
+                setDialogState(() => isUploading = false);
+                return;
+              }
+
+              final now = DateTime.now();
+              final serviceMainData = {
+                'name': nombreServicio,
+                'imageUrl': imageUrl,
+              };
+
+              final serviceCollectionData = {
+                'default': 'default',
+                'imageList': [],
+                'price': 0,
+                'information': '',
+                'createdAt': now.toIso8601String(),
+              };
+
+              try {
+                await FirebaseFirestore.instance
+                    .collection('services')
+                    .doc(user.uid)
+                    .set({'service': serviceMainData}, SetOptions(merge: true));
+                await FirebaseFirestore.instance
+                    .collection('services')
+                    .doc(user.uid)
+                    .collection('service')
+                    .doc('service0')
+                    .set(serviceCollectionData);
+
+                if (mounted) {
+                  await _refreshServiceData();
+                  Navigator.of(context).pop();
+                  widget.goRouter.push('/service_screen');
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar servicio: $e')),
+                  );
+                }
+              }
+
+              if (mounted) setDialogState(() => isUploading = false);
+            }
+
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              backgroundColor: colorScheme[AppStrings.primaryColorLight],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: isUploading ? null : pickImage,
+                      child: Container(
+                        width: double.infinity,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: colorScheme[AppStrings.primaryColorLight]
+                              ?.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme[AppStrings.secondaryColor]!
+                                .withOpacity(0.3),
+                          ),
+                        ),
+                        child:
+                            serviceImageFile != null
+                                ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: Image.file(
+                                    serviceImageFile!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                                : _userProfileImageUrl != null
+                                ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: Image.network(
+                                    _userProfileImageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (_, __, ___) => Icon(
+                                          Icons.broken_image_rounded,
+                                          size: 60,
+                                          color:
+                                              colorScheme[AppStrings
+                                                  .primaryColor],
+                                        ),
+                                    loadingBuilder:
+                                        (_, child, progress) =>
+                                            progress == null
+                                                ? child
+                                                : const SizedBox(
+                                                  width: 60,
+                                                  height: 60,
+                                                  child: Center(
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  ),
+                                                ),
+                                  ),
+                                )
+                                : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 60,
+                                      color:
+                                          colorScheme[AppStrings.primaryColor],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Añadir imagen del servicio',
+                                      style: TextStyle(
+                                        color:
+                                            colorScheme[AppStrings
+                                                .primaryColor],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Nombre del servicio',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme[AppStrings.secondaryColor],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: nombreServicioController,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          nombreServicio = value;
+                        });
+                      },
+                      maxLength: 50,
+                      decoration: InputDecoration(
+                        hintText: 'Mínimo 8 caracteres',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: colorScheme[AppStrings.secondaryColor]!,
+                          ),
+                        ),
+                      ),
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                    ),
+                    if (_userName != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          'Sugerencia: Usando tu nombre de perfil ($_userName)',
+                          style: TextStyle(
+                            color: colorScheme[AppStrings.secondaryColor]!
+                                .withOpacity(0.6),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      _getRecommendationMessage(),
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor]!
+                            .withOpacity(0.6),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed:
+                            canContinue && !isUploading ? handleContinue : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              colorScheme[AppStrings.essentialColor],
+                          disabledBackgroundColor: colorScheme[AppStrings
+                                  .essentialColor]
+                              ?.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child:
+                            isUploading
+                                ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text(
+                                  'Continuar',
+                                  style: TextStyle(
+                                    color: colorScheme[AppStrings.primaryColor],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _checkValidPackages(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    bool allValid = true;
+    for (final doc in docs) {
+      final data = doc.data();
+      if ((data['price'] ?? 0) <= 0 ||
+          (data['imageList'] as List?)?.isEmpty != false ||
+          (data['information'] as String?)?.isEmpty != false) {
+        allValid = false;
+        break;
+      }
+    }
+    if (_validPackages != allValid) {
+      setState(() {
+        _validPackages = allValid;
+      });
+    }
+  }
+
+  Future<void> _createServiceRecord() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'createdService': FieldValue.serverTimestamp()},
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al crear registro de servicio: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+
+    return Scaffold(
+      backgroundColor: colorScheme[AppStrings.primaryColor],
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              servicio == null ? 'Crea un nuevo servicio' : 'Servicios',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: colorScheme[AppStrings.secondaryColor],
+              ),
+            ),
+            if (servicio == null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _getRecommendationMessage(),
+                style: TextStyle(
+                  color: colorScheme[AppStrings.secondaryColor]!.withOpacity(
+                    0.7,
+                  ),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Expanded(
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : servicio == null
+                      ? Center(
+                        child: GestureDetector(
+                          onTap: _mostrarDialogoCrearServicio,
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxWidth: 500),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme[AppStrings.primaryColorLight]
+                                  ?.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: colorScheme[AppStrings.secondaryColor]!
+                                    .withOpacity(0.2),
+                              ),
+                            ),
+                            height: 90,
+                            child: Center(
+                              child: Icon(
+                                Icons.add,
+                                color: colorScheme[AppStrings.secondaryColor],
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: _servicePackagesStream,
+                        builder: (context, snapshot) {
+                          final docs = snapshot.data?.docs ?? [];
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _checkValidPackages(docs);
+                          });
+                          return ListView(
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colorScheme[AppStrings
+                                          .primaryColorLight]
+                                      ?.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colorScheme[AppStrings
+                                            .secondaryColor]!
+                                        .withOpacity(0.2),
+                                  ),
+                                ),
+                                child: Stack(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        final user =
+                                            FirebaseAuth.instance.currentUser;
+                                        if (user != null) {
+                                          widget.userProvider.loadServiceData(
+                                            user.uid,
+                                            'service',
+                                          );
+                                          widget.goRouter.push(
+                                            '/service_screen',
+                                          );
+                                        }
+                                      },
+                                      child: Row(
+                                        children: [
+                                          if (servicio!['imageUrls'].isNotEmpty)
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: Image.network(
+                                                servicio!['imageUrls'][0],
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (_, __, ___) => const Icon(
+                                                      Icons
+                                                          .broken_image_rounded,
+                                                    ),
+                                                loadingBuilder:
+                                                    (_, child, progress) =>
+                                                        progress == null
+                                                            ? child
+                                                            : const SizedBox(
+                                                              width: 60,
+                                                              height: 60,
+                                                              child: Center(
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                      strokeWidth:
+                                                                          2,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                              ),
+                                            ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Text(
+                                              servicio!['name'] ?? 'Servicio',
+                                              style: TextStyle(
+                                                color:
+                                                    colorScheme[AppStrings
+                                                        .secondaryColor],
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              size: 20,
+                                            ),
+                                            onPressed:
+                                                _mostrarDialogoEditarServicio,
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              size: 20,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: _mostrarDialogoEliminar,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed:
+                    (servicio != null && _validPackages)
+                        ? () async {
+                          await _createServiceRecord();
+                          widget.goRouter.push(
+                            AppStrings.userCanWorkCountryStateScreenRoute,
+                          );
+                        }
+                        : () {
+                          if (servicio == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Crea primero un servicio.'),
+                              ),
+                            );
+                          } else if (!_validPackages) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Completa todos los paquetes con precio, imagen e información.',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      (servicio != null && _validPackages)
+                          ? colorScheme[AppStrings.essentialColor]
+                          : Colors.grey,
+                  foregroundColor: colorScheme[AppStrings.primaryColor],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 4,
+                ),
+                child: Text(
+                  'Continuar',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme[AppStrings.primaryColor],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

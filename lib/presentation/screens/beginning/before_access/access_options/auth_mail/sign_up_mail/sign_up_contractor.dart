@@ -25,13 +25,11 @@
 import 'package:flutter/material.dart';
 import 'package:live_music/data/model/global_variables.dart';
 import 'package:live_music/data/repositories/providers_repositories/user_repository.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../../../../data/provider_logics/user/user_provider.dart';
-import '../../../../../../../data/widgets/send_verify_email.dart';
 import '../../../../../../resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
+
 // Clase principal que define la pantalla de registro de contratistas
 class RegisterContractorMailScreen extends StatefulWidget {
   @override
@@ -44,6 +42,8 @@ class _RegisterContractorMailScreenState
   bool isLoading = false;
   String errorMessage = "";
   Map<String, bool> passwordValidation = {};
+  bool _obscurePassword = true;
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -90,7 +90,6 @@ class _RegisterContractorMailScreenState
     };
   }
 
-  // Método para manejar el registro
   Future<void> _handleRegistration() async {
     final name = nameController.text.trim();
     final lastName = lastNameController.text.trim();
@@ -122,7 +121,6 @@ class _RegisterContractorMailScreenState
       final userRepository = UserRepository(sharedPreferences);
       final role = AppStrings.contractor;
 
-      // Intenta registrar el usuario
       final errorMsg = await userRepository.registerUser(
         email,
         password,
@@ -132,18 +130,17 @@ class _RegisterContractorMailScreenState
       );
 
       if (errorMsg == null) {
-        // Envía el correo de verificación y navega a la pantalla de espera
-        await sendVerificationEmail(email);
-        if (mounted) {
-          context.go(AppStrings.waitingConfirmScreenRoute);
-        }
+        if (mounted) context.go(AppStrings.waitingConfirmScreenRoute);
       } else {
         setState(() => errorMessage = errorMsg);
       }
     } catch (e) {
+      debugPrint('Error en registro: $e');
       setState(() => errorMessage = AppStrings.unexpectedError);
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -182,14 +179,14 @@ class _RegisterContractorMailScreenState
                 child: Text(
                   AppStrings.signUp,
                   style: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                    color:
+                        colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                     fontSize: titleFontSize,
                   ),
                 ),
               ),
               SizedBox(height: textFieldSpacing * 2),
 
-              // Campos del formulario
               _buildFormFields(
                 colorScheme: colorScheme,
                 borderValue: borderValue,
@@ -199,7 +196,6 @@ class _RegisterContractorMailScreenState
               ),
               SizedBox(height: textFieldSpacing * 1.5),
 
-              // Botón de registro
               _buildRegisterButton(
                 colorScheme: colorScheme,
                 buttonHeight: buttonHeight,
@@ -276,10 +272,9 @@ class _RegisterContractorMailScreenState
             contentPaddingTFHorizontal: contentPaddingTFHorizontal,
           ),
           SizedBox(height: textFieldSpacing),
-          _buildTextField(
+          _buildPasswordTextField(
             controller: passwordController,
             hintText: AppStrings.password,
-            obscureText: true,
             colorScheme: colorScheme,
             borderValue: borderValue,
             contentPaddingTFVertical: contentPaddingTFVertical,
@@ -297,32 +292,105 @@ class _RegisterContractorMailScreenState
     required double borderValue,
     required double contentPaddingTFVertical,
     required double contentPaddingTFHorizontal,
-    bool obscureText = false,
   }) {
     return TextField(
       controller: controller,
-      obscureText: obscureText,
       decoration: InputDecoration(
         hintText: hintText,
         filled: true,
         fillColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
         border: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(borderValue),
         ),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(borderValue),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+            color: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
+            width: 2.0,
           ),
           borderRadius: BorderRadius.circular(borderValue),
         ),
         contentPadding: EdgeInsets.symmetric(
           vertical: contentPaddingTFVertical,
           horizontal: contentPaddingTFHorizontal,
+        ),
+        hintStyle: TextStyle(
+          color:
+              colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
+              Colors.grey,
+        ),
+      ),
+      style: TextStyle(
+        color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildPasswordTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required Map<String, Color?> colorScheme,
+    required double borderValue,
+    required double contentPaddingTFVertical,
+    required double contentPaddingTFHorizontal,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: _obscurePassword,
+      decoration: InputDecoration(
+        hintText: hintText,
+        filled: true,
+        fillColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
+        border: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(borderValue),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(borderValue),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
+            width: 2.0,
+          ),
+          borderRadius: BorderRadius.circular(borderValue),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: contentPaddingTFVertical,
+          horizontal: contentPaddingTFHorizontal,
+        ),
+        hintStyle: TextStyle(
+          color:
+              colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
+              Colors.grey,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
         ),
       ),
       style: TextStyle(
@@ -345,16 +413,10 @@ class _RegisterContractorMailScreenState
           borderRadius: BorderRadius.circular(buttonBorderRadius),
         ),
       ),
-      child: isLoading
-          ? CircularProgressIndicator(
-              color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-            )
-          : Text(
-              AppStrings.signUp,
-              style: TextStyle(
-                color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-              ),
-            ),
+      child:
+          isLoading
+              ? CircularProgressIndicator(color: Colors.white)
+              : Text(AppStrings.signUp, style: TextStyle(color: Colors.white)),
     );
   }
 
@@ -365,27 +427,30 @@ class _RegisterContractorMailScreenState
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: passwordValidation.entries.map((entry) {
-        return Row(
-          children: [
-            Icon(
-              entry.value ? Icons.check : Icons.close,
-              color: entry.value
-                  ? colorScheme[AppStrings.correctGreen] ?? Colors.green
-                  : colorScheme[AppStrings.redColor] ?? Colors.red,
-              size: passwordHintIconSize,
-            ),
-            SizedBox(width: textFieldSpacing),
-            Text(
-              entry.key,
-              style: TextStyle(
-                color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        );
-      }).toList(),
+      children:
+          passwordValidation.entries.map((entry) {
+            return Row(
+              children: [
+                Icon(
+                  entry.value ? Icons.check : Icons.close,
+                  color:
+                      entry.value
+                          ? colorScheme[AppStrings.correctGreen] ?? Colors.green
+                          : colorScheme[AppStrings.redColor] ?? Colors.red,
+                  size: passwordHintIconSize,
+                ),
+                SizedBox(width: textFieldSpacing),
+                Text(
+                  entry.key,
+                  style: TextStyle(
+                    color:
+                        colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
     );
   }
 }

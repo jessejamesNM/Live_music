@@ -26,6 +26,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import '../../../../buttom_navigation_bar.dart';
+
 class DeleteAccount extends StatelessWidget {
   final GoRouter goRouter;
   final UserProvider userProvider;
@@ -52,7 +53,7 @@ class DeleteAccount extends StatelessWidget {
           colorScheme[AppStrings.primaryColor], // Fondo con el color primario
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: SafeArea(
         child: Padding(

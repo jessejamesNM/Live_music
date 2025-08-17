@@ -195,7 +195,6 @@ class _WorksContentStateWS extends State<WorksContentWS> {
   }
 }
 
-// Widget para mostrar una vista previa de los medios seleccionados
 class MediaPreviewer extends StatefulWidget {
   final List<String> mediaUrls;
   final int initialIndex;
@@ -212,53 +211,48 @@ class MediaPreviewer extends StatefulWidget {
 
 class _MediaPreviewerState extends State<MediaPreviewer> {
   late PageController _pageController;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: widget.initialIndex,
-    ); // Controlador de página para la vista previa
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _currentIndex);
   }
 
   @override
   void dispose() {
-    _pageController
-        .dispose(); // Limpia el controlador cuando el widget se destruya
+    _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtiene el esquema de colores
+    final colorScheme = ColorPalette.getPalette(context);
 
     return Scaffold(
-      backgroundColor:
-          colorScheme[AppStrings.primaryColor] ??
-          Colors.black, // Fondo oscuro para la vista previa
+      backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.black,
       body: Stack(
         children: [
           PageView.builder(
             controller: _pageController,
             itemCount: widget.mediaUrls.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
             itemBuilder: (context, index) {
               final url = widget.mediaUrls[index];
               if (url.toLowerCase().endsWith('.mp4')) {
-                return VideoPlayerWidget(
-                  url: url,
-                ); // Muestra el video si es un archivo de video
+                return VideoPlayerWidget(url: url);
               } else {
                 return Center(
                   child: InteractiveViewer(
                     panEnabled: true,
                     minScale: 0.8,
                     maxScale: 4.0,
-                    child: Image.network(
-                      url,
-                      fit: BoxFit.contain,
-                    ), // Muestra la imagen si no es un video
+                    child: Image.network(url, fit: BoxFit.contain),
                   ),
                 );
               }
@@ -268,18 +262,26 @@ class _MediaPreviewerState extends State<MediaPreviewer> {
             top: 40,
             right: 16,
             child: SafeArea(
-              child: IconButton(
-                icon: Icon(
-                  Icons.close,
-                  color:
-                      colorScheme[AppStrings
-                          .secondaryColor], // Icono para cerrar la vista previa
-                  size: 30,
-                ),
-                onPressed:
-                    () => Navigator.pop(
-                      context,
-                    ), // Cierra la vista previa al presionar el icono
+              child: Column(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: colorScheme[AppStrings.secondaryColor],
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_currentIndex + 1}/${widget.mediaUrls.length}',
+                    style: TextStyle(
+                      color: colorScheme[AppStrings.secondaryColor],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

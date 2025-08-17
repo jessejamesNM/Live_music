@@ -50,7 +50,7 @@ class Help extends StatelessWidget {
       // Barra de navegación inferior con configuración de navegación según tipo de usuario
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
 
       // Cuerpo principal con padding y contenido organizado en columnas

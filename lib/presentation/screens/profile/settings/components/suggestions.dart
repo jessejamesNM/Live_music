@@ -53,7 +53,7 @@ class Suggestions extends StatelessWidget {
           colorScheme[AppStrings.primaryColor], // Fondo con el color primario
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0), // Padding para la pantalla

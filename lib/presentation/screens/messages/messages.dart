@@ -11,7 +11,6 @@
 // - Asegúrate de gestionar bien los estados de conexión y bloqueo de usuarios para evitar problemas de sincronización.
 // - El código está bien modularizado, pero ten en cuenta que los streams pueden acumular datos si no se manejan adecuadamente.
 
-
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -65,17 +64,18 @@ class ConversationsScreen extends HookWidget {
     // Estados internos para seguimiento del usuario anterior
     final previousUserId = useRef<String?>(null);
 
-    // Si cambia el currentUserId, se reinicia todo
+    // Si cambia el currentUserId, se reinicia todo — POST FRAME
     useEffect(() {
       if (previousUserId.value != currentUserId) {
-        messagesProvider.cancelAllActiveListeners();
-        messagesProvider.clearAllConversations();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          messagesProvider.cancelAllActiveListeners();
 
-        if (currentUserId != null) {
-          messagesProvider.setupConversationListener(currentUserId);
-        }
+          if (currentUserId != null) {
+            messagesProvider.setupConversationListener(currentUserId);
+          }
 
-        previousUserId.value = currentUserId;
+          previousUserId.value = currentUserId;
+        });
       }
       return null;
     }, [currentUserId]);
@@ -164,7 +164,7 @@ class ConversationsScreen extends HookWidget {
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist: isArtist,
+        userType: userType,
         goRouter: goRouter,
       ),
       body: SafeArea(
@@ -448,8 +448,3 @@ class _ConversationItemState extends State<ConversationItem> {
     );
   }
 }
-
-
-
-
-

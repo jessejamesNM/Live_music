@@ -35,57 +35,11 @@ import '../../../resources/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
-class VerificationSuccessScreen extends StatefulWidget {
-  // Se puede pasar un deep link como parámetro (por ejemplo, desde un correo)
-  final Uri? deepLinkUri;
-
-  const VerificationSuccessScreen({Key? key, this.deepLinkUri})
-    : super(key: key);
-
-  @override
-  _VerificationSuccessScreenState createState() =>
-      _VerificationSuccessScreenState();
-}
-
-class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Se obtiene la URI ya sea desde el deep link o desde la ruta actual
-    final uri = widget.deepLinkUri ?? _getUriFromRoute();
-    if (uri != null) {
-      // Inicializa el usuario con la URI obtenida (asincrónicamente)
-      Future.microtask(
-        () => Provider.of<UserProvider>(context, listen: false).initialize(uri),
-      );
-    }
-  }
-
-  // Intenta recuperar la URI desde el nombre de la ruta actual
-  Uri? _getUriFromRoute() {
-    try {
-      final route = ModalRoute.of(context)?.settings.name;
-      return route != null ? Uri.tryParse(route) : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Devuelve directamente el contenido visual sin más lógica
-    return const VerificationSuccessContent();
-  }
-}
-
-// Contenido visual y funcional de la pantalla de verificación exitosa
 class VerificationSuccessContent extends StatelessWidget {
   const VerificationSuccessContent({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Se accede al UserProvider y colores personalizados
     final userProvider = Provider.of<UserProvider>(context);
     final theme = Theme.of(context);
     final colorScheme = ColorPalette.getPalette(context);
@@ -94,7 +48,6 @@ class VerificationSuccessContent extends StatelessWidget {
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Stack(
         children: [
-          // Fondo con gradiente del color principal
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -108,7 +61,6 @@ class VerificationSuccessContent extends StatelessWidget {
             ),
           ),
 
-          // Botón de regreso en la parte superior de la pantalla
           SafeArea(
             child: IconButton(
               icon: Icon(
@@ -119,18 +71,15 @@ class VerificationSuccessContent extends StatelessWidget {
             ),
           ),
 
-          // Contenido centrado con scroll para pantallas pequeñas
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Icono de éxito (círculo verde con check)
                   const Icon(Icons.check_circle, color: Colors.green, size: 80),
                   const SizedBox(height: 24),
 
-                  // Título de éxito en la verificación
                   Text(
                     AppStrings.accountVerified,
                     style: theme.textTheme.headlineSmall?.copyWith(
@@ -140,7 +89,6 @@ class VerificationSuccessContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Texto indicando que ahora puede continuar el registro
                   Text(
                     AppStrings.canContinueRegistration,
                     textAlign: TextAlign.center,
@@ -152,7 +100,6 @@ class VerificationSuccessContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // Botón para continuar con el flujo de registro
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -166,10 +113,8 @@ class VerificationSuccessContent extends StatelessWidget {
                       ),
                       onPressed: () async {
                         try {
-                          // Marca el campo 'isVerified' como true en Firebase Firestore
                           final currentUser = FirebaseAuth.instance.currentUser;
                           if (currentUser != null) {
-                            // Obtiene el tipo de usuario (userType)
                             DocumentSnapshot userDoc =
                                 await FirebaseFirestore.instance
                                     .collection('users')
@@ -177,11 +122,9 @@ class VerificationSuccessContent extends StatelessWidget {
                                     .get();
 
                             if (userDoc.exists) {
-                              String userType = userDoc.get(
-                                'userType',
-                              ); // Asume que el campo se llama 'userType'
+                              String userType = userDoc.get('userType');
 
-                              // Marca el campo 'isVerified' como true en Firestore
+                              // Actualizar estado de verificación
                               await FirebaseFirestore.instance
                                   .collection('users')
                                   .doc(currentUser.uid)
@@ -189,25 +132,28 @@ class VerificationSuccessContent extends StatelessWidget {
                                     'isVerified': true,
                                   }, SetOptions(merge: true));
 
-                              // Marca también como verificado desde el provider
                               await userProvider.verifyEmail();
 
-                              // Si el widget sigue montado, navega según el tipo de usuario
                               if (context.mounted) {
-                                if (userType == 'artist') {
-                                  context.go(
-                                    AppStrings.ageTermsScreenRoute,
-                                  ); // Navega a la pantalla de artista
-                                } else if (userType == 'contractor') {
-                                  context.go(
-                                   AppStrings.ageTermsScreenRoute,
-                                  ); // Navega a la pantalla de contractor
+                                // Definir los tipos que se consideran "artistas"
+                                final isArtistType = [
+                                  'artist',
+                                  'bakery',
+                                  'place',
+                                  'decoration',
+                                  'furniture',
+                                  'entertainment',
+                                ].contains(userType);
+
+                                if (userType == 'contractor') {
+                                  context.go(AppStrings.ageTermsScreenRoute);
+                                } else if (isArtistType) {
+                                  context.go(AppStrings.groupNameScreenRoute);
                                 } else {
-                                  // Puedes manejar el caso de un userType no reconocido, si es necesario
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Tipo de usuario no válido',
+                                        'Tipo de usuario no reconocido',
                                       ),
                                       backgroundColor: Colors.orange,
                                     ),
@@ -217,7 +163,6 @@ class VerificationSuccessContent extends StatelessWidget {
                             }
                           }
                         } catch (e) {
-                          // Si hay un error, muestra un mensaje en pantalla
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(

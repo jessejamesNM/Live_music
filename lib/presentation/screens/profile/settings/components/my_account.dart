@@ -75,7 +75,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             if (userDoc.data()?.containsKey('nameModified') ?? false) {
               _lastModifiedDate =
                   (userDoc['nameModified'] as Timestamp?)?.toDate() ??
-                      DateTime(0);
+                  DateTime(0);
             } else {
               _lastModifiedDate = DateTime(0);
             }
@@ -158,7 +158,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       backgroundColor: colors[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: widget.goRouter,
-        isArtist: isArtist,
+        userType: userType,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -233,8 +233,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               if (_showSaveButton)
                 Center(
                   child: CustomElevatedButton(
-                    text: _isSaving ? AppStrings.savingChanges : AppStrings.saveChanges,
-                    onPressed: _isSaving || _userName.isEmpty ? null : _saveChanges,
+                    text:
+                        _isSaving
+                            ? AppStrings.savingChanges
+                            : AppStrings.saveChanges,
+                    onPressed:
+                        _isSaving || _userName.isEmpty ? null : _saveChanges,
                     colors: colors,
                   ),
                 ),
@@ -252,7 +256,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               SizedBox(height: screenHeight * 0.005),
               Center(
                 child: CustomElevatedButton(
-                  text: _isNameEditable ? AppStrings.cancel : AppStrings.editName,
+                  text:
+                      _isNameEditable ? AppStrings.cancel : AppStrings.editName,
                   onPressed: () {
                     setState(() {
                       _isNameEditable = !_isNameEditable;
@@ -281,7 +286,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                   children: [
                     AccountOptionButton(
                       label: AppStrings.changePassword,
-                      onTap: () => widget.goRouter.go(AppStrings.changePasswordRoute),
+                      onTap:
+                          () => widget.goRouter.go(
+                            AppStrings.changePasswordRoute,
+                          ),
                       colors: colors,
                       screenHeight: screenHeight,
                       screenWidth: screenWidth,
@@ -292,7 +300,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                     ),
                     AccountOptionButton(
                       label: AppStrings.deleteAccount,
-                      onTap: () => widget.goRouter.go(AppStrings.deleteAccountRoute),
+                      onTap:
+                          () =>
+                              widget.goRouter.go(AppStrings.deleteAccountRoute),
                       colors: colors,
                       screenHeight: screenHeight,
                       screenWidth: screenWidth,
@@ -384,9 +394,10 @@ class AccountOptionButton extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: isDestructive
-                    ? colors[AppStrings.redColor]
-                    : colors[AppStrings.secondaryColor],
+                color:
+                    isDestructive
+                        ? colors[AppStrings.redColor]
+                        : colors[AppStrings.secondaryColor],
                 fontSize: screenWidth * 0.05,
               ),
             ),

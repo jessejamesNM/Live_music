@@ -130,7 +130,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             child: Text(
                               AppStrings.continueText,
                               style: TextStyle(
-                                color: colorScheme[AppStrings.secondaryColor],
+                                color: Colors.white,
                                 fontSize: 16,
                               ),
                             ),

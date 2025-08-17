@@ -32,19 +32,26 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:live_music/data/provider_logics/beginning/beginning_provider.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import '../../../../../resources/colors.dart';
 import 'package:flutter_svg/svg.dart';
-
 import 'package:flutter_svg/flutter_svg.dart';
-
 import 'package:go_router/go_router.dart';
 
 class LoginOptionsScreen extends StatefulWidget {
   final GoRouter goRouter;
+  final FirebaseAuth auth;
+  final FirebaseFirestore firestore;
+  final BeginningProvider beginningProvider;
 
-  const LoginOptionsScreen({Key? key, required this.goRouter})
-    : super(key: key);
+  const LoginOptionsScreen({
+    Key? key,
+    required this.goRouter,
+    required this.auth,
+    required this.firestore,
+    required this.beginningProvider,
+  }) : super(key: key);
 
   @override
   _LoginOptionsScreenState createState() => _LoginOptionsScreenState();
@@ -54,6 +61,142 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
   bool isLoading = false;
   String errorMessage = "";
   bool isRegistered = false;
+
+  Future<String> _determineInitialRoute() async {
+    final currentUser = widget.auth.currentUser;
+
+    if (currentUser == null) {
+      return AppStrings.selectionScreenRoute;
+    }
+
+    final currentUserId = currentUser.uid;
+
+    try {
+      final userDoc =
+          await widget.firestore.collection('users').doc(currentUserId).get();
+      final data = userDoc.data() ?? {};
+
+      if (!userDoc.exists || (data['isRegistered'] ?? false) != true) {
+        return AppStrings.selectionScreenRoute;
+      }
+
+      if (data.containsKey('createdService')) {
+        return AppStrings.homeScreenRoute;
+      }
+
+      final isVerified = data['isVerified'] ?? false;
+      final name = data['name'] ?? '';
+      final nickname = data['nickname'] ?? '';
+      final profileImageUrl = data['profileImageUrl'] ?? '';
+      final country = data['country'] ?? '';
+      final state = data['state'] ?? '';
+      final genres = data['genres'] as List<dynamic>? ?? [];
+      final specialty = data['specialty'] ?? '';
+      final countries = data['countries'] as List<dynamic>? ?? [];
+      final states = data['states'] as List<dynamic>? ?? [];
+      final userType = data['userType'] ?? '';
+      final age = data['age'];
+      final acceptedTerms = data['acceptedTerms'];
+      final acceptedPrivacy = data['acceptedPrivacy'];
+
+      final isArtistType =
+          userType == 'artist' ||
+          userType == 'bakery' ||
+          userType == 'place' ||
+          userType == 'decoration';
+
+      if (!isVerified) {
+        return AppStrings.waitingConfirmScreenRoute;
+      }
+
+      widget.beginningProvider.setRouteToGo(AppStrings.welcomeScreenRoute);
+
+      if (!isArtistType) {
+        if (age == null || acceptedTerms != true || acceptedPrivacy != true) {
+          return AppStrings.ageTermsScreenRoute;
+        }
+        if (name.isEmpty) {
+          return AppStrings.usernameScreen;
+        }
+        if (nickname.isEmpty) {
+          return AppStrings.nicknameScreenRoute;
+        }
+      } else {
+        widget.beginningProvider.setRouteToGo(
+          AppStrings.profileImageScreenRoute,
+        );
+
+        if (age == null || acceptedTerms != true || acceptedPrivacy != true) {
+          return AppStrings.ageTermsScreenRoute;
+        }
+        if (isVerified && name.isEmpty) {
+          return AppStrings.verifyEmailRoute;
+        }
+        if (name.isEmpty) {
+          return AppStrings.groupNameScreenRoute;
+        }
+        if (nickname.isEmpty) {
+          return AppStrings.nicknameScreenRoute;
+        }
+        if (profileImageUrl.isEmpty) {
+          return AppStrings.profileImageScreenRoute;
+        }
+        if (userType == 'artist' && genres.isEmpty) {
+          return AppStrings.musicGenresScreenRoute;
+        }
+        if (specialty.isEmpty) {
+          return AppStrings.eventSpecializationScreenRoute;
+        }
+        if (countries.isEmpty || states.isEmpty) {
+          return AppStrings.userCanWorkCountryStateScreenRoute;
+        }
+        if (country.isEmpty || state.isEmpty) {
+          return AppStrings.countryStateScreenRoute;
+        }
+
+        final serviceDoc =
+            await widget.firestore
+                .collection('services')
+                .doc(currentUserId)
+                .get();
+
+        if (!serviceDoc.exists) {
+          return AppStrings.priceScreenRoute;
+        }
+
+        final serviceCollectionRef = widget.firestore
+            .collection('services')
+            .doc(currentUserId)
+            .collection('service');
+
+        for (int i = 0; i < 8; i++) {
+          final docId = 'service$i';
+          final doc = await serviceCollectionRef.doc(docId).get();
+
+          if (!doc.exists) {
+            continue;
+          }
+
+          final data = doc.data() ?? {};
+          final price = data['price'];
+          final info = data['information'];
+          final images = data['imageList'] as List<dynamic>?;
+
+          final isPriceValid = price != null && (price is num) && price > 0;
+          final isInfoValid = info != null && info.toString().trim().isNotEmpty;
+          final hasImages = images != null && images.isNotEmpty;
+
+          if (!isPriceValid || !isInfoValid || !hasImages) {
+            return AppStrings.priceScreenRoute;
+          }
+        }
+      }
+
+      return AppStrings.homeScreenRoute;
+    } catch (e) {
+      return AppStrings.selectionScreenRoute;
+    }
+  }
 
   void _signInWithGoogle() async {
     setState(() {
@@ -70,13 +213,14 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
+      UserCredential userCredential = await widget.auth.signInWithCredential(
+        credential,
+      );
       User? currentUser = userCredential.user;
 
       if (currentUser != null) {
         DocumentSnapshot userDoc =
-            await FirebaseFirestore.instance
+            await widget.firestore
                 .collection('users')
                 .doc(currentUser.uid)
                 .get();
@@ -90,15 +234,75 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
             setState(() {
               errorMessage = AppStrings.unregisteredUser;
             });
-            await FirebaseAuth.instance.signOut();
+            await widget.auth.signOut();
           } else {
-            widget.goRouter.go(AppStrings.homeScreenRoute);
+            final initialRoute = await _determineInitialRoute();
+            widget.goRouter.go(initialRoute);
           }
         } else {
           setState(() {
             errorMessage = AppStrings.unregisteredUser;
           });
-          await FirebaseAuth.instance.signOut();
+          await widget.auth.signOut();
+        }
+      } else {
+        setState(() {
+          errorMessage = AppStrings.invalidUserIdError;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "${AppStrings.loginError}: ${e.toString()}";
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = "";
+    });
+
+    try {
+      // Crear el proveedor de Apple
+      final appleProvider = AppleAuthProvider();
+      
+      // Iniciar sesión con Apple
+      final UserCredential userCredential = 
+          await widget.auth.signInWithProvider(appleProvider);
+      
+      User? currentUser = userCredential.user;
+
+      if (currentUser != null) {
+        DocumentSnapshot userDoc =
+            await widget.firestore
+                .collection('users')
+                .doc(currentUser.uid)
+                .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            isRegistered = userDoc.get('isRegistered') ?? false;
+          });
+
+          if (!isRegistered) {
+            setState(() {
+              errorMessage = AppStrings.unregisteredUser;
+            });
+            await widget.auth.signOut();
+          } else {
+            final initialRoute = await _determineInitialRoute();
+            widget.goRouter.go(initialRoute);
+          }
+        } else {
+          setState(() {
+            errorMessage = AppStrings.unregisteredUser;
+          });
+          await widget.auth.signOut();
         }
       } else {
         setState(() {
@@ -204,6 +408,11 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                     onPressed:
                         () => widget.goRouter.push(
                           AppStrings.loginMailScreenRoute,
+                          extra: {
+                            'auth': widget.auth,
+                            'firestore': widget.firestore,
+                            'beginningProvider': widget.beginningProvider,
+                          },
                         ),
                     child: SizedBox(
                       height: buttonHeight,
@@ -214,20 +423,14 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                             left: 0,
                             child: Icon(
                               Icons.mail,
-                              color:
-                                  colorScheme[AppStrings.secondaryColor] ??
-                                  Colors.black,
+                              color: Colors.white,
                               size: buttonIconSize,
                             ),
                           ),
                           Center(
                             child: Text(
                               AppStrings.continueWithMail,
-                              style: TextStyle(
-                                color:
-                                    colorScheme[AppStrings.secondaryColor] ??
-                                    Colors.black,
-                              ),
+                              style: TextStyle(color: Colors.white),
                             ),
                           ),
                         ],
@@ -284,6 +487,53 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                     ),
                   ),
                 ),
+
+                SizedBox(height: textFieldSpacing),
+
+                // Apple button (solo para iOS)
+                if (Theme.of(context).platform == TargetPlatform.iOS)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: buttonPaddingHorizontal,
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                        side: BorderSide(
+                          color:
+                              colorScheme[AppStrings.secondaryColor] ??
+                              Colors.black,
+                          width: buttonBorderWidth,
+                        ),
+                      ),
+                      onPressed: _signInWithApple,
+                      child: SizedBox(
+                        height: buttonHeight,
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Positioned(
+                              left: 0,
+                              child: Icon(
+                                Icons.apple,
+                                color: Colors.white,
+                                size: buttonIconSize,
+                              ),
+                            ),
+                            Center(
+                              child: Text(
+                                AppStrings.continueWithApple,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
 

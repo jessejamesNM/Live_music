@@ -46,7 +46,7 @@ class CategoryCard extends StatelessWidget {
         // Detecta el clic sobre la tarjeta y ejecuta el callback proporcionado.
         onTap: onClick,
         child: Container(
-          width: 110, // Ancho de la tarjeta.
+          width: 120, // Ancho de la tarjeta.
           height: 52, // Altura de la tarjeta.
           alignment: Alignment.center, // Centra el texto en la tarjeta.
           child: Text(

@@ -23,12 +23,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/data/model/global_variables.dart';
+import 'package:live_music/data/provider_logics/user/user_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../../../data/repositories/providers_repositories/user_repository.dart';
 import '../../../../../../resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 
-// Pantalla de registro para artistas usando email y contraseña
 class RegisterArtistMailScreen extends StatefulWidget {
   @override
   _RegisterArtistMailScreenState createState() =>
@@ -36,12 +37,11 @@ class RegisterArtistMailScreen extends StatefulWidget {
 }
 
 class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
-  // Estados para controlar carga, errores y validaciones de contraseña
   bool isLoading = false;
   String errorMessage = "";
   Map<String, bool> passwordValidation = {};
+  bool _obscurePassword = true;
 
-  // Controladores para los campos del formulario
   final TextEditingController nameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -50,7 +50,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
   @override
   void initState() {
     super.initState();
-    // Inicializa el estado de validación de contraseña
     passwordValidation = {
       AppStrings.passwordLengthReq: false,
       AppStrings.passwordUppercaseReq: false,
@@ -58,30 +57,25 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
       AppStrings.passwordNumberReq: false,
       AppStrings.passwordSpecialCharReq: false,
     };
-    // Escucha cambios en el campo de contraseña para actualizar validaciones
     passwordController.addListener(_updatePasswordValidation);
   }
 
   @override
   void dispose() {
-    // Remueve el listener cuando se destruye el widget
     passwordController.removeListener(_updatePasswordValidation);
     super.dispose();
   }
 
-  // Actualiza las validaciones de contraseña en tiempo real
   void _updatePasswordValidation() {
     setState(() {
       passwordValidation = isPasswordValid(passwordController.text);
     });
   }
 
-  // Verifica si un correo es válido
   bool isEmailValid(String email) {
     return emailPattern.hasMatch(email);
   }
 
-  // Verifica múltiples requisitos de una contraseña y devuelve el resultado
   Map<String, bool> isPasswordValid(String password) {
     return {
       AppStrings.passwordLengthReq: password.length >= 8,
@@ -94,32 +88,27 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     };
   }
 
-  // Maneja el proceso de registro cuando el usuario presiona el botón
   Future<void> _handleRegistration() async {
     final name = nameController.text.trim();
     final lastName = lastNameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    // Validación básica de campos vacíos
     if (name.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() => errorMessage = AppStrings.emptyFieldsError);
       return;
     }
 
-    // Validación de correo
     if (!isEmailValid(email)) {
       setState(() => errorMessage = AppStrings.invalidEmailError);
       return;
     }
 
-    // Validación de requisitos de contraseña
     if (!passwordValidation.values.every((isValid) => isValid)) {
       setState(() => errorMessage = AppStrings.passwordRequirementsError);
       return;
     }
 
-    // Muestra indicador de carga
     setState(() {
       isLoading = true;
       errorMessage = "";
@@ -128,9 +117,9 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     try {
       final sharedPreferences = await SharedPreferences.getInstance();
       final userRepository = UserRepository(sharedPreferences);
-      final role = AppStrings.artist;
 
-      // Intenta registrar el usuario
+      final role = context.read<UserProvider>().userType;
+
       final errorMsg = await userRepository.registerUser(
         email,
         password,
@@ -139,7 +128,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
         lastName,
       );
 
-      // Si no hay error, redirige al usuario a la pantalla de espera de confirmación
       if (errorMsg == null) {
         if (mounted) context.go(AppStrings.waitingConfirmScreenRoute);
       } else {
@@ -155,8 +143,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
-
-    // Constantes de diseño para mantener coherencia visual
     const double borderValue = 15.0;
     const double contentPaddingTFVertical = 6.0;
     const double contentPaddingTFHorizontal = 12.0;
@@ -176,7 +162,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Botón para volver atrás
               Padding(
                 padding: const EdgeInsets.only(top: iconPaddingTop),
                 child: IconButton(
@@ -185,7 +170,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
                   onPressed: () => context.pop(),
                 ),
               ),
-              // Título de la pantalla
               Center(
                 child: Text(
                   AppStrings.signUp,
@@ -197,8 +181,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
                 ),
               ),
               SizedBox(height: textFieldSpacing * 2),
-
-              // Campos del formulario
               _buildFormFields(
                 colorScheme: colorScheme,
                 borderValue: borderValue,
@@ -207,15 +189,11 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
                 textFieldSpacing: textFieldSpacing,
               ),
               SizedBox(height: textFieldSpacing * 1.5),
-
-              // Botón de registro
               _buildRegisterButton(
                 colorScheme: colorScheme,
                 buttonHeight: buttonHeight,
                 buttonBorderRadius: buttonBorderRadius,
               ),
-
-              // Mensaje de error si existe
               if (errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: textFieldSpacing),
@@ -226,10 +204,7 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
                     ),
                   ),
                 ),
-
               SizedBox(height: textFieldSpacing * 1.5),
-
-              // Texto y lista de requisitos de contraseña
               Text(
                 AppStrings.password,
                 style: TextStyle(
@@ -249,7 +224,6 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     );
   }
 
-  // Construye los campos del formulario
   Widget _buildFormFields({
     required Map<String, Color?> colorScheme,
     required double borderValue,
@@ -257,52 +231,47 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     required double contentPaddingTFHorizontal,
     required double textFieldSpacing,
   }) {
-    return Container(
-      width: double.infinity,
-      child: Column(
-        children: [
-          _buildTextField(
-            controller: nameController,
-            hintText: AppStrings.names,
-            colorScheme: colorScheme,
-            borderValue: borderValue,
-            contentPaddingTFVertical: contentPaddingTFVertical,
-            contentPaddingTFHorizontal: contentPaddingTFHorizontal,
-          ),
-          SizedBox(height: textFieldSpacing),
-          _buildTextField(
-            controller: lastNameController,
-            hintText: AppStrings.lastNames,
-            colorScheme: colorScheme,
-            borderValue: borderValue,
-            contentPaddingTFVertical: contentPaddingTFVertical,
-            contentPaddingTFHorizontal: contentPaddingTFHorizontal,
-          ),
-          SizedBox(height: textFieldSpacing),
-          _buildTextField(
-            controller: emailController,
-            hintText: AppStrings.email,
-            colorScheme: colorScheme,
-            borderValue: borderValue,
-            contentPaddingTFVertical: contentPaddingTFVertical,
-            contentPaddingTFHorizontal: contentPaddingTFHorizontal,
-          ),
-          SizedBox(height: textFieldSpacing),
-          _buildTextField(
-            controller: passwordController,
-            hintText: AppStrings.password,
-            obscureText: true,
-            colorScheme: colorScheme,
-            borderValue: borderValue,
-            contentPaddingTFVertical: contentPaddingTFVertical,
-            contentPaddingTFHorizontal: contentPaddingTFHorizontal,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildTextField(
+          controller: nameController,
+          hintText: AppStrings.names,
+          colorScheme: colorScheme,
+          borderValue: borderValue,
+          contentPaddingTFVertical: contentPaddingTFVertical,
+          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+        ),
+        SizedBox(height: textFieldSpacing),
+        _buildTextField(
+          controller: lastNameController,
+          hintText: AppStrings.lastNames,
+          colorScheme: colorScheme,
+          borderValue: borderValue,
+          contentPaddingTFVertical: contentPaddingTFVertical,
+          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+        ),
+        SizedBox(height: textFieldSpacing),
+        _buildTextField(
+          controller: emailController,
+          hintText: AppStrings.email,
+          colorScheme: colorScheme,
+          borderValue: borderValue,
+          contentPaddingTFVertical: contentPaddingTFVertical,
+          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+        ),
+        SizedBox(height: textFieldSpacing),
+        _buildPasswordTextField(
+          controller: passwordController,
+          hintText: AppStrings.password,
+          colorScheme: colorScheme,
+          borderValue: borderValue,
+          contentPaddingTFVertical: contentPaddingTFVertical,
+          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+        ),
+      ],
     );
   }
 
-  // Crea un TextField estilizado
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -310,32 +279,42 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     required double borderValue,
     required double contentPaddingTFVertical,
     required double contentPaddingTFHorizontal,
-    bool obscureText = false,
   }) {
     return TextField(
       controller: controller,
-      obscureText: obscureText,
       decoration: InputDecoration(
         hintText: hintText,
         filled: true,
         fillColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
         border: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(borderValue),
         ),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(borderValue),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+            color: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
+            width: 2.0,
           ),
           borderRadius: BorderRadius.circular(borderValue),
         ),
         contentPadding: EdgeInsets.symmetric(
           vertical: contentPaddingTFVertical,
           horizontal: contentPaddingTFHorizontal,
+        ),
+        hintStyle: TextStyle(
+          color:
+              colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
+              Colors.grey,
         ),
       ),
       style: TextStyle(
@@ -344,7 +323,69 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     );
   }
 
-  // Botón para iniciar el registro
+  Widget _buildPasswordTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required Map<String, Color?> colorScheme,
+    required double borderValue,
+    required double contentPaddingTFVertical,
+    required double contentPaddingTFHorizontal,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: _obscurePassword,
+      decoration: InputDecoration(
+        hintText: hintText,
+        filled: true,
+        fillColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
+        border: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(borderValue),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(borderValue),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
+            width: 2.0,
+          ),
+          borderRadius: BorderRadius.circular(borderValue),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: contentPaddingTFVertical,
+          horizontal: contentPaddingTFHorizontal,
+        ),
+        hintStyle: TextStyle(
+          color:
+              colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
+              Colors.grey,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
+      ),
+      style: TextStyle(
+        color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+      ),
+    );
+  }
+
   Widget _buildRegisterButton({
     required Map<String, Color?> colorScheme,
     required double buttonHeight,
@@ -361,19 +402,11 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
       ),
       child:
           isLoading
-              ? CircularProgressIndicator(
-                color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-              )
-              : Text(
-                AppStrings.signUp,
-                style: TextStyle(
-                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                ),
-              ),
+              ? CircularProgressIndicator(color: Colors.white)
+              : Text(AppStrings.signUp, style: TextStyle(color: Colors.white)),
     );
   }
 
-  // Muestra los requisitos de la contraseña con check/cross dinámicos
   Widget _buildPasswordRequirements({
     required Map<String, Color?> colorScheme,
     required double passwordHintIconSize,

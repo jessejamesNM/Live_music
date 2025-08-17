@@ -50,10 +50,11 @@ import '../widgets/get_conversation_reference.dart'; // Asegúrate de ajustar el
 import 'package:logging/logging.dart';
 import '../widgets/utils/pair.dart';
 import 'package:live_music/presentation/resources/strings.dart';
+
 class MessagesProvider extends ChangeNotifier {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   final User? currentUser = FirebaseAuth.instance.currentUser;
-  final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
   final conversationReference = ConversationReference();
   late MessageRepository messageRepository;
 
@@ -78,7 +79,7 @@ class MessagesProvider extends ChangeNotifier {
   // Referencias a Firebase
   final DatabaseReference db = FirebaseDatabase.instance.ref();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-
+  bool _isSyncingConversations = false;
   final Future<AppDatabase> roomDb = AppDatabase.getInstance();
   final ValueNotifier<File?> _selectedImageFile = ValueNotifier<File?>(null);
 
@@ -432,11 +433,6 @@ class MessagesProvider extends ChangeNotifier {
     _activeSubscriptions.clear();
   }
 
-  void clearAllConversations() {
-    _messages.value = []; // Limpiar la lista de mensajes/conversaciones
-    notifyListeners();
-  }
-
   Future<void> unblockUser(String currentUserId, String userIdToUnblock) async {
     final db = FirebaseFirestore.instance;
 
@@ -631,11 +627,13 @@ class MessagesProvider extends ChangeNotifier {
   }
 
   Stream<List<Conversation>> get conversations async* {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
     if (currentUserId == null) {
       yield [];
     } else {
       final db = await roomDb;
-      yield* db.conversationDao.getConversationsByCurrentUserId(currentUserId!);
+      yield* db.conversationDao.getConversationsByCurrentUserId(currentUserId);
     }
   }
 
@@ -871,30 +869,26 @@ class MessagesProvider extends ChangeNotifier {
 
     // Ahora sí, agregar o actualizar el mensaje localmente en tu aplicación
     _addOrUpdateMessage(message);
-    syncMessagesWithFirebase(currentUserId!, otherUserId);
+    syncMessagesWithFirebase(userId, otherUserId);
   }
 
   void _addOrUpdateMessage(Message message) {
-    final currentMessages =
-        (_messages.value)
-            .whereType<Message>() // solo elementos que realmente sean Message
-            .toList();
+    // Extraer solo mensajes reales
+    final currentMessages = _messages.value.whereType<Message>().toList();
 
-    // Buscar el índice del mensaje existente
-    final existingMessageIndex = currentMessages.indexWhere(
-      (element) => element.id == message.id,
-    );
+    // Buscar si el mensaje ya existe
+    final existingIndex = currentMessages.indexWhere((m) => m.id == message.id);
 
-    if (existingMessageIndex != -1) {
-      // Actualizar el mensaje existente
-      currentMessages[existingMessageIndex] = message;
+    if (existingIndex != -1) {
+      // Actualizar mensaje existente
+      currentMessages[existingIndex] = message;
     } else {
-      // Añadir el nuevo mensaje al INICIO de la lista
-      currentMessages.insert(0, message);
+      // Agregar nuevo mensaje
+      currentMessages.add(message);
     }
 
-    // Actualizar la lista de mensajes sin ordenar (se mantienen en orden de inserción)
-    _messages.value = currentMessages;
+    // Regenerar lista con separadores
+    _messages.value = createOrderedListWithDaySeparators(currentMessages);
   }
 
   void cancelSpecificListener(String userId, String otherUserId) {
@@ -993,7 +987,10 @@ class MessagesProvider extends ChangeNotifier {
   }
 
   Future<void> syncConversationsFromFirebase(String userId) async {
+    if (_isSyncingConversations) return; // Evitar llamada concurrente
+    _isSyncingConversations = true;
     try {
+      print("userId syncconv: $userId");
       final nickname = await getNickname(userId);
       final DatabaseReference rootRef = FirebaseDatabase.instance.ref();
 
@@ -1003,49 +1000,57 @@ class MessagesProvider extends ChangeNotifier {
       if (snapshot.exists) {
         for (final DataSnapshot child in snapshot.children) {
           final String? conversationName = child.key;
+          if (conversationName == null || !conversationName.contains(nickname))
+            continue;
 
-          // Solo procesar si el nombre contiene el nickname
-          if (conversationName != null && conversationName.contains(nickname)) {
-            ConversationTempData conversationData = await processCollection(
-              child,
-              userId,
-            );
+          ConversationTempData conversationData = await processCollection(
+            child,
+            userId,
+          );
 
-            final userInfo = await getUserInfoFromFirestore(
-              conversationData.userId,
-            );
-            final int messagesUnread = await countUnreadMessages(
-              conversationName,
-              userId,
-            );
-            final String formattedTimestamp = formatTimestamp(
-              conversationData.timestamp,
-            );
-            final String userNickname = await getNickname(
-              conversationData.userId,
-            );
-            final bool isArtist = await checkIfArtist(conversationData.userId);
+          final userInfo = await getUserInfoFromFirestore(
+            conversationData.userId,
+          );
+          final int messagesUnread = await countUnreadMessages(
+            conversationName,
+            userId,
+          );
+          final String formattedTimestamp = formatTimestamp(
+            conversationData.timestamp,
+          );
+          final String userNickname = await getNickname(
+            conversationData.userId,
+          );
+          final bool isArtist = await checkIfArtist(conversationData.userId);
 
-            final conversation = Conversation(
-              currentUserId: userId,
-              nickname: userNickname,
-              otherUserId: conversationData.userId,
-              lastMessage: conversationData.lastMessage,
-              timestamp: conversationData.timestamp,
-              profileImage: userInfo.second,
-              name: userInfo.first,
-              messagesUnread: messagesUnread,
-              conversationName: conversationName,
-              formattedTimestamp: formattedTimestamp,
-              artist: isArtist,
-            );
+          final conversation = Conversation(
+            currentUserId: userId,
+            nickname: userNickname,
+            otherUserId: conversationData.userId,
+            lastMessage: conversationData.lastMessage,
+            timestamp: conversationData.timestamp,
+            profileImage: userInfo.second,
+            name: userInfo.first,
+            messagesUnread: messagesUnread,
+            conversationName: conversationName,
+            formattedTimestamp: formattedTimestamp,
+            artist: isArtist,
+          );
+          print("conversation: $conversation");
 
+          // Insertar o actualizar solo si es más nuevo para evitar redundancia
+          final current = await db.conversationDao.getConversationById(
+            conversation.otherUserId,
+          );
+          if (current == null || conversation.timestamp > current.timestamp) {
             await db.conversationDao.insertOrUpdate(conversation);
           }
         }
       }
     } catch (e) {
       debugPrint("syncConversationsFromFirebase error: $e");
+    } finally {
+      _isSyncingConversations = false;
     }
   }
 
@@ -1123,20 +1128,20 @@ class MessagesProvider extends ChangeNotifier {
   Future<void> setupConversationListener(String userId) async {
     try {
       String nickname = await getNickname(userId);
-      print("se inicializa");
-      // 🔹 NUEVO PASO: sincronizar desde Firebase a Room
+
+      // 1. Sincronizar primero datos masivos (desde Firebase a Room)
       await syncConversationsFromFirebase(userId);
 
-      // 1) Cargar conversaciones ya existentes desde Room y conectar listeners
+      // 2. Setup listeners para escuchar cambios puntuales
       await setupListenersForExistingConversations(userId);
 
-      // 2) Configuración de listeners en tiempo real para nuevos mensajes
+      // 3. Escuchar nuevos mensajes a partir de última timestamp
       final lastTimestamps = await loadLastTimestampsFromDb(userId);
 
-      lastTimestamps.forEach((conversationName, lastTs) {
-        // Cancelar listener anterior si existe
-        _activeSubscriptions[conversationName]?.cancel();
+      _activeSubscriptions.forEach((_, sub) => sub.cancel());
+      _activeSubscriptions.clear();
 
+      lastTimestamps.forEach((conversationName, lastTs) {
         final ref = FirebaseDatabase.instance
             .ref(conversationName)
             .orderByChild('timestamp')
@@ -1146,7 +1151,7 @@ class MessagesProvider extends ChangeNotifier {
 
         final subscription = ref.onChildAdded.listen((event) {
           if (isInitialData) {
-            // Ignorar los datos iniciales (ya fueron procesados)
+            // Ignorar datos iniciales, solo manejar nuevos mensajes
             isInitialData = false;
             return;
           }
@@ -1319,25 +1324,25 @@ class MessagesProvider extends ChangeNotifier {
     List<Conversation> conversations = await db.conversationDao
         .getConversationsListByCurrentUserId(userId);
 
-    // Cancelar listeners anteriores
+    // Cancelar listeners previos
     _activeListeners.forEach((_, sub) => sub.cancel());
     _activeListeners.clear();
 
     for (var conversation in conversations) {
-      DatabaseReference conversationRef = FirebaseDatabase.instance.ref().child(
-        conversation.conversationName,
-      );
+      final conversationRef = FirebaseDatabase.instance
+          .ref()
+          .child(conversation.conversationName)
+          .orderByChild("timestamp")
+          .limitToLast(1);
 
-      final subAdd = conversationRef.onChildAdded.listen((event) {
-        updateConversation(event.snapshot, conversation, userId);
-      });
-      final subChange = conversationRef.onChildChanged.listen((event) {
-        updateConversation(event.snapshot, conversation, userId);
+      final sub = conversationRef.onChildAdded.listen((event) async {
+        if (_isSyncingConversations)
+          return; // Ignorar eventos mientras se sincroniza
+
+        await updateConversation(event.snapshot, conversation, userId);
       });
 
-      // Guardar ambos listeners
-      _activeListeners['${conversation.conversationName}_add'] = subAdd;
-      _activeListeners['${conversation.conversationName}_change'] = subChange;
+      _activeListeners['${conversation.conversationName}_add'] = sub;
     }
   }
 
@@ -1349,49 +1354,48 @@ class MessagesProvider extends ChangeNotifier {
     try {
       int timestamp = snapshot.child("timestamp").value as int? ?? 0;
 
-      // 1. Obtén la conversación actual de Room
       final db = await roomDb;
       final current = await db.conversationDao.getConversationById(
         conversation.otherUserId,
       );
 
-      // 2. Solo actualiza si el mensaje es más nuevo
-      if (current == null || timestamp >= current.timestamp) {
-        String type = snapshot.child("type").value as String? ?? "text";
-        String messageText = snapshot.child("message").value as String? ?? "";
+      // Actualizar sólo si es más nuevo y no durante sincronización masiva
+      if (current != null && timestamp <= current.timestamp) return;
+      if (_isSyncingConversations) return;
 
-        String lastMessage;
-        switch (type) {
-          case "image":
-            lastMessage = "te ha enviado una imagen";
-            break;
-          case "video":
-            lastMessage = "te ha enviado un video";
-            break;
-          case "location":
-            lastMessage = "te ha compartido su ubicación";
-            break;
-          default:
-            lastMessage = messageText;
-        }
+      String type = snapshot.child("type").value as String? ?? "text";
+      String messageText = snapshot.child("message").value as String? ?? "";
 
-        int messagesUnread = await countUnreadMessages(
-          conversation.conversationName,
-          userId,
-        );
-        String formattedTimestamp = formatTimestamp(timestamp);
-
-        Conversation updatedConversation = conversation.copyWith(
-          lastMessage: lastMessage,
-          timestamp: timestamp,
-          messagesUnread: messagesUnread,
-          formattedTimestamp: formattedTimestamp,
-        );
-
-        syncMessagesWithFirebase(userId, conversation.otherUserId);
-
-        await db.conversationDao.insertOrUpdate(updatedConversation);
+      String lastMessage;
+      switch (type) {
+        case "image":
+          lastMessage = "te ha enviado una imagen";
+          break;
+        case "video":
+          lastMessage = "te ha enviado un video";
+          break;
+        case "location":
+          lastMessage = "te ha compartido su ubicación";
+          break;
+        default:
+          lastMessage = messageText;
       }
+
+      int messagesUnread = await countUnreadMessages(
+        conversation.conversationName,
+        userId,
+      );
+      String formattedTimestamp = formatTimestamp(timestamp);
+
+      Conversation updatedConversation = conversation.copyWith(
+        lastMessage: lastMessage,
+        timestamp: timestamp,
+        messagesUnread: messagesUnread,
+        formattedTimestamp: formattedTimestamp,
+      );
+
+      // NO llamar a syncMessagesWithFirebase aquí para evitar bucle infinito
+      await db.conversationDao.insertOrUpdate(updatedConversation);
     } catch (e) {
       debugPrint("$e");
     }

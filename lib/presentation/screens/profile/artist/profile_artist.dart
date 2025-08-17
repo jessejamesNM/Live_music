@@ -7,7 +7,9 @@
 // vista dinámica con un SliverAppBar que permite ver el encabezado del perfil al hacer scroll.
 
 // Importaciones necesarias
+import 'dart:async';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -16,6 +18,7 @@ import 'package:live_music/data/provider_logics/nav_buttom_bar_components/messag
 import 'package:live_music/data/provider_logics/nav_buttom_bar_components/profile/profile_provider.dart';
 import 'package:live_music/data/provider_logics/user/review_provider.dart';
 import 'package:live_music/presentation/resources/strings.dart';
+import 'package:live_music/presentation/screens/profile/artist/artist_elements_bar/service.dart';
 import 'package:live_music/presentation/screens/profile/artist/profile_header.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +35,6 @@ import 'package:live_music/presentation/resources/colors.dart';
 
 // Widget de pantalla Stateful que muestra el perfil del artista
 class ProfileArtistScreen extends StatefulWidget {
-  // Dependencias requeridas para el funcionamiento de la pantalla
   final UploadProfileImagesToServer uploadProfileImagesToServer;
   final UploadWorkMediaToServer uploadWorkImagesToServer;
   final GoRouter goRouter;
@@ -41,7 +43,6 @@ class ProfileArtistScreen extends StatefulWidget {
   final ReviewProvider reviewProvider;
   final MessagesProvider messagesProvider;
 
-  // Constructor que recibe todas las dependencias necesarias
   const ProfileArtistScreen({
     super.key,
     required this.uploadProfileImagesToServer,
@@ -57,36 +58,67 @@ class ProfileArtistScreen extends StatefulWidget {
   _ProfileArtistScreenState createState() => _ProfileArtistScreenState();
 }
 
-// Estado de la pantalla de perfil del artista
 class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
-  // Controladores de estado para la interfaz
-  final selectedButtonIndex = ValueNotifier<int>(-1); // Índice del botón seleccionado
-  final showImageDetail = ValueNotifier<ImageData?>(null); // Detalle de imagen a mostrar
-  File? _selectedProfileImage; // Archivo de imagen de perfil seleccionado
-  bool _isUploadingProfileImage = false; // Estado de carga de imagen
+  final ValueNotifier<int> selectedButtonIndex = ValueNotifier<int>(0);
+  final ValueNotifier<ImageData?> showImageDetail = ValueNotifier<ImageData?>(
+    null,
+  );
+  File? _selectedProfileImage;
+  bool _isUploadingProfileImage = false;
+  StreamSubscription<DocumentSnapshot>? _userDataSubscription;
+  bool _initialDataLoaded = false;
 
-  // Método para seleccionar imagen de perfil desde la galería
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialUserData();
+  }
+
+  @override
+  void dispose() {
+    _userDataSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialUserData() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId != null && !_initialDataLoaded) {
+      await widget.userProvider.getUserData(currentUserId);
+
+      _userDataSubscription = FirebaseFirestore.instance
+          .collection("users")
+          .doc(currentUserId)
+          .snapshots()
+          .listen((document) {
+            if (document.exists) {
+              widget.userProvider.updateUserDataFromDocument(document);
+            }
+          });
+
+      _initialDataLoaded = true;
+    }
+  }
+
   Future<void> _pickProfileImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
-      _cropImage(imageFile); // Procesar la imagen seleccionada
+      _cropImage(imageFile);
     }
   }
 
-  // Método para recortar la imagen seleccionada
   Future<void> _cropImage(File imageFile) async {
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: imageFile.path,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Relación 1:1
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: AppStrings.cropImageTitle,
           toolbarColor: Colors.deepOrange,
           toolbarWidgetColor: Colors.white,
           initAspectRatio: CropAspectRatioPreset.square,
-          lockAspectRatio: true, // Bloquea relación de aspecto
+          lockAspectRatio: true,
         ),
         IOSUiSettings(
           title: AppStrings.cropImageTitle,
@@ -100,27 +132,29 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
         _selectedProfileImage = File(croppedFile.path);
         _isUploadingProfileImage = true;
       });
-      await _uploadProfileImage(_selectedProfileImage!); // Subir imagen recortada
+      await _uploadProfileImage(_selectedProfileImage!);
       setState(() {
         _isUploadingProfileImage = false;
       });
     }
   }
 
-  // Método para subir la imagen de perfil al servidor
   Future<void> _uploadProfileImage(File file) async {
     try {
-      final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
-      await widget.uploadProfileImagesToServer.uploadProfileImage(
-        currentUserId!,
-        file,
-      );
-      widget.userProvider.loadUserData(currentUserId!); // Actualizar datos de usuario
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId != null) {
+        await widget.uploadProfileImagesToServer.uploadProfileImage(
+          currentUserId,
+          file,
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${AppStrings.uploadProfileImageError}: ${e.toString()}'),
+            content: Text(
+              '${AppStrings.uploadProfileImageError}: ${e.toString()}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -128,113 +162,102 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
     }
   }
 
-  // Método build principal que construye la interfaz
+  // Update your _buildSelectedContent method in ProfileArtistScreen
+  Widget _buildSelectedContent(String userId) {
+    switch (selectedButtonIndex.value) {
+      case 0:
+        return ServicesProfileScreen(
+          userId: userId,
+          userProvider: widget.userProvider,
+          goRouter: widget.goRouter,
+        );
+      case 1:
+        return WorksContent();
+      case 2:
+        return AvailabilityContent(
+        
+          userId: userId,
+        );
+      case 3:
+        return DatesContent(
+          profileProvider: widget.profileProvider,
+          currentUserId: userId,
+        );
+      case 4: // New case for Services
+        return ReviewsContent(
+          messagesProvider: widget.messagesProvider,
+          userProvider: widget.userProvider,
+          reviewProvider: widget.reviewProvider,
+        );
+      default:
+        return WorksContent();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Obtener providers y datos necesarios
-    final messagesProvieder = widget.messagesProvider;
     final userProvider = context.watch<UserProvider>();
+    final userType = userProvider.userType;
     final isArtist = userProvider.userType == AppStrings.artist;
-    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
-    final profileProvider = widget.profileProvider;
-    final reviewProvider = widget.reviewProvider;
-    final colorScheme = ColorPalette.getPalette(context); // Esquema de colores
-
-    // Cargar datos del usuario
-    if (currentUserId != null) {
-      userProvider.loadUserData(currentUserId);
-      userProvider.getUserData(currentUserId);
-    }
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final colorScheme = ColorPalette.getPalette(context);
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColorLight],
-      // Barra de navegación inferior
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist: isArtist,
+        userType: userType,
         goRouter: widget.goRouter,
       ),
-      // Cuerpo principal con CustomScrollView para efectos de scroll personalizados
-      body: CustomScrollView(
-        slivers: [
-          // SliverAppBar: Cabecera expandible con imagen de perfil
-          SliverAppBar(
-            expandedHeight: 220.0, // Altura cuando está expandido
-            pinned: true, // Permanece visible al hacer scroll
-            backgroundColor: colorScheme[AppStrings.primaryColorLight],
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                // SafeArea solo aplicado al header para evitar notches
-                return SafeArea(
-                  bottom: false, // Solo protege la parte superior
-                  child: FlexibleSpaceBar(
-                    background: ProfileHeader(
-                      profileImageUrl: userProvider.profileImageUrl,
-                      userName: userProvider.userName,
-                      nickname: userProvider.nickname,
-                      isUploading: _isUploadingProfileImage,
-                      currentUserId: currentUserId ?? '',
-                      goRouter: widget.goRouter,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          // Fila de botones de navegación
-          SliverToBoxAdapter(
-            child: ButtonRow(
-              selectedButtonIndex: selectedButtonIndex,
-              onButtonSelect: (int index) {
-                selectedButtonIndex.value = index; // Actualizar selección
-              },
-            ),
-          ),
-          // Contenido dinámico según botón seleccionado
-          SliverToBoxAdapter(
-            child: Builder(
-              builder: (context) {
-                Widget content;
-                switch (selectedButtonIndex.value) {
-                  case 0:
-                    content = WorksContent(); // Contenido de trabajos
-                    break;
-                  case 1:
-                    content = AvailabilityContent(userId: currentUserId ?? ''); // Disponibilidad
-                    break;
-                  case 2:
-                    content = currentUserId != null
-                        ? DatesContent( // Fechas
-                            profileProvider: profileProvider,
-                            currentUserId: currentUserId,
-                          )
-                        : const SizedBox.shrink();
-                    break;
-                  case 3:
-                    content = ReviewsContent( // Reseñas
-                      messagesProvider: messagesProvieder,
-                      userProvider: userProvider,
-                      reviewProvider: reviewProvider,
-                    );
-                    break;
-                  default:
-                    content = WorksContent(); // Default: trabajos
-                }
-                return content;
-              },
-            ),
-          ),
-        ],
-      ),
+      body:
+          currentUserId == null
+              ? const Center(child: CircularProgressIndicator())
+              : ValueListenableBuilder<int>(
+                valueListenable: selectedButtonIndex,
+                builder: (context, index, _) {
+                  return CustomScrollView(
+                    slivers: [
+                      SliverAppBar(
+                        expandedHeight: 220.0,
+                        pinned: true,
+                        backgroundColor:
+                            colorScheme[AppStrings.primaryColorLight],
+                        flexibleSpace: SafeArea(
+                          bottom: false,
+                          child: FlexibleSpaceBar(
+                            background: ProfileHeader(
+                              profileImageUrl: userProvider.profileImageUrl,
+                              userName: userProvider.userName,
+                              nickname: userProvider.nickname,
+                              isUploading: _isUploadingProfileImage,
+                              currentUserId: currentUserId,
+                              goRouter: widget.goRouter,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: ButtonRow(
+                          selectedButtonIndex: selectedButtonIndex,
+                          onButtonSelect: (int index) {
+                            selectedButtonIndex.value = index;
+                          },
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: _buildSelectedContent(currentUserId),
+                      ),
+                    ],
+                  );
+                },
+              ),
     );
   }
 
-  // Método para seleccionar imagen de trabajo
   Future<void> _pickWorkImage(BuildContext context) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       final imageFile = File(pickedFile.path);
 
       if (currentUserId != null) {
@@ -243,9 +266,8 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
           imageFile,
         );
       } else {
-        // Handle the null case if necessary, e.g., show an error message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('User ID is null. Cannot upload work image.'),
             backgroundColor: Colors.red,
           ),

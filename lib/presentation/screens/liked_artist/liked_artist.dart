@@ -61,7 +61,7 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
     final userType = userProvider.userType;
     final isArtist = userType == 'artist'; // Determinar si es artista
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
-    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context); // Esquema de colores
 
     // Configurar listener para cambios en listas de favoritos
@@ -159,7 +159,7 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
       backgroundColor: colorScheme[AppStrings.primaryColor],
       // Barra de navegación inferior
       bottomNavigationBar: BottomNavigationBarWidget(
-        isArtist: isArtist,
+        userType: userType,
         goRouter: widget.goRouter,
       ),
       body: SafeArea(
@@ -208,7 +208,7 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
                 ],
               ),
             ),
-            
+
             // Lista principal de favoritos
             Expanded(
               child: StreamBuilder<List<LikedUsersList>>(
@@ -228,13 +228,16 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
                   // GridView para mostrar las listas
                   return GridView.builder(
                     padding: const EdgeInsets.all(8.0),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, // 2 columnas
-                      mainAxisSpacing: 8, // Espaciado vertical
-                      crossAxisSpacing: 8, // Espaciado horizontal
-                      childAspectRatio: 0.8, // Relación de aspecto
-                    ),
-                    itemCount: likedUsersLists.length + 1, // +1 para el primer item especial
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2, // 2 columnas
+                          mainAxisSpacing: 8, // Espaciado vertical
+                          crossAxisSpacing: 8, // Espaciado horizontal
+                          childAspectRatio: 0.8, // Relación de aspecto
+                        ),
+                    itemCount:
+                        likedUsersLists.length +
+                        1, // +1 para el primer item especial
                     itemBuilder: (context, index) {
                       // Primer item es especial (RecentlyViewedCard)
                       if (index == 0) {
@@ -254,11 +257,15 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
                           },
                           onClick: () {
                             // Manejar clic para ver detalles
-                            favoritesProvider.setSelectedListName(likedList.name);
+                            favoritesProvider.setSelectedListName(
+                              likedList.name,
+                            );
                             favoritesProvider.loadProfilesByIds(
                               likedList.likedUsersList,
                             );
-                            widget.goRouter.push(AppStrings.likedUsersListScreen);
+                            widget.goRouter.push(
+                              AppStrings.likedUsersListScreen,
+                            );
                           },
                           imageSize: 170, // Tamaño de imagen
                         );

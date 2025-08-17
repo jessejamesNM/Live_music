@@ -145,7 +145,7 @@ class _ReviewsContentWSState extends State<ReviewsContentWS> {
                     reviews.isEmpty
                         ? Center(
                           child: Text(
-                            AppStrings.noReviewsYet,
+                            AppStrings.noReviewsYetWS,
                             style: TextStyle(
                               fontSize: 18,
                               color: colorScheme[AppStrings.secondaryColor],

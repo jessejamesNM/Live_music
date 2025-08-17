@@ -46,6 +46,11 @@ class MessageItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    if (message is String) {
+      print("Mensaje: $message");
+    } else {
+      print("MensajeText: ${message.messageText}");
+    }
 
     // Si el mensaje es simplemente un String, es un separador de día.
     if (message is String) {

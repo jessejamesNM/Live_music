@@ -1,11 +1,11 @@
 // Fecha de creación: 26/04/2025
 // Autor: KingdomOfJames
 // Descripción: Esta pantalla es un widget desplegable que permite a los usuarios aplicar filtros de búsqueda para eventos de música.
-// Los filtros disponibles incluyen tipo de evento, tipo de música, fecha y rango de precios.
+// Los filtros disponibles incluyen tipo de evento, tipo de música, fecha, rango de precios y tipo de servicio.
 // Es una interfaz interactiva con un diseño basado en tarjetas expandibles que permiten la selección de filtros.
 // Recomendaciones: Asegúrate de validar los filtros correctamente antes de enviarlos a la base de datos. La implementación de los filtros es flexible y puede expandirse según las necesidades del proyecto.
 // Características:
-// - Filtros dinámicos para seleccionar el tipo de evento, género musical, fecha y precio.
+// - Filtros dinámicos para seleccionar el tipo de evento, género musical, fecha, precio y tipo de servicio.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +16,8 @@ import 'date_card.dart';
 import 'expandible_card.dart';
 import 'music_chip.dart';
 import 'package:live_music/presentation/resources/colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
 class TopDropdown extends StatefulWidget {
   final SearchProvider searchProvider;
   final bool isVisible;
@@ -37,16 +39,19 @@ class TopDropdown extends StatefulWidget {
 }
 
 class _TopDropdownState extends State<TopDropdown> {
-  ExpandedCard? expandedCard = ExpandedCard.EventType;
+  ExpandedCard? expandedCard = ExpandedCard.ServiceType;
   String? selectedEvent;
   Set<String> selectedGenres = {};
   DateTime? selectedDay;
-  RangeValues priceRange = const RangeValues(200, 10000);
+  RangeValues priceRange = const RangeValues(200, 200000);
   int minPrice = 200;
-  int maxPrice = 10000;
+  int maxPrice = 200000;
   bool useTextFieldValues = false;
   bool isTransitioning = false;
-  final int maxPriceLimit = 10000;
+  final int maxPriceLimit = 200000;
+
+  // Estado para el tipo de servicio
+  String? selectedServiceType;
 
   // Controladores para los campos de texto
   final TextEditingController minPriceController = TextEditingController();
@@ -74,16 +79,17 @@ class _TopDropdownState extends State<TopDropdown> {
     await Future.delayed(Duration(milliseconds: 300));
 
     setState(() {
-      expandedCard = ExpandedCard.MusicType;
+      if (selectedServiceType == 'artist') {
+        expandedCard = ExpandedCard.MusicType;
+      } else {
+        expandedCard = ExpandedCard.Date;
+      }
     });
   }
 
   void showToast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      )
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
   }
 
@@ -100,15 +106,34 @@ class _TopDropdownState extends State<TopDropdown> {
   }
 
   ExpandedCard? _getNextCard(ExpandedCard? currentCard) {
-    final nextCard = switch (currentCard) {
-      ExpandedCard.EventType => ExpandedCard.MusicType,
-      ExpandedCard.MusicType => ExpandedCard.Date,
-      ExpandedCard.Date => ExpandedCard.Price,
-      ExpandedCard.Price => null,
-      null => null,
-    };
-
-    return nextCard;
+    if (selectedServiceType != 'artist') {
+      switch (currentCard) {
+        case ExpandedCard.ServiceType:
+          return ExpandedCard.EventType;
+        case ExpandedCard.EventType:
+          return ExpandedCard.Date;
+        case ExpandedCard.Date:
+          return ExpandedCard.Price;
+        case ExpandedCard.Price:
+        case ExpandedCard.MusicType:
+        case null:
+          return null;
+      }
+    } else {
+      switch (currentCard) {
+        case ExpandedCard.ServiceType:
+          return ExpandedCard.EventType;
+        case ExpandedCard.EventType:
+          return ExpandedCard.MusicType;
+        case ExpandedCard.MusicType:
+          return ExpandedCard.Date;
+        case ExpandedCard.Date:
+          return ExpandedCard.Price;
+        case ExpandedCard.Price:
+        case null:
+          return null;
+      }
+    }
   }
 
   void _applyFilters() async {
@@ -124,26 +149,28 @@ class _TopDropdownState extends State<TopDropdown> {
       return;
     }
 
+    if (selectedServiceType == null) {
+      showToast('Seleccione un tipo de servicio');
+      return;
+    }
+
     try {
       final userId = widget.currentUserId;
       if (userId == null) return;
 
-      final availability = selectedDay.toString();
+      final availability = selectedDay?.toString() ?? '';
 
-      await FirebaseFirestore.instance
-          .collection(AppStrings.usersCollection)
-          .doc(userId)
-          .get()
-          .then((document) {
-            searchProvider.getUsersByCountry(
-              userId,
-              selectedGenres.toList(),
-              RangeValues(minPrice.toDouble(), maxPrice.toDouble()),
-              availability,
-              selectedEvent!,
-            );
-            widget.onClose();
-          });
+      await searchProvider.loadCountryAndState(userId);
+
+      await searchProvider.getUsersByCountry(
+        userId,
+        selectedServiceType == 'artist' ? selectedGenres.toList() : [],
+        RangeValues(minPrice.toDouble(), maxPrice.toDouble()),
+        availability,
+        selectedServiceType!,
+      );
+
+      widget.onClose();
     } catch (e) {
       showToast(AppStrings.filterErrorMessage);
     }
@@ -152,22 +179,18 @@ class _TopDropdownState extends State<TopDropdown> {
   void _handleMinPriceChange(String value) {
     final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
     final newMinPrice = int.tryParse(cleanValue) ?? 0;
-    
+
     if (newMinPrice > maxPriceLimit) {
       showToast('El precio mínimo no puede exceder \$$maxPriceLimit');
       return;
     }
-    
+
     setState(() {
       minPrice = newMinPrice;
-      priceRange = RangeValues(
-        newMinPrice.toDouble(),
-        priceRange.end,
-      );
+      priceRange = RangeValues(newMinPrice.toDouble(), priceRange.end);
       useTextFieldValues = true;
     });
-    
-    // Actualizar el controlador manteniendo el símbolo $
+
     minPriceController.text = '\$$cleanValue';
     minPriceController.selection = TextSelection.fromPosition(
       TextPosition(offset: minPriceController.text.length),
@@ -177,22 +200,18 @@ class _TopDropdownState extends State<TopDropdown> {
   void _handleMaxPriceChange(String value) {
     final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
     final newMaxPrice = int.tryParse(cleanValue) ?? 0;
-    
+
     if (newMaxPrice > maxPriceLimit) {
       showToast('El precio máximo no puede exceder \$$maxPriceLimit');
       return;
     }
-    
+
     setState(() {
       maxPrice = newMaxPrice;
-      priceRange = RangeValues(
-        priceRange.start,
-        newMaxPrice.toDouble(),
-      );
+      priceRange = RangeValues(priceRange.start, newMaxPrice.toDouble());
       useTextFieldValues = true;
     });
-    
-    // Actualizar el controlador manteniendo el símbolo $
+
     maxPriceController.text = '\$$cleanValue';
     maxPriceController.selection = TextSelection.fromPosition(
       TextPosition(offset: maxPriceController.text.length),
@@ -204,6 +223,8 @@ class _TopDropdownState extends State<TopDropdown> {
     final colorScheme = ColorPalette.getPalette(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final textFieldWidth = screenWidth / 4;
+
+    final showMusicType = selectedServiceType == 'artist';
 
     return Stack(
       children: [
@@ -252,7 +273,10 @@ class _TopDropdownState extends State<TopDropdown> {
                                   color: colorScheme[AppStrings.primaryColor],
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+                                    color:
+                                        colorScheme[AppStrings
+                                            .secondaryColor] ??
+                                        Colors.grey,
                                     width: 2,
                                   ),
                                 ),
@@ -286,126 +310,146 @@ class _TopDropdownState extends State<TopDropdown> {
                             child: Column(
                               children: [
                                 ExpandableCard(
-                                  title: AppStrings.eventType,
-                                  isExpanded: expandedCard == ExpandedCard.EventType,
+                                  title: "Tipo de servicio",
+                                  isExpanded:
+                                      expandedCard == ExpandedCard.ServiceType,
                                   onClick: () {
                                     setState(() {
-                                      if (expandedCard != ExpandedCard.EventType) {
-                                        expandedCard = ExpandedCard.EventType;
+                                      if (expandedCard !=
+                                          ExpandedCard.ServiceType) {
+                                        expandedCard = ExpandedCard.ServiceType;
                                       }
                                     });
                                   },
                                   content: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        AppStrings.whatEventType,
+                                        "¿Qué servicio buscas?",
                                         style: TextStyle(
                                           fontSize: 22,
-                                          color: colorScheme[AppStrings.secondaryColor],
+                                          color:
+                                              colorScheme[AppStrings
+                                                  .secondaryColor],
                                         ),
                                       ),
                                       const SizedBox(height: 8),
                                       SizedBox(
-                                        height: 150,
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: Row(
-                                            children: [
-                                              EventCard(
-                                                text: AppStrings.wedding,
-                                                isSelected: selectedEvent == AppStrings.wedding,
-                                                onClick: () => onEventSelected(AppStrings.wedding),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              EventCard(
-                                                text: AppStrings.sweetFifteen,
-                                                isSelected: selectedEvent == AppStrings.sweetFifteen,
-                                                onClick: () => onEventSelected(AppStrings.sweetFifteen),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              EventCard(
-                                                text: AppStrings.casualParty,
-                                                isSelected: selectedEvent == AppStrings.casualParty,
-                                                onClick: () => onEventSelected(AppStrings.casualParty),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              EventCard(
-                                                text: AppStrings.publicEvent,
-                                                isSelected: selectedEvent == AppStrings.publicEvent,
-                                                onClick: () => onEventSelected(AppStrings.publicEvent),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                const SizedBox(height: 16),
-
-                                ExpandableCard(
-                                  title: AppStrings.musicType,
-                                  isExpanded: expandedCard == ExpandedCard.MusicType,
-                                  onClick: () {
-                                    setState(() {
-                                      if (expandedCard != ExpandedCard.MusicType) {
-                                        expandedCard = ExpandedCard.MusicType;
-                                      }
-                                    });
-                                  },
-                                  content: Column(
-                                    children: [
-                                      Text(
-                                        AppStrings.whatMusicType,
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          color: colorScheme[AppStrings.secondaryColor],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      SizedBox(
-                                        height: 135,
+                                        height: 160,
                                         child: ListView(
                                           scrollDirection: Axis.horizontal,
                                           children: [
-                                            for (String genre in [
-                                              AppStrings.band,
-                                              AppStrings.nortStyle,
-                                              AppStrings.corridos,
-                                              AppStrings.mariachi,
-                                              AppStrings.montainStyle,
-                                              AppStrings.cumbia,
-                                              AppStrings.reggaeton,
-                                            ])
-                                              Padding(
-                                                padding: const EdgeInsets.only(right: 8.0),
-                                                child: MusicChip(
-                                                  text: genre,
-                                                  isSelected: selectedGenres.contains(genre),
-                                                  onClick: () {
-                                                    setState(() {
-                                                      if (selectedGenres.contains(genre)) {
-                                                        selectedGenres.remove(genre);
-                                                      } else {
-                                                        selectedGenres.add(genre);
-                                                      }
-                                                    });
-                                                  },
-                                                ),
-                                              ),
+                                            _ServiceOptionCard(
+                                              text: "musica",
+                                              svgAsset: AppStrings.icMusicAsset,
+                                              isSelected:
+                                                  selectedServiceType ==
+                                                  'artist',
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedServiceType =
+                                                      'artist';
+                                                  selectedGenres.clear();
+                                                });
+                                              },
+                                            ),
+                                            const SizedBox(width: 12),
+                                            _ServiceOptionCard(
+                                              text: 'Repostería/Alimentos',
+                                              svgAsset:
+                                                  'assets/svg/reposteria.svg',
+                                              isSelected:
+                                                  selectedServiceType ==
+                                                  'bakery',
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedServiceType =
+                                                      'bakery';
+                                                  selectedGenres.clear();
+                                                });
+                                              },
+                                            ),
+                                            const SizedBox(width: 12),
+                                            _ServiceOptionCard(
+                                              text: 'Local de eventos',
+                                              svgAsset:
+                                                  'assets/svg/eventplace.svg',
+                                              isSelected:
+                                                  selectedServiceType ==
+                                                  'place',
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedServiceType = 'place';
+                                                  selectedGenres.clear();
+                                                });
+                                              },
+                                            ),
+                                            const SizedBox(width: 12),
+                                            _ServiceOptionCard(
+                                              text: 'Decoraciones',
+                                              svgAsset:
+                                                  'assets/svg/decoration.svg',
+                                              isSelected:
+                                                  selectedServiceType ==
+                                                  'decoration',
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedServiceType =
+                                                      'decoration';
+                                                  selectedGenres.clear();
+                                                });
+                                              },
+                                            ),
+                                            const SizedBox(width: 12),
+                                            _ServiceOptionCard(
+                                              text: 'Mueblería',
+                                              svgAsset:
+                                                  'assets/svg/ic_furniture.svg',
+                                              isSelected:
+                                                  selectedServiceType ==
+                                                  'furniture',
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedServiceType =
+                                                      'furniture';
+                                                  selectedGenres.clear();
+                                                });
+                                              },
+                                            ),
+                                            const SizedBox(width: 12),
+                                            _ServiceOptionCard(
+                                              text: 'Entretenimiento',
+                                              svgAsset:
+                                                  'assets/svg/ic_entertainment.svg',
+                                              isSelected:
+                                                  selectedServiceType ==
+                                                  'entertainment',
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedServiceType =
+                                                      'entertainment';
+                                                  selectedGenres.clear();
+                                                });
+                                              },
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      if (expandedCard == ExpandedCard.MusicType)
+                                      if (expandedCard ==
+                                          ExpandedCard.ServiceType)
                                         Align(
                                           alignment: Alignment.bottomRight,
                                           child: TextButton(
-                                            onPressed: () => onNextClicked(expandedCard),
+                                            onPressed:
+                                                () =>
+                                                    onNextClicked(expandedCard),
                                             child: Text(
                                               AppStrings.next,
                                               style: TextStyle(
-                                                color: colorScheme[AppStrings.secondaryColor],
+                                                color:
+                                                    colorScheme[AppStrings
+                                                        .secondaryColor],
                                                 fontSize: 18,
                                               ),
                                             ),
@@ -416,6 +460,242 @@ class _TopDropdownState extends State<TopDropdown> {
                                 ),
 
                                 const SizedBox(height: 16),
+
+                                ExpandableCard(
+                                  title: AppStrings.eventType,
+                                  isExpanded:
+                                      expandedCard == ExpandedCard.EventType,
+                                  onClick: () {
+                                    setState(() {
+                                      if (expandedCard !=
+                                          ExpandedCard.EventType) {
+                                        expandedCard = ExpandedCard.EventType;
+                                      }
+                                    });
+                                  },
+                                  content: Column(
+                                    children: [
+                                      Text(
+                                        AppStrings.whatEventType,
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          color:
+                                              colorScheme[AppStrings
+                                                  .secondaryColor],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 150,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: [
+                                              EventCard(
+                                                text: AppStrings.weddings,
+                                                iconPath:
+                                                    'assets/svg/ic_marriage.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    AppStrings.weddings,
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      AppStrings.weddings,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: AppStrings.quinceaneras,
+                                                iconPath:
+                                                    'assets/svg/ic_quinceanera.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    AppStrings.quinceaneras,
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      AppStrings.quinceaneras,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: AppStrings.casualParties,
+                                                iconPath:
+                                                    'assets/svg/ic_party.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    AppStrings.casualParties,
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      AppStrings.casualParties,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: AppStrings.publicEvents,
+                                                iconPath:
+                                                    'assets/svg/ic_public_event.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    AppStrings.publicEvents,
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      AppStrings.publicEvents,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: 'Cumpleaños',
+                                                iconPath:
+                                                    'assets/svg/ic_birthday.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    'Cumpleaños',
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      'Cumpleaños',
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: 'Conferencia',
+                                                iconPath:
+                                                    'assets/svg/ic_conferencia.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    'Conferencia',
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      'Conferencia',
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: 'Posada',
+                                                iconPath:
+                                                    'assets/svg/ic_piñata.svg',
+                                                isSelected:
+                                                    selectedEvent == 'Posada',
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      'Posada',
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              EventCard(
+                                                text: 'Graduación',
+                                                iconPath:
+                                                    'assets/svg/ic_graduaciones.svg',
+                                                isSelected:
+                                                    selectedEvent ==
+                                                    'Graduación',
+                                                onClick:
+                                                    () => onEventSelected(
+                                                      'Graduación',
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                if (showMusicType)
+                                  ExpandableCard(
+                                    title: AppStrings.musicType,
+                                    isExpanded:
+                                        expandedCard == ExpandedCard.MusicType,
+                                    onClick: () {
+                                      setState(() {
+                                        if (expandedCard !=
+                                            ExpandedCard.MusicType) {
+                                          expandedCard = ExpandedCard.MusicType;
+                                        }
+                                      });
+                                    },
+                                    content: Column(
+                                      children: [
+                                        Text(
+                                          AppStrings.whatMusicType,
+                                          style: TextStyle(
+                                            fontSize: 22,
+                                            color:
+                                                colorScheme[AppStrings
+                                                    .secondaryColor],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          height: 135,
+                                          child: ListView(
+                                            scrollDirection: Axis.horizontal,
+                                            children: [
+                                              for (String genre in [
+                                                AppStrings.band,
+                                                AppStrings.nortStyle,
+                                                AppStrings.corridos,
+                                                AppStrings.mariachi,
+                                                AppStrings.montainStyle,
+                                                AppStrings.cumbia,
+                                                AppStrings.reggaeton,
+                                              ])
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        right: 8.0,
+                                                      ),
+                                                  child: MusicChip(
+                                                    text: genre,
+                                                    isSelected: selectedGenres
+                                                        .contains(genre),
+                                                    onClick: () {
+                                                      setState(() {
+                                                        if (selectedGenres
+                                                            .contains(genre)) {
+                                                          selectedGenres.remove(
+                                                            genre,
+                                                          );
+                                                        } else {
+                                                          selectedGenres.add(
+                                                            genre,
+                                                          );
+                                                        }
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (expandedCard ==
+                                            ExpandedCard.MusicType)
+                                          Align(
+                                            alignment: Alignment.bottomRight,
+                                            child: TextButton(
+                                              onPressed:
+                                                  () => onNextClicked(
+                                                    expandedCard,
+                                                  ),
+                                              child: Text(
+                                                AppStrings.next,
+                                                style: TextStyle(
+                                                  color:
+                                                      colorScheme[AppStrings
+                                                          .secondaryColor],
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+
+                                if (showMusicType) const SizedBox(height: 16),
 
                                 ExpandableCard(
                                   title: AppStrings.date,
@@ -441,11 +721,15 @@ class _TopDropdownState extends State<TopDropdown> {
                                         Align(
                                           alignment: Alignment.bottomRight,
                                           child: TextButton(
-                                            onPressed: () => onNextClicked(expandedCard),
+                                            onPressed:
+                                                () =>
+                                                    onNextClicked(expandedCard),
                                             child: Text(
                                               AppStrings.next,
                                               style: TextStyle(
-                                                color: colorScheme[AppStrings.secondaryColor],
+                                                color:
+                                                    colorScheme[AppStrings
+                                                        .secondaryColor],
                                                 fontSize: 18,
                                               ),
                                             ),
@@ -458,8 +742,9 @@ class _TopDropdownState extends State<TopDropdown> {
                                 const SizedBox(height: 16),
 
                                 ExpandableCard(
-                                  title: AppStrings.hourlyRate,
-                                  isExpanded: expandedCard == ExpandedCard.Price,
+                                  title: "Presupuesto",
+                                  isExpanded:
+                                      expandedCard == ExpandedCard.Price,
                                   onClick: () {
                                     setState(() {
                                       if (expandedCard != ExpandedCard.Price) {
@@ -473,7 +758,9 @@ class _TopDropdownState extends State<TopDropdown> {
                                         AppStrings.indicateHourlyRate,
                                         style: TextStyle(
                                           fontSize: 22,
-                                          color: colorScheme[AppStrings.secondaryColor],
+                                          color:
+                                              colorScheme[AppStrings
+                                                  .secondaryColor],
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -484,26 +771,35 @@ class _TopDropdownState extends State<TopDropdown> {
                                         divisions: 100,
                                         onChanged: (RangeValues values) {
                                           if (values.end > maxPriceLimit) {
-                                            showToast('El precio máximo no puede exceder \$$maxPriceLimit');
+                                            showToast(
+                                              'El precio máximo no puede exceder \$$maxPriceLimit',
+                                            );
                                             return;
                                           }
-                                          
+
                                           setState(() {
                                             priceRange = values;
                                             minPrice = values.start.toInt();
                                             maxPrice = values.end.toInt();
                                             useTextFieldValues = false;
-                                            minPriceController.text = '\$${minPrice.toString()}';
-                                            maxPriceController.text = '\$${maxPrice.toString()}';
+                                            minPriceController.text =
+                                                '\$${minPrice.toString()}';
+                                            maxPriceController.text =
+                                                '\$${maxPrice.toString()}';
                                           });
                                         },
-                                        activeColor: colorScheme[AppStrings.essentialColor],
+                                        activeColor:
+                                            colorScheme[AppStrings
+                                                .essentialColor],
                                       ),
                                       const SizedBox(height: 16),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8.0,
+                                        ),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Column(
                                               children: [
@@ -511,24 +807,34 @@ class _TopDropdownState extends State<TopDropdown> {
                                                   AppStrings.minimum,
                                                   style: TextStyle(
                                                     fontSize: 16,
-                                                    color: colorScheme[AppStrings.secondaryColor],
+                                                    color:
+                                                        colorScheme[AppStrings
+                                                            .secondaryColor],
                                                   ),
                                                 ),
                                                 const SizedBox(height: 4),
                                                 SizedBox(
                                                   width: textFieldWidth,
                                                   child: TextField(
-                                                    controller: minPriceController,
+                                                    controller:
+                                                        minPriceController,
                                                     style: TextStyle(
-                                                      color: colorScheme[AppStrings.secondaryColor],
+                                                      color:
+                                                          colorScheme[AppStrings
+                                                              .secondaryColor],
                                                     ),
                                                     decoration: InputDecoration(
                                                       border: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(24),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              24,
+                                                            ),
                                                       ),
                                                     ),
-                                                    keyboardType: TextInputType.number,
-                                                    onChanged: _handleMinPriceChange,
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    onChanged:
+                                                        _handleMinPriceChange,
                                                   ),
                                                 ),
                                               ],
@@ -539,24 +845,34 @@ class _TopDropdownState extends State<TopDropdown> {
                                                   AppStrings.maximum,
                                                   style: TextStyle(
                                                     fontSize: 16,
-                                                    color: colorScheme[AppStrings.secondaryColor],
+                                                    color:
+                                                        colorScheme[AppStrings
+                                                            .secondaryColor],
                                                   ),
                                                 ),
                                                 const SizedBox(height: 4),
                                                 SizedBox(
                                                   width: textFieldWidth,
                                                   child: TextField(
-                                                    controller: maxPriceController,
+                                                    controller:
+                                                        maxPriceController,
                                                     style: TextStyle(
-                                                      color: colorScheme[AppStrings.secondaryColor],
+                                                      color:
+                                                          colorScheme[AppStrings
+                                                              .secondaryColor],
                                                     ),
                                                     decoration: InputDecoration(
                                                       border: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(24),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              24,
+                                                            ),
                                                       ),
                                                     ),
-                                                    keyboardType: TextInputType.number,
-                                                    onChanged: _handleMaxPriceChange,
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    onChanged:
+                                                        _handleMaxPriceChange,
                                                   ),
                                                 ),
                                               ],
@@ -564,13 +880,34 @@ class _TopDropdownState extends State<TopDropdown> {
                                           ],
                                         ),
                                       ),
+                                      if (expandedCard == ExpandedCard.Price)
+                                        Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: TextButton(
+                                            onPressed:
+                                                () =>
+                                                    onNextClicked(expandedCard),
+                                            child: Text(
+                                              AppStrings.next,
+                                              style: TextStyle(
+                                                color:
+                                                    colorScheme[AppStrings
+                                                        .secondaryColor],
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
 
                                 if (selectedEvent != null &&
-                                    selectedGenres.isNotEmpty &&
-                                    selectedDay != null)
+                                    selectedDay != null &&
+                                    selectedServiceType != null &&
+                                    (selectedServiceType != 'artist' ||
+                                        (selectedServiceType == 'artist' &&
+                                            selectedGenres.isNotEmpty)))
                                   Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: SizedBox(
@@ -578,14 +915,16 @@ class _TopDropdownState extends State<TopDropdown> {
                                       child: ElevatedButton(
                                         onPressed: _applyFilters,
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: colorScheme[AppStrings.essentialColor],
-                                          foregroundColor: colorScheme[AppStrings.essentialColor],
+                                          backgroundColor:
+                                              colorScheme[AppStrings
+                                                  .essentialColor],
+                                          foregroundColor:
+                                              colorScheme[AppStrings
+                                                  .essentialColor],
                                         ),
                                         child: Text(
                                           AppStrings.applyFilters,
-                                          style: TextStyle(
-                                            color: colorScheme[AppStrings.secondaryColor],
-                                          ),
+                                          style: TextStyle(color: Colors.white),
                                         ),
                                       ),
                                     ),
@@ -607,4 +946,80 @@ class _TopDropdownState extends State<TopDropdown> {
   }
 }
 
-enum ExpandedCard { EventType, MusicType, Date, Price }
+class _ServiceOptionCard extends StatelessWidget {
+  final String text;
+  final String svgAsset;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ServiceOptionCard({
+    required this.text,
+    required this.svgAsset,
+    required this.isSelected,
+    required this.onTap,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 130,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? colorScheme[AppStrings.essentialColor]?.withOpacity(0.2)
+                  : colorScheme[AppStrings.primaryColor],
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color:
+                isSelected
+                    ? colorScheme[AppStrings.essentialColor] ?? Colors.blue
+                    : colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SvgPicture.asset(
+                svgAsset,
+                width: 48,
+                height: 48,
+                fit: BoxFit.contain,
+                colorFilter: ColorFilter.mode(
+                  colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colorScheme[AppStrings.secondaryColor],
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum ExpandedCard { EventType, MusicType, Date, Price, ServiceType }

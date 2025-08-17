@@ -23,21 +23,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-/// Provider que maneja la carga y actualización de artistas en la pantalla principal
 class HomeProvider extends ChangeNotifier {
-  /// Lista de artistas cargados para mostrar en el Home
   final List<Map<String, dynamic>> artistsForHome = [];
-
-  /// Instancia de Firestore para consultas
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-
-  /// Obtiene usuarios que sean artistas según país, estado y géneros seleccionados
   void getUsersByCountry(
     String currentUserId,
     String currentCountry,
     String currentState,
-    List<String> selectedGenres,
+    List<String> typeEvents,
+    String? selectedService,
     Function(List<String>) onComplete,
   ) {
     firestore
@@ -48,145 +43,166 @@ class HomeProvider extends ChangeNotifier {
 
           for (var document in querySnapshot.docs) {
             final data = document.data();
+            final userId = document.id;
 
-            // Validaciones iniciales: solo continuar si el usuario es artista
-            if (data['userType'] != 'artist') continue;
-
-            // Validar campos necesarios para mostrar artista
-            if (!(data.containsKey('name') &&
-                data['name']?.toString().trim().isNotEmpty == true))
-              continue;
-            if (!(data.containsKey('profileImageUrl') &&
-                data['profileImageUrl']?.toString().trim().isNotEmpty == true))
-              continue;
-            if (!(data.containsKey('nickname') &&
-                data['nickname']?.toString().trim().isNotEmpty == true))
-              continue;
-
-            // Extraer datos relevantes
-            final List<String> genres = List<String>.from(data['genres'] ?? []);
             final String country = data['country'] ?? '';
             final String state = data['state'] ?? '';
             final List<String> countries = List<String>.from(
               data['countries'] ?? [],
             );
             final List<String> states = List<String>.from(data['states'] ?? []);
+            final List<String> events = List<String>.from(
+              data['typeEvents'] ?? [],
+            );
             final double userValue =
-                (data['userValue'] is num)
-                    ? (data['userValue'] as num).toDouble()
-                    : 0.0;
+                (data['userValue'] as num?)?.toDouble() ?? 0.0;
 
-            // Validar si el artista coincide por país y géneros
             final bool countryMatches =
                 country == currentCountry || countries.contains(currentCountry);
-            final bool genreMatches = genres.any(
-              (genre) => selectedGenres.contains(genre),
-            );
+            final userType = data['userType'] ?? '';
+            final expectedUserType = _getUserTypeForService(selectedService);
+            final bool serviceMatches =
+                selectedService == null || userType == expectedUserType;
 
-            if (countryMatches && genreMatches) {
+            final int eventPriority =
+                typeEvents.isEmpty
+                    ? 0
+                    : events
+                        .where((event) => typeEvents.contains(event))
+                        .length;
+
+            if (countryMatches && serviceMatches) {
               userList.add({
-                'id': document.id,
-                'genres': genres,
-                'country': country,
+                'id': userId,
                 'state': state,
-                'userValue': userValue,
-                'countries': countries,
                 'states': states,
+                'eventPriority': eventPriority,
+                'userValue': userValue,
               });
             }
           }
 
-          // Ordenar artistas por prioridad: mismo estado > estado listado > valor de usuario
           userList.sort((a, b) {
-            final String stateA = a['state'];
-            final List<String> statesA = List<String>.from(a['states'] ?? []);
-            final String stateB = b['state'];
-            final List<String> statesB = List<String>.from(b['states'] ?? []);
+            final stateAMatch =
+                a['state'] == currentState ||
+                (a['states'] as List).contains(currentState);
+            final stateBMatch =
+                b['state'] == currentState ||
+                (b['states'] as List).contains(currentState);
 
-            int priorityA =
-                (stateA == currentState || statesA.contains(currentState))
-                    ? (stateA == currentState ? 2 : 1)
-                    : 0;
-            int priorityB =
-                (stateB == currentState || statesB.contains(currentState))
-                    ? (stateB == currentState ? 2 : 1)
-                    : 0;
-
-            if (priorityA != priorityB) {
-              return priorityB - priorityA; // Mayor prioridad primero
+            if (stateAMatch != stateBMatch) {
+              return stateBMatch ? 1 : -1;
             }
+
+            if (a['eventPriority'] != b['eventPriority']) {
+              return (b['eventPriority'] as int).compareTo(
+                a['eventPriority'] as int,
+              );
+            }
+
             return (b['userValue'] as double).compareTo(
               a['userValue'] as double,
             );
           });
 
-          // Tomar los primeros 10 artistas
           final List<String> userIds =
               userList.map((user) => user['id'] as String).take(10).toList();
-
-          // Cargar información detallada de los artistas seleccionados
           await loadArtists(currentUserId, userIds);
-
-          // Devolver IDs de artistas al completar
           onComplete(userIds);
         })
         .catchError((error) {
-          // Si falla la carga, completar con lista vacía
           onComplete([]);
         });
   }
 
-  /// Carga la información de los artistas dado un listado de IDs
   Future<void> loadArtists(String currentUserId, List<String> ids) async {
-    final List<Map<String, dynamic>> updatedArtists = [];
-print("se ejecuto esta cosa aaaaaaa /// inicio");
-    for (final artistId in ids) {
+    final List<Map<String, dynamic>> updatedServices = [];
+
+    for (final userId in ids) {
       try {
-        final artistDocument =
-            await firestore.collection('users').doc(artistId).get();
-        final data = artistDocument.data();
+        final serviceDoc =
+            await firestore.collection('services').doc(userId).get();
+        final serviceData = serviceDoc.data() ?? {};
+        final serviceInfo = serviceData['service'] ?? {};
 
-        if (data == null) continue;
+        final name = serviceInfo['name'];
+        final imageUrl = serviceInfo['imageUrl'];
 
-        // Validar que tenga los campos necesarios
-        if (!(data.containsKey('name') &&
-            data['name']?.toString().trim().isNotEmpty == true))
+        if (name == null ||
+            name.toString().isEmpty ||
+            imageUrl == null ||
+            imageUrl.toString().isEmpty) {
           continue;
-        if (!(data.containsKey('profileImageUrl') &&
-            data['profileImageUrl']?.toString().trim().isNotEmpty == true))
-          continue;
-        if (!(data.containsKey('nickname') &&
-            data['nickname']?.toString().trim().isNotEmpty == true))
-          continue;
+        }
 
-        // Agregar ID y si el usuario ya le dio "like" al artista
-        data['userId'] = artistId;
-        data['userLiked'] = await checkIfUserLiked(currentUserId, artistId);
+        double lowestPrice = double.infinity;
+        final List<String> allImages = [imageUrl];
 
-        updatedArtists.add(data);
-       
-      } catch (_) {
-        // Ignorar errores individuales al cargar artista
+        final servicesCollection =
+            await firestore.collection('services/$userId/service').get();
+
+        for (final doc in servicesCollection.docs) {
+          final subServiceData = doc.data();
+          final price = subServiceData['price']?.toDouble() ?? double.infinity;
+          if (price < lowestPrice) lowestPrice = price;
+
+          if (subServiceData['imageList'] is List) {
+            final images = List<String>.from(subServiceData['imageList'] ?? []);
+            allImages.addAll(images);
+          }
+        }
+
+        if (lowestPrice == double.infinity) continue;
+
+        final serviceInfoMap = {
+          'userId': userId,
+          'name': name,
+          'profileImageUrl': imageUrl,
+          'price': lowestPrice,
+          'imageList': allImages,
+          'userLiked': await checkIfUserLiked(currentUserId, userId),
+        };
+
+        updatedServices.add(serviceInfoMap);
+      } catch (e) {
+        // Manejar error silenciosamente
       }
     }
 
-    // Actualizar la lista y notificar cambios
     artistsForHome
       ..clear()
-      ..addAll(updatedArtists);
-    notifyListeners();
-    }
+      ..addAll(updatedServices);
 
-  /// Verifica si el usuario actual ya ha dado "like" al artista
+    notifyListeners();
+  }
+
   Future<bool> checkIfUserLiked(String currentUserId, String artistId) async {
     try {
       final userDoc =
           await firestore.collection('users').doc(currentUserId).get();
       final likedUsers = List<String>.from(userDoc.data()?['likedUsers'] ?? []);
       return likedUsers.contains(artistId);
-    } catch (_) {
-      // Si hay error, asumir que no ha dado like
+    } catch (e) {
       return false;
+    }
+  }
+
+  String? _getUserTypeForService(String? service) {
+    switch (service) {
+      case 'Música':
+        return 'artist';
+      case 'Repostería':
+        return 'bakery';
+      case 'Local':
+        return 'place';
+      case 'Decoración':
+        return 'decoration';
+      case 'Mueblería':
+        return 'furniture';
+      case 'Entretenimiento':
+        return 'entertainment';
+      default:
+        return null;
     }
   }
 }
