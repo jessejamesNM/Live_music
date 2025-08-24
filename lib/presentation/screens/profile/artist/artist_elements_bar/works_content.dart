@@ -50,7 +50,8 @@ class WorksContent extends StatefulWidget {
 }
 
 class WorksContentState extends State<WorksContent> {
-  final ApiServiceForWorks _api = RetrofitInstanceForWorks().apiServiceForWorks;
+  final ApiServiceForWorks _api =
+      RetrofitInstanceForWorks().apiServiceForWorks;
   List<String> mediaUrls = [];
   late final String currentUserId;
   late final EventBus _eventBus;
@@ -58,7 +59,6 @@ class WorksContentState extends State<WorksContent> {
   @override
   void initState() {
     super.initState();
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
     currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _eventBus = EventBus();
     _eventBus.subscribe<MediaUploadEvent>(_handleMediaUpload);
@@ -85,7 +85,6 @@ class WorksContentState extends State<WorksContent> {
     } catch (_) {}
   }
 
-  // Función para manejar la eliminación de medios
   void _handleMediaDeleted(String deletedUrl) {
     if (!mounted) return;
     setState(() {
@@ -103,12 +102,11 @@ class WorksContentState extends State<WorksContent> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => MediaPreviewer(
-                  mediaUrls: mediaUrls,
-                  initialIndex: 0,
-                  onMediaDeleted: _handleMediaDeleted, // Pasamos el callback
-                ),
+            builder: (_) => MediaPreviewer(
+              mediaUrls: mediaUrls,
+              initialIndex: 0,
+              onMediaDeleted: _handleMediaDeleted,
+            ),
           ),
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -143,12 +141,11 @@ class WorksContentState extends State<WorksContent> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => MediaPreviewer(
-                  mediaUrls: mediaUrls,
-                  initialIndex: 0,
-                  onMediaDeleted: _handleMediaDeleted, // Pasamos el callback
-                ),
+            builder: (_) => MediaPreviewer(
+              mediaUrls: mediaUrls,
+              initialIndex: 0,
+              onMediaDeleted: _handleMediaDeleted,
+            ),
           ),
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,9 +155,9 @@ class WorksContentState extends State<WorksContent> {
         throw Exception(resp.error ?? 'Error desconocido');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al subir el video: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir el video: $e')),
+      );
     }
   }
 
@@ -175,29 +172,28 @@ class WorksContentState extends State<WorksContent> {
   void _onAddPressed() {
     showModalBottomSheet(
       context: context,
-      builder:
-          (_) => SafeArea(
-            child: Wrap(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.image),
-                  title: const Text('Subir imagen'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.videocam),
-                  title: const Text('Subir video'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickVideo();
-                  },
-                ),
-              ],
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Subir imagen'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage();
+              },
             ),
-          ),
+            ListTile(
+              leading: const Icon(Icons.videocam),
+              title: const Text('Subir video'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickVideo();
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -211,55 +207,56 @@ class WorksContentState extends State<WorksContent> {
     String url,
     int index,
     Map<String, Color> colorScheme,
+    double screenWidth,
   ) {
     final isVideo = _isVideo(url);
+
+    final iconSize = screenWidth * 0.15; // Tamaño adaptativo del icono de play
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => MediaPreviewer(
-                  mediaUrls: mediaUrls,
-                  initialIndex: index,
-                  onMediaDeleted: _handleMediaDeleted, // Pasamos el callback
-                ),
+            builder: (_) => MediaPreviewer(
+              mediaUrls: mediaUrls,
+              initialIndex: index,
+              onMediaDeleted: _handleMediaDeleted,
+            ),
           ),
         );
       },
       child: Stack(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child:
-                isVideo
-                    ? VideoThumbnail(
-                      url: url,
-                      width: double.infinity,
-                      height: double.infinity,
-                    )
-                    : Image.network(
-                      url,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, __, ___) => Container(
-                            color: colorScheme['primaryColorLight']!,
-                            child: Icon(
-                              Icons.broken_image,
-                              color: colorScheme['secondaryColor'],
-                            ),
-                          ),
+            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            child: isVideo
+                ? VideoThumbnail(
+                    url: url,
+                    width: double.infinity,
+                    height: double.infinity,
+                  )
+                : Image.network(
+                    url,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: colorScheme['primaryColorLight']!,
+                      child: Icon(
+                        Icons.broken_image,
+                        color: colorScheme['secondaryColor'],
+                        size: screenWidth * 0.1,
+                      ),
                     ),
+                  ),
           ),
           if (isVideo)
-            const Positioned.fill(
+            Positioned.fill(
               child: Center(
                 child: Icon(
                   Icons.play_circle_fill,
-                  size: 60,
+                  size: iconSize,
                   color: Colors.white70,
                 ),
               ),
@@ -272,6 +269,9 @@ class WorksContentState extends State<WorksContent> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = 2;
+    final spacing = screenWidth * 0.02;
 
     return Container(
       color: colorScheme['primaryColor'],
@@ -281,18 +281,19 @@ class WorksContentState extends State<WorksContent> {
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(4),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 4,
-          mainAxisSpacing: 4,
+        padding: EdgeInsets.all(spacing),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
           childAspectRatio: 1,
         ),
         itemCount: mediaUrls.length + 1,
         itemBuilder: (context, idx) {
           if (idx < mediaUrls.length) {
-            return _buildMediaItem(mediaUrls[idx], idx, colorScheme);
+            return _buildMediaItem(mediaUrls[idx], idx, colorScheme, screenWidth);
           } else {
+            final addIconSize = screenWidth * 0.12; // Tamaño adaptativo del + 
             return GestureDetector(
               onTap: _onAddPressed,
               child: Container(
@@ -305,7 +306,7 @@ class WorksContentState extends State<WorksContent> {
                 child: Center(
                   child: Icon(
                     Icons.add,
-                    size: 48,
+                    size: addIconSize,
                     color: colorScheme['secondaryColor'],
                   ),
                 ),

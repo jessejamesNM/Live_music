@@ -28,6 +28,11 @@ import '../../../../../data/provider_logics/beginning/beginning_provider.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CountryStateScreen extends StatelessWidget {
   final GoRouter goRouter;
@@ -38,35 +43,41 @@ class CountryStateScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(screenWidth * 0.06),
         child: Consumer<BeginningProvider>(
           builder: (context, beginningProvider, child) {
-            // Obtener las selecciones actuales
-            final String selectedCountry = beginningProvider.selectedCountry.isNotEmpty
-                ? beginningProvider.selectedCountry
-                : '';
-            final String selectedState = beginningProvider.selectedState.isNotEmpty
-                ? beginningProvider.selectedState
-                : '';
+            final String selectedCountry =
+                beginningProvider.selectedCountry.isNotEmpty ? beginningProvider.selectedCountry : '';
+            final String selectedState =
+                beginningProvider.selectedState.isNotEmpty ? beginningProvider.selectedState : '';
 
             beginningProvider.setIncludeAllStatesOption(false);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
-                Text(
-                  AppStrings.stateAndCountryQuestion,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme[AppStrings.secondaryColor],
+                SizedBox(height: screenHeight * 0.05),
+
+                // Pregunta principal
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppStrings.stateAndCountryQuestion,
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.06, // Escalable
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 32),
+
+                SizedBox(height: screenHeight * 0.04),
 
                 // Dropdown de país
                 Container(
@@ -78,7 +89,7 @@ class CountryStateScreen extends StatelessWidget {
                       width: 1.5,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       isExpanded: true,
@@ -87,11 +98,13 @@ class CountryStateScreen extends StatelessWidget {
                       hint: Text(
                         AppStrings.selectCountry,
                         style: TextStyle(
+                          fontSize: screenWidth * 0.04,
                           color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7),
                         ),
                       ),
                       icon: Icon(
                         Icons.arrow_drop_down,
+                        size: screenWidth * 0.07,
                         color: colorScheme[AppStrings.secondaryColor],
                       ),
                       items: beginningProvider.countries.map((String country) {
@@ -100,6 +113,7 @@ class CountryStateScreen extends StatelessWidget {
                           child: Text(
                             country,
                             style: TextStyle(
+                              fontSize: screenWidth * 0.045,
                               color: colorScheme[AppStrings.secondaryColor],
                             ),
                           ),
@@ -107,18 +121,17 @@ class CountryStateScreen extends StatelessWidget {
                       }).toList(),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
-                          // Limpiar la selección de estado cuando se cambia el país
                           beginningProvider.selectOneCountry(newValue);
-                          beginningProvider.clearStates(); // Asegúrate de tener este método en tu provider
+                          beginningProvider.clearStates();
                         }
                       },
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: screenHeight * 0.03),
 
-                // Dropdown de estado (solo visible si hay un país seleccionado)
+                // Dropdown de estado
                 if (selectedCountry.isNotEmpty)
                   Container(
                     decoration: BoxDecoration(
@@ -129,7 +142,7 @@ class CountryStateScreen extends StatelessWidget {
                         width: 1.5,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         isExpanded: true,
@@ -138,11 +151,13 @@ class CountryStateScreen extends StatelessWidget {
                         hint: Text(
                           AppStrings.selectState,
                           style: TextStyle(
+                            fontSize: screenWidth * 0.04,
                             color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7),
                           ),
                         ),
                         icon: Icon(
                           Icons.arrow_drop_down,
+                          size: screenWidth * 0.07,
                           color: colorScheme[AppStrings.secondaryColor],
                         ),
                         items: beginningProvider.oneStates.map((String state) {
@@ -151,6 +166,7 @@ class CountryStateScreen extends StatelessWidget {
                             child: Text(
                               state,
                               style: TextStyle(
+                                fontSize: screenWidth * 0.045,
                                 color: colorScheme[AppStrings.secondaryColor],
                               ),
                             ),
@@ -167,7 +183,7 @@ class CountryStateScreen extends StatelessWidget {
 
                 const Spacer(),
 
-                // Botón de continuar (solo visible si hay selección completa)
+                // Botón continuar
                 if (selectedCountry.isNotEmpty && selectedState.isNotEmpty)
                   SizedBox(
                     width: double.infinity,
@@ -179,21 +195,24 @@ class CountryStateScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
                         elevation: 4,
                       ),
-                      child: Text(
-                        AppStrings.myContinue,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme[AppStrings.primaryColor],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppStrings.myContinue,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.045,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme[AppStrings.primaryColor],
+                          ),
                         ),
                       ),
                     ),
                   ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: screenHeight * 0.02),
               ],
             );
           },
@@ -214,12 +233,8 @@ class CountryStateScreen extends StatelessWidget {
     if (currentUserId == null) return;
 
     try {
-      final String country = provider.selectedCountry.isNotEmpty
-          ? provider.selectedCountry
-          : '';
-      final String state = provider.selectedState.isNotEmpty 
-          ? provider.selectedState
-          : '';
+      final String country = provider.selectedCountry.isNotEmpty ? provider.selectedCountry : '';
+      final String state = provider.selectedState.isNotEmpty ? provider.selectedState : '';
 
       if (country.isEmpty || state.isEmpty) {
         throw Exception('Por favor selecciona un país y un estado');
@@ -232,7 +247,6 @@ class CountryStateScreen extends StatelessWidget {
 
       goRouter.go("/welcomescreen");
     } catch (e) {
-      print("Error al guardar: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error al guardar: ${e.toString()}")),
       );

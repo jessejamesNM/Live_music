@@ -88,81 +88,11 @@ class _DatesContentState extends State<DatesContent> {
     super.dispose();
   }
 
-  void _checkInfoUpdated(DocumentSnapshot document) {
-    try {
-      final data = document.data() as Map<String, dynamic>?;
-      if (document.exists && data?.containsKey('infoUpdated') == true) {
-        final infoUpdated = data?['infoUpdated'] as Timestamp?;
-        if (infoUpdated != null) {
-          final now = DateTime.now();
-          final lastUpdate = infoUpdated.toDate();
-          final difference = now.difference(lastUpdate);
-          final hoursPassed = difference.inHours;
-          final minutesPassed = difference.inMinutes % 60;
-
-          if (hoursPassed < 24) {
-            final hoursRemaining = 23 - hoursPassed;
-            final minutesRemaining = 60 - minutesPassed;
-
-            final adjustedHours =
-                minutesRemaining == 60 ? hoursRemaining + 1 : hoursRemaining;
-            final adjustedMinutes =
-                minutesRemaining == 60 ? 0 : minutesRemaining;
-
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  final colorScheme = ColorPalette.getPalette(context);
-                  return AlertDialog(
-                    backgroundColor: colorScheme[AppStrings.primaryColor],
-                    title: Text(
-                      AppStrings.recentlyUpdatedInfoTitle,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor],
-                      ),
-                    ),
-                    content: Text(
-                      AppStrings.recentlyUpdatedInfoContent(
-                        hoursPassed: hoursPassed,
-                        minutesPassed: minutesPassed,
-                        adjustedHours: adjustedHours,
-                        adjustedMinutes: adjustedMinutes,
-                      ),
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor],
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          AppStrings.understood,
-                          style: TextStyle(
-                            color: colorScheme[AppStrings.secondaryColor],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            });
-          }
-        }
-      }
-    } catch (e, stackTrace) {
-      // Error handling omitted
-    }
-  }
-
   void _loadData() async {
     final userRef = _db.collection("users").doc(widget.currentUserId);
     try {
       final document = await userRef.get();
       if (document.exists) {
-        _checkInfoUpdated(document);
-
         dynamic safeGet(DocumentSnapshot doc, String field) {
           try {
             return doc.get(field);
@@ -194,7 +124,7 @@ class _DatesContentState extends State<DatesContent> {
           _selectedSpecialty = [];
         });
       }
-    } catch (error, stackTrace) {
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al cargar datos: ${error.toString()}'),
@@ -206,167 +136,103 @@ class _DatesContentState extends State<DatesContent> {
 
   Future<void> _saveData() async {
     final userRef = _db.collection("users").doc(widget.currentUserId);
-
     try {
       final document = await userRef.get();
-
-      if (!document.exists) {
-        return;
-      }
+      if (!document.exists) return;
 
       final data = document.data() ?? {};
-
-      final lastUpdated =
-          (data["infoUpdated"] as Timestamp?)
-              ?.toDate()
-              .millisecondsSinceEpoch ??
-          0;
-      final currentTime = DateTime.now().millisecondsSinceEpoch;
-      final oneDayInMillis = 24 * 60 * 60 * 1000;
-
-      final updates = <String, dynamic>{};
-      bool hasUpdateRestriction = false;
-
-      bool canUpdateField(String fieldName, dynamic newValue) {
-        final existingValue = data[fieldName];
-        return existingValue == null ||
-            (currentTime - lastUpdated) > oneDayInMillis ||
-            existingValue != newValue;
-      }
-
-      String normalizeSpecialty(String specialty) {
-        final lower = specialty.toLowerCase();
-        if (lower.contains("boda")) return AppStrings.weddings;
-        if (lower.contains("casual")) return AppStrings.casualParties;
-        if (lower.contains("público") || lower.contains("publico")) {
-          return AppStrings.publicEvents;
-        }
-        return specialty;
-      }
-
-      final normalizedSpecialties =
-          _selectedSpecialty.map((spec) => normalizeSpecialty(spec)).toList();
-
-      final fieldsToUpdate = {
-        "description":
-            _description.isNotEmpty ? _description : FieldValue.delete(),
-        "genres":
-            _selectedGenres.isNotEmpty ? _selectedGenres : FieldValue.delete(),
-        "specialty":
-            normalizedSpecialties.isNotEmpty
-                ? normalizedSpecialties
-                : FieldValue.delete(),
+      final updates = <String, dynamic>{
+        "description": _description.isNotEmpty ? _description : FieldValue.delete(),
+        "genres": _selectedGenres.isNotEmpty ? _selectedGenres : FieldValue.delete(),
+        "specialty": _selectedSpecialty.isNotEmpty ? _selectedSpecialty : FieldValue.delete(),
+        "infoUpdated": FieldValue.serverTimestamp(),
       };
-
-      fieldsToUpdate.forEach((fieldName, value) {
-        if (value != FieldValue.delete()) {
-          if (canUpdateField(fieldName, value)) {
-            updates[fieldName] = value;
-          } else {
-            hasUpdateRestriction = true;
-          }
-        }
-      });
-
-      if (hasUpdateRestriction) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.updateRestrictionMessage)),
-        );
-        return;
-      }
-
-      if (updates.isEmpty) {
-        return;
-      }
-
-      updates["infoUpdated"] = FieldValue.serverTimestamp();
-
       await userRef.update(updates);
-
-      setState(() {
-        _isEditing = false;
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppStrings.dataSavedSuccessfully)));
+      setState(() => _isEditing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.dataSavedSuccessfully)));
     } catch (error) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppStrings.errorSavingData)));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.errorSavingData)));
     }
   }
 
-  Widget _buildSpecialtyChips() {
+  Widget _buildSpecialtyChips(double fontSize) {
     final colorScheme = ColorPalette.getPalette(context);
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children:
-          _selectedSpecialty.map((specialty) {
-            return Chip(
-              label: Text(specialty, style: TextStyle(color: Colors.white)),
-              backgroundColor: colorScheme[AppStrings.essentialColor],
-              deleteIcon: Icon(Icons.close, color: Colors.white),
-              onDeleted:
-                  _isEditing
-                      ? () {
-                        setState(() {
-                          _selectedSpecialty.remove(specialty);
-                        });
-                      }
-                      : null,
-            );
-          }).toList(),
+      spacing: fontSize * 0.6,
+      runSpacing: fontSize * 0.6,
+      children: _selectedSpecialty.map((specialty) {
+        return Chip(
+          label: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(specialty, style: TextStyle(color: Colors.white, fontSize: fontSize)),
+          ),
+          backgroundColor: colorScheme[AppStrings.essentialColor],
+          deleteIcon: Icon(Icons.close, color: Colors.white, size: fontSize),
+          onDeleted: _isEditing
+              ? () {
+                  setState(() {
+                    _selectedSpecialty.remove(specialty);
+                  });
+                }
+              : null,
+        );
+      }).toList(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Tamaños adaptativos
+    final padding = screenWidth * 0.04;
+    final buttonHeight = screenHeight * 0.06;
+    final textFontSize = screenWidth * 0.045;
+    final titleFontSize = screenWidth * 0.05;
+    final chipFontSize = screenWidth * 0.04;
+
     return Container(
       color: colorScheme[AppStrings.primaryColor],
       child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.all(padding),
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            SizedBox(height: screenHeight * 0.02),
             ElevatedButton(
-              onPressed: () async {
-                if (_isEditing) {
-                  await _saveData();
-                } else {
-                  setState(() {
-                    _isEditing = true;
-                  });
-                }
-              },
+              onPressed: _isEditing ? _saveData : () => setState(() => _isEditing = true),
               style: ElevatedButton.styleFrom(
-                foregroundColor: colorScheme[AppStrings.secondaryColor],
+                foregroundColor: Colors.white,
                 backgroundColor: colorScheme[AppStrings.essentialColor],
-                minimumSize: const Size(double.infinity, 50),
+                minimumSize: Size(double.infinity, buttonHeight),
               ),
-              child: Text(
-                _isEditing ? AppStrings.save : AppStrings.edit,
-                style: const TextStyle(fontSize: 18, color: Colors.white),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _isEditing ? AppStrings.save : AppStrings.edit,
+                  style: TextStyle(fontSize: titleFontSize, color: Colors.white),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: screenHeight * 0.02),
             Card(
               color: colorScheme[AppStrings.primaryColorLight],
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(padding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "${AppStrings.description}:",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: colorScheme[AppStrings.secondaryColor],
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        "${AppStrings.description}:",
+                        style: TextStyle(fontSize: titleFontSize, color: colorScheme[AppStrings.secondaryColor]),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: screenHeight * 0.005),
                     TextField(
                       controller: _descriptionController,
                       onChanged: (value) => _description = value,
@@ -375,311 +241,176 @@ class _DatesContentState extends State<DatesContent> {
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: colorScheme[AppStrings.primaryColorLight],
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: colorScheme[AppStrings.secondaryColor]!),
+                        ),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                colorScheme[AppStrings.secondaryColor] ??
-                                Colors.white,
-                          ),
+                          borderSide: BorderSide(color: colorScheme[AppStrings.secondaryColor]!),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                colorScheme[AppStrings.secondaryColor] ??
-                                Colors.white,
-                          ),
+                          borderSide: BorderSide(color: colorScheme[AppStrings.secondaryColor]!),
                         ),
                       ),
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor],
-                      ),
+                      style: TextStyle(color: colorScheme[AppStrings.secondaryColor], fontSize: textFontSize),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: screenHeight * 0.015),
             if (_userType == "artist")
               Card(
                 color: colorScheme[AppStrings.primaryColorLight],
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(padding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppStrings.musicGenres,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: colorScheme[AppStrings.secondaryColor],
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppStrings.musicGenres,
+                          style: TextStyle(fontSize: titleFontSize, color: colorScheme[AppStrings.secondaryColor]),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: screenHeight * 0.005),
                       OutlinedButton(
-                        onPressed:
-                            _isEditing
-                                ? () => setState(() {
-                                  _showGenresDropdown = !_showGenresDropdown;
-                                })
-                                : null,
+                        onPressed: _isEditing ? () => setState(() => _showGenresDropdown = !_showGenresDropdown) : null,
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color:
-                                colorScheme[AppStrings.secondaryColor] ??
-                                Colors.white,
-                          ),
-                          minimumSize: const Size(double.infinity, 50),
+                          side: BorderSide(color: colorScheme[AppStrings.secondaryColor]!),
+                          minimumSize: Size(double.infinity, buttonHeight),
                         ),
-                        child: Text(
-                          AppStrings.selectGenres,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: colorScheme[AppStrings.secondaryColor],
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppStrings.selectGenres,
+                            style: TextStyle(fontSize: textFontSize, color: colorScheme[AppStrings.secondaryColor]),
                           ),
                         ),
                       ),
                       if (_showGenresDropdown)
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: colorScheme[AppStrings.primaryColor],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Column(
-                            children:
-                                _genresList.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final genre = entry.value;
-                                  final isSelected = _selectedGenres.contains(
-                                    genre,
-                                  );
-
-                                  return Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                        ),
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            Center(
-                                              child: Text(
-                                                genre,
-                                                style: TextStyle(
-                                                  color:
-                                                      colorScheme[AppStrings
-                                                          .secondaryColor],
-                                                ),
-                                              ),
-                                            ),
-                                            Align(
-                                              alignment: Alignment.centerLeft,
-                                              child: Checkbox(
-                                                value: isSelected,
-                                                onChanged:
-                                                    _isEditing
-                                                        ? (bool? selected) {
-                                                          if (selected ==
-                                                              true) {
-                                                            _selectedGenres.add(
-                                                              genre,
-                                                            );
-                                                          } else {
-                                                            _selectedGenres
-                                                                .remove(genre);
-                                                          }
-                                                          setState(() {});
-                                                        }
-                                                        : null,
-                                                activeColor:
-                                                    colorScheme[AppStrings
-                                                        .secondaryColor],
-                                                checkColor:
-                                                    colorScheme[AppStrings
-                                                        .primaryColor],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (index != _genresList.length - 1)
-                                        Divider(
-                                          color: colorScheme[AppStrings
-                                                  .secondaryColor]
-                                              ?.withOpacity(0.3),
-                                          height: 1,
-                                          thickness: 1,
-                                        ),
-                                    ],
-                                  );
-                                }).toList(),
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children:
-                            _selectedGenres
-                                .map(
-                                  (genre) => Chip(
-                                    label: Text(
+                        Column(
+                          children: _genresList.map((genre) {
+                            final isSelected = _selectedGenres.contains(genre);
+                            return Row(
+                              children: [
+                                Checkbox(
+                                  value: isSelected,
+                                  onChanged: _isEditing
+                                      ? (bool? selected) {
+                                          setState(() {
+                                            if (selected == true) _selectedGenres.add(genre);
+                                            else _selectedGenres.remove(genre);
+                                          });
+                                        }
+                                      : null,
+                                  activeColor: colorScheme[AppStrings.secondaryColor],
+                                  checkColor: colorScheme[AppStrings.primaryColor],
+                                ),
+                                Expanded(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
                                       genre,
-                                      style: TextStyle(
-                                        color:
-                                            colorScheme[AppStrings
-                                                .secondaryColor],
-                                      ),
+                                      style: TextStyle(fontSize: textFontSize, color: colorScheme[AppStrings.secondaryColor]),
                                     ),
-                                    backgroundColor:
-                                        colorScheme[AppStrings.essentialColor],
-                                    deleteIcon: Icon(
-                                      Icons.close,
-                                      color:
-                                          colorScheme[AppStrings
-                                              .secondaryColor],
-                                    ),
-                                    onDeleted:
-                                        _isEditing
-                                            ? () => setState(() {
-                                              _selectedGenres.remove(genre);
-                                            })
-                                            : null,
                                   ),
-                                )
-                                .toList(),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      SizedBox(height: screenHeight * 0.01),
+                      Wrap(
+                        spacing: chipFontSize * 0.6,
+                        runSpacing: chipFontSize * 0.6,
+                        children: _selectedGenres.map((genre) {
+                          return Chip(
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(genre, style: TextStyle(color: Colors.white, fontSize: chipFontSize)),
+                            ),
+                            backgroundColor: colorScheme[AppStrings.essentialColor],
+                            deleteIcon: Icon(Icons.close, color: Colors.white, size: chipFontSize),
+                            onDeleted: _isEditing
+                                ? () => setState(() => _selectedGenres.remove(genre))
+                                : null,
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
                 ),
               ),
-            const SizedBox(height: 8),
+            SizedBox(height: screenHeight * 0.015),
             Card(
               color: colorScheme[AppStrings.primaryColorLight],
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(padding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      AppStrings.specialization,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: colorScheme[AppStrings.secondaryColor],
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppStrings.specialization,
+                        style: TextStyle(fontSize: titleFontSize, color: colorScheme[AppStrings.secondaryColor]),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: screenHeight * 0.005),
                     OutlinedButton(
-                      onPressed:
-                          _isEditing
-                              ? () => setState(() {
-                                _showSpecialtiesDropdown =
-                                    !_showSpecialtiesDropdown;
-                              })
-                              : null,
+                      onPressed: _isEditing ? () => setState(() => _showSpecialtiesDropdown = !_showSpecialtiesDropdown) : null,
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color:
-                              colorScheme[AppStrings.secondaryColor] ??
-                              Colors.white,
-                        ),
-                        minimumSize: const Size(double.infinity, 50),
+                        side: BorderSide(color: colorScheme[AppStrings.secondaryColor]!),
+                        minimumSize: Size(double.infinity, buttonHeight),
                       ),
-                      child: Text(
-                        AppStrings.selectSpecialty,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: colorScheme[AppStrings.secondaryColor],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppStrings.selectSpecialty,
+                          style: TextStyle(fontSize: textFontSize, color: colorScheme[AppStrings.secondaryColor]),
                         ),
                       ),
                     ),
                     if (_showSpecialtiesDropdown)
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: colorScheme[AppStrings.primaryColor],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          children:
-                              _specialtiesList.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final specialty = entry.value;
-                                final isSelected = _selectedSpecialty.contains(
-                                  specialty,
-                                );
-
-                                return Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Center(
-                                            child: Text(
-                                              specialty,
-                                              style: TextStyle(
-                                                color:
-                                                    colorScheme[AppStrings
-                                                        .secondaryColor],
-                                              ),
-                                            ),
-                                          ),
-                                          Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Checkbox(
-                                              value: isSelected,
-                                              onChanged:
-                                                  _isEditing
-                                                      ? (bool? selected) {
-                                                        if (selected == true) {
-                                                          _selectedSpecialty
-                                                              .add(specialty);
-                                                        } else {
-                                                          _selectedSpecialty
-                                                              .remove(
-                                                                specialty,
-                                                              );
-                                                        }
-                                                        setState(() {});
-                                                      }
-                                                      : null,
-                                              activeColor:
-                                                  colorScheme[AppStrings
-                                                      .secondaryColor],
-                                              checkColor:
-                                                  colorScheme[AppStrings
-                                                      .primaryColor],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (index != _specialtiesList.length - 1)
-                                      Divider(
-                                        color: colorScheme[AppStrings
-                                                .secondaryColor]
-                                            ?.withOpacity(0.3),
-                                        height: 1,
-                                        thickness: 1,
-                                      ),
-                                  ],
-                                );
-                              }).toList(),
-                        ),
+                      Column(
+                        children: _specialtiesList.map((specialty) {
+                          final isSelected = _selectedSpecialty.contains(specialty);
+                          return Row(
+                            children: [
+                              Checkbox(
+                                value: isSelected,
+                                onChanged: _isEditing
+                                    ? (bool? selected) {
+                                        setState(() {
+                                          if (selected == true) _selectedSpecialty.add(specialty);
+                                          else _selectedSpecialty.remove(specialty);
+                                        });
+                                      }
+                                    : null,
+                                activeColor: colorScheme[AppStrings.secondaryColor],
+                                checkColor: colorScheme[AppStrings.primaryColor],
+                              ),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    specialty,
+                                    style: TextStyle(fontSize: textFontSize, color: colorScheme[AppStrings.secondaryColor]),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    const SizedBox(height: 8),
-                    _buildSpecialtyChips(),
+                    SizedBox(height: screenHeight * 0.01),
+                    _buildSpecialtyChips(chipFontSize),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: screenHeight * 0.015),
           ],
         ),
       ),

@@ -50,7 +50,10 @@ class ReviewsContractorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Se obtiene el ID del usuario que está visualizando el perfil y la URL de la imagen de perfil
+    // Tamaño de la pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     final otherUserId = messagesProvider.userIdForProfilePreview;
     final profileImageUrlNotifier =
         messagesProvider.profileImageUrlForProfilesPreview;
@@ -65,79 +68,91 @@ class ReviewsContractorScreen extends StatelessWidget {
         userType: userType,
       ),
       body: Container(
-        color: Colors.black, // Se establece el color de fondo de la pantalla
-        padding: const EdgeInsets.all(16), // Espaciado general
+        color: Colors.black,
+        padding: EdgeInsets.all(screenWidth * 0.04), // padding relativo
         child: Column(
           children: [
-            // Fila de cabecera con icono de retroceso y título de la pantalla
+            // Cabecera
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
                   icon: Icon(
                     Icons.arrow_back,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color del icono
+                    color: colorScheme[AppStrings.secondaryColor],
+                    size: screenWidth * 0.07, // tamaño relativo
                   ),
                   onPressed: () {
-                    context.pop(); // Volver a la pantalla anterior
+                    context.pop();
                   },
                 ),
-                Text(
-                  AppStrings.reviewsTitle, // Título de la pantalla
-                  style: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor],
-                    fontSize: 26,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.reviewsTitle,
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: screenWidth * 0.065, // tamaño relativo
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 48),
+                SizedBox(width: screenWidth * 0.12), // espacio proporcional
               ],
             ),
-            const SizedBox(height: 10),
-            // Muestra la imagen del perfil y el nombre del usuario
+            SizedBox(height: screenHeight * 0.015),
+            // Perfil
             ValueListenableBuilder<String?>(
               valueListenable: profileImageUrlNotifier,
               builder: (context, profileImageUrl, child) {
                 return Row(
                   children: [
-                    // Si hay una URL de imagen, se muestra en un avatar circular, si no, se muestra una imagen por defecto
                     profileImageUrl != null && profileImageUrl.isNotEmpty
                         ? CircleAvatar(
-                          backgroundImage: NetworkImage(profileImageUrl),
-                          radius: 35,
-                        )
+                            backgroundImage: NetworkImage(profileImageUrl),
+                            radius: screenWidth * 0.09,
+                          )
                         : Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colorScheme[AppStrings.primaryColorLight],
+                            width: screenWidth * 0.18,
+                            height: screenWidth * 0.18,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color:
+                                  colorScheme[AppStrings.primaryColorLight],
+                            ),
+                            child: SvgPicture.asset(
+                              AppStrings.defaultUserImagePath,
+                              fit: BoxFit.scaleDown,
+                              width: screenWidth * 0.1,
+                              height: screenWidth * 0.1,
+                              color: colorScheme[AppStrings.essentialColor],
+                            ),
                           ),
-                          child: SvgPicture.asset(
-                            AppStrings.defaultUserImagePath,
-                            fit: BoxFit.scaleDown,
-                            width: 40,
-                            height: 40,
-                            color: colorScheme[AppStrings.essentialColor],
+                    SizedBox(width: screenWidth * 0.03),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          userName.value,
+                          style: TextStyle(
+                            color: colorScheme[AppStrings.secondaryColor],
+                            fontSize: screenWidth * 0.06,
                           ),
                         ),
-                    const SizedBox(width: 8),
-                    // Nombre del usuario visualizado
-                    Text(
-                      userName.value,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor],
-                        fontSize: 24,
                       ),
                     ),
                   ],
                 );
               },
             ),
-            const SizedBox(height: 5),
-            // Contenido de las reseñas, donde se pasan las referencias necesarias
-            Expanded(child: ReviewsContentWS(otherUserId: otherUserId.value)),
+            SizedBox(height: screenHeight * 0.01),
+            // Contenido de reseñas
+            Expanded(
+              child: ReviewsContentWS(otherUserId: otherUserId.value),
+            ),
           ],
         ),
       ),

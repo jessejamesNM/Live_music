@@ -43,163 +43,188 @@ class _NicknameScreenState extends State<NicknameScreen> {
   String nickname = '';
   String errorMessage = '';
 
- 
-Future<bool> shouldCheckLocation(bool isArtist) async {
-  if (isArtist) return false;
+  Future<bool> shouldCheckLocation(bool isArtist) async {
+    if (isArtist) return false;
 
-  final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = FirebaseAuth.instance.currentUser;
 
-  if (currentUser == null || currentUser.uid.trim().isEmpty) {
-    print(" Usuario no autenticado o UID vacío");
-    return true; // o false, depende de tu lógica general
+    if (currentUser == null || currentUser.uid.trim().isEmpty) {
+      print(" Usuario no autenticado o UID vacío");
+      return true; 
+    }
+
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+
+    if (!docSnapshot.exists) return true;
+
+    final data = docSnapshot.data();
+    final hasCountry = data != null &&
+        data['country'] != null &&
+        data['country'].toString().trim().isNotEmpty;
+    final hasState = data != null &&
+        data['state'] != null &&
+        data['state'].toString().trim().isNotEmpty;
+
+    return !(hasCountry || hasState);
   }
-
-  final docSnapshot = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUser.uid)
-      .get();
-
-  if (!docSnapshot.exists) return true;
-
-  final data = docSnapshot.data();
-  final hasCountry = data != null && data['country'] != null && data['country'].toString().trim().isNotEmpty;
-  final hasState = data != null && data['state'] != null && data['state'].toString().trim().isNotEmpty;
-
-  return !(hasCountry || hasState);
-}
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<BeginningProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final userType = userProvider.userType;
-    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
     final isArtist = userType == AppStrings.artist;
     final colorScheme = ColorPalette.getPalette(context);
 
+    // Usamos MediaQuery para tamaños adaptativos
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
+
+    // Factores relativos a pantalla
+    final textScale = MediaQuery.of(context).textScaleFactor;
+    final baseFontSize = width * 0.045; // tamaño relativo al ancho
+    final titleFontSize = width * 0.06;
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                AppStrings.createNickName,
-                style: TextStyle(
-                  color: colorScheme[AppStrings.secondaryColor],
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(width * 0.04),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          nickname = value;
-                          errorMessage = provider.validateNickname(value);
-                        });
-                      },
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: colorScheme[AppStrings.primaryColor],
-                        border: const OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                colorScheme[AppStrings.secondaryColor] ??
-                                Colors.grey,
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                colorScheme[AppStrings.secondaryColor] ??
-                                Colors.blue,
-                            width: 2.0,
-                          ),
-                        ),
-                        errorText:
-                            errorMessage.isNotEmpty ? errorMessage : null,
-                        errorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-                        focusedErrorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-                        hintText: AppStrings.yourNickname,
-                        hintStyle: TextStyle(
-                          color: colorScheme[AppStrings.secondaryColor]
-                              ?.withOpacity(0.5),
-                        ),
-                      ),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.createNickName,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
-                        fontSize: 16.0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (nickname.isNotEmpty && errorMessage.isEmpty)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      bool isAvailable = await provider.isNicknameAvailable(
-                        nickname,
-                      );
-                      if (isAvailable) {
-                        // Condición especial antes de guardar nickname y navegar
-                        final needsLocationCheck = await shouldCheckLocation(
-                          isArtist,
-                          
-                        );
-
-                        if (needsLocationCheck) {
-                          userProvider.getCountryAndState();
-                        }
-
-                        provider.saveNickname(
-                          nickname,
-                          context,
-                          widget.goRouter,
-                          provider.routeToGo ?? '',
-                        );
-                      } else {
-                        setState(() {
-                          errorMessage = AppStrings.noAvailableNickname;
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme[AppStrings.essentialColor],
-                      foregroundColor: colorScheme[AppStrings.primaryColor],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.0),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      elevation: 4.0,
-                    ),
-                    child: Text(
-                      AppStrings.myContinue,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.primaryColor],
-                        fontSize: 16.0,
+                        fontSize: titleFontSize, 
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ),
-            ],
+                  SizedBox(height: height * 0.02),
+
+                  Row(
+                    children: [
+                      SizedBox(width: width * 0.02),
+                      Expanded(
+                        child: TextField(
+                          onChanged: (value) {
+                            setState(() {
+                              nickname = value;
+                              errorMessage = provider.validateNickname(value);
+                            });
+                          },
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: colorScheme[AppStrings.primaryColor],
+                            border: const OutlineInputBorder(),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: colorScheme[AppStrings.secondaryColor] ??
+                                    Colors.grey,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: colorScheme[AppStrings.secondaryColor] ??
+                                    Colors.blue,
+                                width: 2.0,
+                              ),
+                            ),
+                            errorText:
+                                errorMessage.isNotEmpty ? errorMessage : null,
+                            errorBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            focusedErrorBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            hintText: AppStrings.yourNickname,
+                            hintStyle: TextStyle(
+                              color: colorScheme[AppStrings.secondaryColor]
+                                  ?.withOpacity(0.5),
+                              fontSize: baseFontSize * 0.9,
+                            ),
+                          ),
+                          style: TextStyle(
+                            color: colorScheme[AppStrings.secondaryColor],
+                            fontSize: baseFontSize,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: height * 0.03),
+
+                  if (nickname.isNotEmpty && errorMessage.isEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          bool isAvailable =
+                              await provider.isNicknameAvailable(nickname);
+
+                          if (isAvailable) {
+                            final needsLocationCheck =
+                                await shouldCheckLocation(isArtist);
+
+                            if (needsLocationCheck) {
+                              userProvider.getCountryAndState();
+                            }
+
+                            provider.saveNickname(
+                              nickname,
+                              context,
+                              widget.goRouter,
+                              provider.routeToGo ?? '',
+                            );
+                          } else {
+                            setState(() {
+                              errorMessage = AppStrings.noAvailableNickname;
+                            });
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              colorScheme[AppStrings.essentialColor],
+                          foregroundColor:
+                              colorScheme[AppStrings.primaryColor],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(width * 0.04),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: height * 0.02,
+                          ),
+                          elevation: 4.0,
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppStrings.myContinue,
+                            style: TextStyle(
+                              color: colorScheme[AppStrings.primaryColor],
+                              fontSize: baseFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

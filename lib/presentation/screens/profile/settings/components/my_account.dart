@@ -55,10 +55,22 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   bool _isSaving = false;
   String _userEmail = '';
 
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
+    _emailController = TextEditingController();
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -72,10 +84,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             _userName = userDoc['name'] ?? '';
             _initialName = _userName;
             _userEmail = userDoc['email'] ?? '';
+            _nameController.text = _userName;
+            _emailController.text = _userEmail;
             if (userDoc.data()?.containsKey('nameModified') ?? false) {
               _lastModifiedDate =
-                  (userDoc['nameModified'] as Timestamp?)?.toDate() ??
-                  DateTime(0);
+                  (userDoc['nameModified'] as Timestamp?)?.toDate() ?? DateTime(0);
             } else {
               _lastModifiedDate = DateTime(0);
             }
@@ -130,28 +143,14 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final userType = widget.userProvider.userType;
-    final isArtist = userType == AppStrings.artist;
     final colors = ColorPalette.getPalette(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+
     final inputDecoration = InputDecoration(
       labelStyle: TextStyle(color: colors[AppStrings.secondaryColor]),
-      border: OutlineInputBorder(
-        borderSide: BorderSide(color: colors[AppStrings.secondaryColor]!),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: colors[AppStrings.secondaryColorLittleDark]!,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: colors[AppStrings.secondaryColor]!),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: colors[AppStrings.secondaryColorLittleDark]!,
-        ),
-      ),
+      border: OutlineInputBorder(),
+      enabledBorder: OutlineInputBorder(),
+      focusedBorder: OutlineInputBorder(),
+      disabledBorder: OutlineInputBorder(),
     );
 
     return Scaffold(
@@ -161,173 +160,187 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         userType: userType,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(screenWidth * 0.04),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: screenHeight * 0.08,
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: colors[AppStrings.secondaryColor],
-                          size: screenWidth * 0.08,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Factor para escalar todo según la pantalla
+            final widthFactor = constraints.maxWidth / 400;
+            final heightFactor = constraints.maxHeight / 800;
+            final scaleFactor = widthFactor < heightFactor ? widthFactor : heightFactor;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16 * scaleFactor),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 60 * scaleFactor,
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: colors[AppStrings.secondaryColor],
+                              size: 30 * scaleFactor,
+                            ),
+                            onPressed: () {
+                              widget.goRouter.pop();
+                            },
+                          ),
                         ),
-                        onPressed: () {
-                          widget.goRouter.pop();
-                        },
+                        Center(
+                          child: FittedBox(
+                            child: Text(
+                              AppStrings.myAccountTitle,
+                              style: TextStyle(
+                                color: colors[AppStrings.secondaryColor],
+                                fontSize: 24 * scaleFactor,
+                                fontFamily: 'CustomFont',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16 * scaleFactor),
+                  FittedBox(
+                    child: Text(
+                      AppStrings.informationSection,
+                      style: TextStyle(
+                        color: colors[AppStrings.secondaryColor],
+                        fontSize: 20 * scaleFactor,
+                        fontFamily: 'CustomFont',
                       ),
                     ),
+                  ),
+                  SizedBox(height: 16 * scaleFactor),
+                  TextField(
+                    decoration: inputDecoration.copyWith(
+                      labelText: AppStrings.nameLabel,
+                      enabled: _isNameEditable,
+                    ),
+                    style: TextStyle(
+                      color: colors[AppStrings.secondaryColor],
+                      fontSize: 16 * scaleFactor,
+                    ),
+                    controller: _nameController,
+                    onChanged: (newName) {
+                      setState(() {
+                        _userName = newName;
+                        _showSaveButton = newName != _initialName;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 16 * scaleFactor),
+                  TextField(
+                    decoration: inputDecoration.copyWith(
+                      labelText: AppStrings.emailLabel,
+                    ),
+                    style: TextStyle(
+                      color: colors[AppStrings.secondaryColor],
+                      fontSize: 16 * scaleFactor,
+                    ),
+                    controller: _emailController,
+                    enabled: false,
+                  ),
+                  SizedBox(height: 8 * scaleFactor),
+                  if (_showSaveButton)
                     Center(
-                      child: Text(
-                        AppStrings.myAccountTitle,
-                        style: TextStyle(
-                          color: colors[AppStrings.secondaryColor],
-                          fontSize: screenWidth * 0.07,
-                          fontFamily: 'CustomFont',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              Text(
-                AppStrings.informationSection,
-                style: TextStyle(
-                  color: colors[AppStrings.secondaryColor],
-                  fontSize: screenWidth * 0.06,
-                  fontFamily: 'CustomFont',
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              TextField(
-                decoration: inputDecoration.copyWith(
-                  labelText: AppStrings.nameLabel,
-                  enabled: _isNameEditable,
-                ),
-                style: TextStyle(color: colors[AppStrings.secondaryColor]),
-                controller: TextEditingController(text: _userName),
-                onChanged: (newName) {
-                  setState(() {
-                    _userName = newName;
-                    _showSaveButton = newName != _initialName;
-                  });
-                },
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              TextField(
-                decoration: inputDecoration.copyWith(
-                  labelText: AppStrings.emailLabel,
-                ),
-                style: TextStyle(color: colors[AppStrings.secondaryColor]),
-                controller: TextEditingController(text: _userEmail),
-                enabled: false,
-              ),
-              SizedBox(height: screenHeight * 0.01),
-              if (_showSaveButton)
-                Center(
-                  child: CustomElevatedButton(
-                    text:
-                        _isSaving
+                      child: CustomElevatedButton(
+                        text: _isSaving
                             ? AppStrings.savingChanges
                             : AppStrings.saveChanges,
-                    onPressed:
-                        _isSaving || _userName.isEmpty ? null : _saveChanges,
-                    colors: colors,
-                  ),
-                ),
-              if (_errorMessage.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: screenHeight * 0.005),
-                  child: Text(
-                    _errorMessage,
-                    style: TextStyle(
-                      color: colors[AppStrings.redColor],
-                      fontSize: 15,
+                        onPressed:
+                            _isSaving || _userName.isEmpty ? null : _saveChanges,
+                        colors: colors,
+                        scaleFactor: scaleFactor,
+                      ),
                     ),
-                  ),
-                ),
-              SizedBox(height: screenHeight * 0.005),
-              Center(
-                child: CustomElevatedButton(
-                  text:
-                      _isNameEditable ? AppStrings.cancel : AppStrings.editName,
-                  onPressed: () {
-                    setState(() {
-                      _isNameEditable = !_isNameEditable;
-                      _userName = _initialName;
-                      _showSaveButton = false;
-                    });
-                  },
-                  colors: colors,
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              // Texto "Opciones" alineado a la izquierda
-              Text(
-                AppStrings.optionsSection,
-                style: TextStyle(
-                  color: colors[AppStrings.secondaryColor],
-                  fontSize: screenWidth * 0.06,
-                  fontFamily: 'CustomFont',
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.01),
-              // Botones centrados debajo del texto alineado a la izquierda
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AccountOptionButton(
-                      label: AppStrings.changePassword,
-                      onTap:
-                          () => widget.goRouter.go(
-                            AppStrings.changePasswordRoute,
-                          ),
-                      colors: colors,
-                      screenHeight: screenHeight,
-                      screenWidth: screenWidth,
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8 * scaleFactor),
+                      child: Text(
+                        _errorMessage,
+                        style: TextStyle(
+                          color: colors[AppStrings.redColor],
+                          fontSize: 14 * scaleFactor,
+                        ),
+                      ),
                     ),
-                    Divider(
-                      color: colors[AppStrings.selectedButtonColor],
-                      thickness: 0.63,
-                    ),
-                    AccountOptionButton(
-                      label: AppStrings.deleteAccount,
-                      onTap:
-                          () =>
-                              widget.goRouter.go(AppStrings.deleteAccountRoute),
-                      colors: colors,
-                      screenHeight: screenHeight,
-                      screenWidth: screenWidth,
-                    ),
-                    Divider(
-                      color: colors[AppStrings.selectedButtonColor],
-                      thickness: 0.63,
-                    ),
-                    AccountOptionButton(
-                      label: AppStrings.logOut,
-                      onTap: () async {
-                        await _auth.signOut();
-                        await _googleSignIn.signOut();
-                        widget.goRouter.go(AppStrings.selectionScreenRoute);
+                  SizedBox(height: 8 * scaleFactor),
+                  Center(
+                    child: CustomElevatedButton(
+                      text: _isNameEditable
+                          ? AppStrings.cancel
+                          : AppStrings.editName,
+                      onPressed: () {
+                        setState(() {
+                          _isNameEditable = !_isNameEditable;
+                          _userName = _initialName;
+                          _nameController.text = _initialName;
+                          _showSaveButton = false;
+                        });
                       },
                       colors: colors,
-                      screenHeight: screenHeight,
-                      screenWidth: screenWidth,
-                      isDestructive: true,
+                      scaleFactor: scaleFactor,
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 16 * scaleFactor),
+                  FittedBox(
+                    child: Text(
+                      AppStrings.optionsSection,
+                      style: TextStyle(
+                        color: colors[AppStrings.secondaryColor],
+                        fontSize: 20 * scaleFactor,
+                        fontFamily: 'CustomFont',
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8 * scaleFactor),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AccountOptionButton(
+                          label: AppStrings.changePassword,
+                          onTap: () => widget.goRouter.go(AppStrings.changePasswordRoute),
+                          colors: colors,
+                          scaleFactor: scaleFactor,
+                        ),
+                        Divider(
+                          color: colors[AppStrings.selectedButtonColor],
+                          thickness: 0.8 * scaleFactor,
+                        ),
+                        AccountOptionButton(
+                          label: AppStrings.deleteAccount,
+                          onTap: () => widget.goRouter.go(AppStrings.deleteAccountRoute),
+                          colors: colors,
+                          scaleFactor: scaleFactor,
+                        ),
+                        Divider(
+                          color: colors[AppStrings.selectedButtonColor],
+                          thickness: 0.8 * scaleFactor,
+                        ),
+                        AccountOptionButton(
+                          label: AppStrings.logOut,
+                          onTap: () async {
+                            await _auth.signOut();
+                            await _googleSignIn.signOut();
+                            widget.goRouter.go(AppStrings.selectionScreenRoute);
+                          },
+                          colors: colors,
+                          scaleFactor: scaleFactor,
+                          isDestructive: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -338,12 +351,14 @@ class CustomElevatedButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final Map<String, Color?> colors;
+  final double scaleFactor;
 
   const CustomElevatedButton({
     super.key,
     required this.text,
     required this.onPressed,
     required this.colors,
+    required this.scaleFactor,
   });
 
   @override
@@ -353,11 +368,17 @@ class CustomElevatedButton extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: colors[AppStrings.primaryColorLight],
+          padding: EdgeInsets.symmetric(vertical: 12 * scaleFactor),
         ),
         onPressed: onPressed,
-        child: Text(
-          text,
-          style: TextStyle(color: colors[AppStrings.secondaryColor]),
+        child: FittedBox(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: colors[AppStrings.secondaryColor],
+              fontSize: 16 * scaleFactor,
+            ),
+          ),
         ),
       ),
     );
@@ -368,8 +389,7 @@ class AccountOptionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Map<String, Color?> colors;
-  final double screenHeight;
-  final double screenWidth;
+  final double scaleFactor;
   final bool isDestructive;
 
   const AccountOptionButton({
@@ -377,8 +397,7 @@ class AccountOptionButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.colors,
-    required this.screenHeight,
-    required this.screenWidth,
+    required this.scaleFactor,
     this.isDestructive = false,
   });
 
@@ -389,16 +408,17 @@ class AccountOptionButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
+          padding: EdgeInsets.symmetric(vertical: 12 * scaleFactor),
           child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color:
-                    isDestructive
-                        ? colors[AppStrings.redColor]
-                        : colors[AppStrings.secondaryColor],
-                fontSize: screenWidth * 0.05,
+            child: FittedBox(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isDestructive
+                      ? colors[AppStrings.redColor]
+                      : colors[AppStrings.secondaryColor],
+                  fontSize: 16 * scaleFactor,
+                ),
               ),
             ),
           ),

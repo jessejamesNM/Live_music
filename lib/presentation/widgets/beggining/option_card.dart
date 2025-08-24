@@ -45,38 +45,52 @@ class OptionCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onClick,
-      child: Card(
-        color: colorScheme[AppStrings.primaryColorLight] ?? Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: SizedBox(
-          width: 170,
-          height: 170,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  imageRes,
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                  color: colorScheme[AppStrings.essentialColor],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  text,
-                  style: TextStyle(
-                    fontFamily: fontMainFamily,
-                    color: colorScheme[AppStrings.secondaryColor],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = constraints.maxWidth; // El tamaño de la tarjeta
+
+          return Card(
+            color: colorScheme[AppStrings.primaryColorLight] ?? Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(size * 0.12),
             ),
-          ),
-        ),
+            child: Padding(
+              padding: EdgeInsets.all(size * 0.08),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 7,
+                    child: SvgPicture.asset(
+                      imageRes,
+                      fit: BoxFit.contain,
+                      width: size * 0.5,
+                      height: size * 0.5,
+                      color: colorScheme[AppStrings.essentialColor],
+                    ),
+                  ),
+                  SizedBox(height: size * 0.05),
+                  Expanded(
+                    flex: 3,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: fontMainFamily,
+                          color: colorScheme[AppStrings.secondaryColor],
+                          fontWeight: FontWeight.bold,
+                          fontSize: size * 0.12, // Escala con la tarjeta
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

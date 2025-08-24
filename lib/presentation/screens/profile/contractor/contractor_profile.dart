@@ -37,7 +37,6 @@ import '../../buttom_navigation_bar.dart';
 import '../settings/components/settings.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
 class ContractorProfileScreen extends StatefulWidget {
   final GoRouter goRouter;
   final UploadProfileImagesToServer uploadProfileImagesToServer;
@@ -51,8 +50,7 @@ class ContractorProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<ContractorProfileScreen> createState() =>
-      _ContractorProfileScreenState();
+  State<ContractorProfileScreen> createState() => _ContractorProfileScreenState();
 }
 
 class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
@@ -85,9 +83,7 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
     super.initState();
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId != null) {
-      FirebaseFirestore.instance.collection('users').doc(userId).get().then((
-        doc,
-      ) {
+      FirebaseFirestore.instance.collection('users').doc(userId).get().then((doc) {
         if (doc.exists) {
           setState(() {
             _profileImageUrl =
@@ -104,79 +100,89 @@ class _ContractorProfileScreenState extends State<ContractorProfileScreen> {
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
     final userType = widget.userProvider.userType;
-    final isArtist = userType == AppStrings.artist;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Adaptativos
+    double avatarRadius = screenWidth * 0.13; // 52.5 en 400px
+    double avatarSize = avatarRadius * 2;
+    double userNameFontSize = screenWidth * 0.06; // ~24 en 400px
+    double settingsFontSize = screenWidth * 0.055; // ~22 en 400px
+    double sectionPadding = screenWidth * 0.04; // ~16 en 400px
+    double containerHeight = screenHeight * 0.24; // ~180 en 750px
+    double iconSize = avatarSize; // para SVG e imagen
 
     return Scaffold(
-      backgroundColor: colorScheme[AppStrings.primaryColor], // ✅ actualizado
+      backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         userType: userType,
         goRouter: widget.goRouter,
       ),
       body: SafeArea(
-        child: Container(
-          color:
-              colorScheme[AppStrings
-                  .primaryColor], // ✅ fondo oscuro en light theme
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                color: colorScheme[AppStrings.primaryColor], // ✅ también aquí
-                height: 180,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20),
-                    GestureDetector(
-                      onTap: _onProfileImageTapped,
-                      child: CircleAvatar(
-                        radius: 52.5,
-                        backgroundColor: colorScheme[AppStrings.primaryColor],
-                        child:
-                            _isUploadingProfileImage
-                                ? const CircularProgressIndicator()
-                                : _profileImageUrl != null
-                                ? ClipOval(
+        child: ListView(
+          // ListView es scrollable, funciona como LazyColumn
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              width: double.infinity,
+              color: colorScheme[AppStrings.primaryColor],
+              height: containerHeight,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(height: containerHeight * 0.11), // adaptativo
+                  GestureDetector(
+                    onTap: _onProfileImageTapped,
+                    child: CircleAvatar(
+                      radius: avatarRadius,
+                      backgroundColor: colorScheme[AppStrings.primaryColor],
+                      child: _isUploadingProfileImage
+                          ? SizedBox(
+                              width: avatarSize * 0.5,
+                              height: avatarSize * 0.5,
+                              child: const CircularProgressIndicator(),
+                            )
+                          : _profileImageUrl != null
+                              ? ClipOval(
                                   child: Image.network(
                                     _profileImageUrl!,
-                                    width: 105,
-                                    height: 105,
+                                    width: avatarSize,
+                                    height: avatarSize,
                                     fit: BoxFit.cover,
                                   ),
                                 )
-                                : SvgPicture.asset(
+                              : SvgPicture.asset(
                                   'assets/svg/ic_user_default.svg',
-                                  width: 105,
-                                  height: 105,
-                                  color:
-                                      colorScheme[AppStrings
-                                          .secondaryColorLittleDark],
+                                  width: iconSize,
+                                  height: iconSize,
+                                  color: colorScheme[AppStrings.secondaryColorLittleDark],
                                 ),
-                      ),
                     ),
-                    UserName(fontSize: 23.5),
-                  ],
-                ),
+                  ),
+                  UserName(fontSize: userNameFontSize),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Text(
-                      AppStrings.settings,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.grayColor],
-                        fontSize: 22,
-                      ),
-                      textAlign: TextAlign.start,
+            ),
+            Padding(
+              padding: EdgeInsets.all(sectionPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.settings,
+                    style: TextStyle(
+                      color: colorScheme[AppStrings.grayColor],
+                      fontSize: settingsFontSize,
                     ),
-                    const SizedBox(height: 8),
-                    SettingsComponent(router: widget.goRouter),
-                  ],
-                ),
+                    textAlign: TextAlign.start,
+                  ),
+                  SizedBox(height: sectionPadding * 0.5),
+                  SettingsComponent(router: widget.goRouter),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

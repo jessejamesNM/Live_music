@@ -28,9 +28,7 @@ import 'package:go_router/go_router.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 
-// Pantalla de bienvenida que muestra un pequeño flujo de mensajes antes de redirigir al usuario
 class WelcomeScreen extends StatefulWidget {
-  // Se le pasa un GoRouter desde fuera para manejar navegación
   final GoRouter goRouter;
 
   const WelcomeScreen({Key? key, required this.goRouter}) : super(key: key);
@@ -40,7 +38,6 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
-  // Estados para controlar qué mensaje o elemento se muestra
   bool _showLoading = false;
   bool _showReadyMessage = true;
   bool _showWelcomeMessage = false;
@@ -48,17 +45,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Inicia la secuencia de mensajes al entrar en la pantalla
     _startMessageSequence();
   }
 
-  // Controla la lógica de mostrar primero "Todo listo", luego "Bienvenido"
   void _startMessageSequence() {
     setState(() {
       _showReadyMessage = true;
     });
 
-    // Después de 2 segundos cambia al mensaje de bienvenida
     Future.delayed(const Duration(seconds: 2), () {
       setState(() {
         _showReadyMessage = false;
@@ -69,78 +63,96 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Obtiene la paleta de colores personalizada
     final colorScheme = ColorPalette.getPalette(context);
+
+    // Tamaños adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final paddingHorizontal = screenWidth * 0.08;
+    final spacingVertical = screenHeight * 0.03;
+    final textFontSize = screenWidth * 0.06; // adaptativo
+    final buttonHeight = screenHeight * 0.065;
+    final borderRadius = screenWidth * 0.03;
+    final loadingSize = screenWidth * 0.15;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Center(
-        // Animación suave entre los distintos widgets (texto o botón)
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 500),
-          child:
-              _showLoading
-                  // Muestra un loading circular si está en modo cargando
-                  ? CircularProgressIndicator(
+          child: _showLoading
+              ? SizedBox(
+                  width: loadingSize,
+                  height: loadingSize,
+                  child: CircularProgressIndicator(
                     color: colorScheme[AppStrings.essentialColor],
                     strokeWidth: 4.0,
-                  )
-                  // Si no está cargando y está en la primera etapa, muestra el mensaje "Todo listo"
-                  : _showReadyMessage
-                  ? Text(
-                    AppStrings.allReady,
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: colorScheme[AppStrings.secondaryColor],
-                    ),
-                  )
-                  // Si ya terminó la primera etapa, muestra el mensaje de bienvenida y el botón
+                  ),
+                )
+              : _showReadyMessage
+                  ? FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppStrings.allReady,
+                        style: TextStyle(
+                          fontSize: textFontSize,
+                          color: colorScheme[AppStrings.secondaryColor],
+                        ),
+                      ),
+                    )
                   : _showWelcomeMessage
-                  ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Mensaje de bienvenida con nombre de la app
-                        Text(
-                          '${AppStrings.welcomeTo} ${AppStrings.appName}',
-                          style: TextStyle(
-                            fontSize: 24,
-                            color: colorScheme[AppStrings.secondaryColor],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Botón para continuar a la pantalla principal
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Usa el router pasado por props para navegar al home
-                              widget.goRouter.go(AppStrings.homeScreenRoute);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  colorScheme[AppStrings.essentialColor],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                      ? Padding(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: paddingHorizontal),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${AppStrings.welcomeTo} ${AppStrings.appName}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: textFontSize,
+                                    color: colorScheme[AppStrings.secondaryColor],
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              AppStrings.continueText,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
+                              SizedBox(height: spacingVertical),
+                              SizedBox(
+                                width: double.infinity,
+                                height: buttonHeight,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    widget.goRouter
+                                        .go(AppStrings.homeScreenRoute);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        colorScheme[AppStrings.essentialColor],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(borderRadius),
+                                    ),
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      AppStrings.continueText,
+                                      style: TextStyle(
+                                        fontSize: textFontSize * 0.9,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                  // Si aún no se ha activado ningún estado, no muestra nada
-                  : const SizedBox.shrink(),
+                        )
+                      : const SizedBox.shrink(),
         ),
       ),
     );

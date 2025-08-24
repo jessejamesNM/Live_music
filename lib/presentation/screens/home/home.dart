@@ -43,6 +43,7 @@ import '../buttom_navigation_bar.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:go_router/go_router.dart';
 
+
 class Home extends StatefulWidget {
   final FirebaseAuth auth;
   final UserProvider userProvider;
@@ -157,6 +158,7 @@ class _HomeScreenState extends State<Home> {
     final currentUserId = widget.auth.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
     final goRouter = widget.goRouter;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
@@ -168,9 +170,9 @@ class _HomeScreenState extends State<Home> {
         child: CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 16.0,
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.03, // 3% del ancho de pantalla
+                vertical: screenWidth * 0.04, // 4% del ancho de pantalla
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
@@ -179,34 +181,37 @@ class _HomeScreenState extends State<Home> {
                     child: Text(
                       AppStrings.explore,
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: screenWidth * 0.07, // 7% del ancho de pantalla
                         fontWeight: FontWeight.bold,
                         color: colorScheme[AppStrings.secondaryColor],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  SizedBox(height: screenWidth * 0.04), // 4% del ancho de pantalla
 
                   // Barra de búsqueda
                   TextField(
                     onChanged: (query) => setState(() => searchQuery = query),
                     style: TextStyle(
                       color: colorScheme[AppStrings.secondaryColor],
+                      fontSize: screenWidth * 0.04, // 4% del ancho de pantalla
                     ),
                     decoration: InputDecoration(
                       hintText: AppStrings.searchGroupsOrCategories,
                       hintStyle: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor]
-                            ?.withOpacity(0.6),
+                        color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6),
+                        fontSize: screenWidth * 0.035, // 3.5% del ancho de pantalla
                       ),
                       prefixIcon: Icon(
                         Icons.search,
                         color: colorScheme[AppStrings.secondaryColor],
+                        size: screenWidth * 0.06, // 6% del ancho de pantalla
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           Icons.send,
                           color: colorScheme[AppStrings.essentialColor],
+                          size: screenWidth * 0.06, // 6% del ancho de pantalla
                         ),
                         onPressed: () {
                           if (searchQuery.isNotEmpty) {
@@ -218,13 +223,13 @@ class _HomeScreenState extends State<Home> {
                       filled: true,
                       fillColor: colorScheme[AppStrings.primaryColor],
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(screenWidth * 0.04), // 4% del ancho de pantalla
                         borderSide: BorderSide(
                           color: colorScheme[AppStrings.secondaryColor]!,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(screenWidth * 0.04), // 4% del ancho de pantalla
                         borderSide: BorderSide(
                           color: colorScheme[AppStrings.essentialColor]!,
                         ),
@@ -232,7 +237,7 @@ class _HomeScreenState extends State<Home> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: screenWidth * 0.05), // 5% del ancho de pantalla
 
                   // Sección de Servicios
                   Align(
@@ -240,20 +245,20 @@ class _HomeScreenState extends State<Home> {
                     child: Text(
                       "Servicios",
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: screenWidth * 0.05, // 5% del ancho de pantalla
                         fontWeight: FontWeight.w600,
                         color: colorScheme[AppStrings.secondaryColor],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenWidth * 0.025), // 2.5% del ancho de pantalla
 
                   ServicesSection(
                     onServiceSelected: _onServiceSelected,
                     selectedService: selectedService,
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: screenWidth * 0.05), // 5% del ancho de pantalla
 
                   // Sección de Categorías
                   Align(
@@ -261,27 +266,27 @@ class _HomeScreenState extends State<Home> {
                     child: Text(
                       "Categorías",
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: screenWidth * 0.05, // 5% del ancho de pantalla
                         fontWeight: FontWeight.w600,
                         color: colorScheme[AppStrings.secondaryColor],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenWidth * 0.025), // 2.5% del ancho de pantalla
 
                   EventTypesSection(
                     onEventTypeSelected: _onEventTypeSelected,
                     selectedEventTypes: selectedEventTypes,
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: screenWidth * 0.05), // 5% del ancho de pantalla
                 ]),
               ),
             ),
 
             // Título Artistas Destacados
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03), // 3% del ancho de pantalla
               sliver: SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,12 +294,12 @@ class _HomeScreenState extends State<Home> {
                     Text(
                       AppStrings.featuredArtists,
                       style: TextStyle(
-                        fontSize: 23,
+                        fontSize: screenWidth * 0.055, // 5.5% del ancho de pantalla
                         fontWeight: FontWeight.w600,
                         color: colorScheme[AppStrings.secondaryColor],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: screenWidth * 0.025), // 2.5% del ancho de pantalla
                   ],
                 ),
               ),
@@ -304,16 +309,16 @@ class _HomeScreenState extends State<Home> {
             SliverToBoxAdapter(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(
-                  left: 12.0,
-                  right: 12.0,
-                  bottom: 20.0,
+                padding: EdgeInsets.only(
+                  left: screenWidth * 0.03, // 3% del ancho de pantalla
+                  right: screenWidth * 0.03, // 3% del ancho de pantalla
+                  bottom: screenWidth * 0.05, // 5% del ancho de pantalla
                 ),
                 child: Row(
                   children:
                       artists.map((artist) {
                         return Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
+                          padding: EdgeInsets.only(right: screenWidth * 0.04), // 4% del ancho de pantalla
                           child: ConstrainedBox(
                             constraints: BoxConstraints(
                               minWidth: MediaQuery.of(context).size.width * 0.8,
@@ -351,7 +356,7 @@ class _HomeScreenState extends State<Home> {
               ),
             ),
 
-            const SliverPadding(padding: EdgeInsets.only(bottom: 80.0)),
+            SliverPadding(padding: EdgeInsets.only(bottom: screenWidth * 0.2)), // 20% del ancho de pantalla
           ],
         ),
       ),
@@ -373,20 +378,21 @@ class ServicesSection extends StatelessWidget {
     {"title": "Repostería", "subtitle": "Alimentos"},
     {"title": "Local", "subtitle": ""},
     {"title": "Decoración", "subtitle": ""},
-    {"title": "Mueblería", "subtitle": "Mobiliario"}, // Nuevo servicio
-    {"title": "Entretenimiento", "subtitle": "Eventos"}, // Nuevo servicio
+    {"title": "Mueblería", "subtitle": "Mobiliario"},
+    {"title": "Entretenimiento", "subtitle": "Eventos"},
   ];
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
-      height: 55,
+      height: screenWidth * 0.14, // 14% del ancho de pantalla
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: services.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => SizedBox(width: screenWidth * 0.02), // 2% del ancho de pantalla
         itemBuilder: (context, index) {
           final service = services[index];
           final isSelected = service['title'] == selectedService;
@@ -418,6 +424,7 @@ class ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     final textColor = colorScheme[AppStrings.secondaryColor]!;
     final cardColor =
         isSelected
@@ -426,7 +433,7 @@ class ServiceCard extends StatelessWidget {
 
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(screenWidth * 0.04), // 4% del ancho de pantalla
         side: BorderSide(
           color:
               isSelected
@@ -439,10 +446,10 @@ class ServiceCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          width: 120,
-          height: 52,
+          width: screenWidth * 0.3, // 30% del ancho de pantalla
+          height: screenWidth * 0.13, // 13% del ancho de pantalla
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.01, vertical: screenWidth * 0.005),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -451,7 +458,7 @@ class ServiceCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: screenWidth * 0.025, // 2.5% del ancho de pantalla
                     color: textColor,
                     fontFamily: AppStrings.customFont,
                   ),
@@ -461,7 +468,7 @@ class ServiceCard extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: _calculateFontSize(title),
+                  fontSize: _calculateFontSize(title, screenWidth),
                   color: textColor,
                   fontFamily: AppStrings.customFont,
                   fontWeight: FontWeight.bold,
@@ -477,11 +484,11 @@ class ServiceCard extends StatelessWidget {
     );
   }
 
-  double _calculateFontSize(String text) {
-    if (text == "Repostería") return 12;
-    if (text == "Entretenimiento") return 11; // Ajuste para texto largo
-    if (text.length > 10) return 12;
-    return 14;
+  double _calculateFontSize(String text, double screenWidth) {
+    if (text == "Repostería") return screenWidth * 0.03; // 3% del ancho de pantalla
+    if (text == "Entretenimiento") return screenWidth * 0.028; // 2.8% del ancho de pantalla
+    if (text.length > 10) return screenWidth * 0.03; // 3% del ancho de pantalla
+    return screenWidth * 0.035; // 3.5% del ancho de pantalla
   }
 }
 
@@ -508,13 +515,14 @@ class EventTypesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
-      height: 55,
+      height: screenWidth * 0.14, // 14% del ancho de pantalla
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: eventTypes.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => SizedBox(width: screenWidth * 0.02), // 2% del ancho de pantalla
         itemBuilder: (context, index) {
           final eventType = eventTypes[index];
           final isSelected = selectedEventTypes.contains(eventType);
@@ -543,6 +551,7 @@ class EventTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     final textColor = colorScheme[AppStrings.secondaryColor]!;
     final cardColor =
         isSelected
@@ -551,7 +560,7 @@ class EventTypeCard extends StatelessWidget {
 
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(screenWidth * 0.04), // 4% del ancho de pantalla
         side: BorderSide(
           color:
               isSelected
@@ -564,13 +573,13 @@ class EventTypeCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          width: 120,
-          height: 52,
+          width: screenWidth * 0.3, // 30% del ancho de pantalla
+          height: screenWidth * 0.13, // 13% del ancho de pantalla
           alignment: Alignment.center,
           child: Text(
             eventType,
             style: TextStyle(
-              fontSize: _calculateFontSize(eventType),
+              fontSize: _calculateFontSize(eventType, screenWidth),
               color: textColor,
               fontFamily: AppStrings.customFont,
             ),
@@ -581,8 +590,8 @@ class EventTypeCard extends StatelessWidget {
     );
   }
 
-  double _calculateFontSize(String text) {
-    if (text.length > 12) return 12;
-    return 14;
+  double _calculateFontSize(String text, double screenWidth) {
+    if (text.length > 12) return screenWidth * 0.03; // 3% del ancho de pantalla
+    return screenWidth * 0.035; // 3.5% del ancho de pantalla
   }
 }

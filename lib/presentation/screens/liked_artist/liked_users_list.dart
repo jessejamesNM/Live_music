@@ -38,12 +38,12 @@ import '../../../data/provider_logics/user/user_provider.dart';
 import '../../widgets/liked_artist/artist_grid.dart';
 import '../buttom_navigation_bar.dart';
 import 'package:live_music/presentation/resources/colors.dart';
-
-/// Pantalla que muestra una lista de usuarios favoritos
+/// Pantalla principal de lista de usuarios favoritos
 class LikedUsersListScreen extends StatefulWidget {
   final GoRouter goRouter;
 
-  const LikedUsersListScreen({Key? key, required this.goRouter}) : super(key: key);
+  const LikedUsersListScreen({Key? key, required this.goRouter})
+      : super(key: key);
 
   @override
   _LikedUsersListScreenState createState() => _LikedUsersListScreenState();
@@ -99,13 +99,19 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
         final colorScheme = ColorPalette.getPalette(context);
         return AlertDialog(
           backgroundColor: colorScheme[AppStrings.primaryColor],
-          title: Text(
-            AppStrings.confirmDeleteUserTitle,
-            style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              AppStrings.confirmDeleteUserTitle,
+              style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+            ),
           ),
-          content: Text(
-            AppStrings.confirmDeleteUserMessage,
-            style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+          content: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              AppStrings.confirmDeleteUserMessage,
+              style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+            ),
           ),
           actions: [
             TextButton(
@@ -113,9 +119,12 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
                 Navigator.of(dialogContext).pop();
                 setState(() => userToDelete = null);
               },
-              child: Text(
-                AppStrings.cancel,
-                style: TextStyle(color: colorScheme[AppStrings.essentialColor]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppStrings.cancel,
+                  style: TextStyle(color: colorScheme[AppStrings.essentialColor]),
+                ),
               ),
             ),
             TextButton(
@@ -123,9 +132,12 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
                 Navigator.of(dialogContext).pop();
                 await _removeUser();
               },
-              child: Text(
-                AppStrings.delete,
-                style: TextStyle(color: colorScheme[AppStrings.essentialColor]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppStrings.delete,
+                  style: TextStyle(color: colorScheme[AppStrings.essentialColor]),
+                ),
               ),
             ),
           ],
@@ -160,6 +172,16 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
     final colorScheme = ColorPalette.getPalette(context);
     final userType = Provider.of<UserProvider>(context).userType;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final horizontalPadding = screenWidth * 0.04;
+    final verticalPadding = screenHeight * 0.02;
+    final iconSize = screenWidth * 0.07;
+    final titleFontSize = screenWidth * 0.065;
+    final editFontSize = screenWidth * 0.045;
+    final gridSpacing = screenWidth * 0.03;
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
@@ -171,7 +193,12 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                verticalPadding,
+                horizontalPadding,
+                0,
+              ),
               child: Row(
                 children: [
                   GestureDetector(
@@ -181,7 +208,7 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
                     child: Icon(
                       Icons.arrow_back,
                       color: colorScheme[AppStrings.secondaryColor],
-                      size: 28,
+                      size: iconSize,
                     ),
                   ),
                   Expanded(
@@ -195,12 +222,15 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
                               color: colorScheme[AppStrings.essentialColor],
                             );
                           }
-                          return Text(
-                            s.data ?? AppStrings.favorites,
-                            style: TextStyle(
-                              fontSize: 26,
-                              color: colorScheme[AppStrings.secondaryColor],
-                              fontWeight: FontWeight.bold,
+                          return FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              s.data ?? AppStrings.favorites,
+                              style: TextStyle(
+                                fontSize: titleFontSize,
+                                color: colorScheme[AppStrings.secondaryColor],
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           );
                         },
@@ -209,18 +239,21 @@ class _LikedUsersListScreenState extends State<LikedUsersListScreen> {
                   ),
                   GestureDetector(
                     onTap: () => setState(() => isEditMode = !isEditMode),
-                    child: Text(
-                      isEditMode ? AppStrings.done : AppStrings.edit,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.essentialColor],
-                        fontSize: 18,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        isEditMode ? AppStrings.done : AppStrings.edit,
+                        style: TextStyle(
+                          color: colorScheme[AppStrings.essentialColor],
+                          fontSize: editFontSize,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: screenHeight * 0.015),
             Expanded(
               child: _loading
                   ? Center(

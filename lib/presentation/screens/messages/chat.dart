@@ -44,7 +44,6 @@ import '../../widgets/animated_visibility.dart';
 import '../../widgets/chat/message_item.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-// ChatScreen Widget (Stateful)
 class ChatScreen extends StatefulWidget {
   final UserProvider userProvider;
   final MessagesProvider messagesProvider;
@@ -57,11 +56,9 @@ class ChatScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _ChatScreenState createState() =>
-      _ChatScreenState(userProvider: userProvider);
+  _ChatScreenState createState() => _ChatScreenState(userProvider: userProvider);
 }
 
-// ChatScreen State
 class _ChatScreenState extends State<ChatScreen> {
   late String currentUserId;
   late String otherUserId;
@@ -231,13 +228,10 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // Always request location permission when button is clicked
     final status = await Permission.location.request();
 
     if (!status.isGranted) {
-      // If denied, show explanation and request again
       if (await Permission.location.shouldShowRequestRationale) {
-        // Show explanation why permission is needed
         await showDialog(
           context: context,
           builder:
@@ -256,7 +250,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
         );
 
-        // Request permission again after explanation
         final newStatus = await Permission.location.request();
         if (!newStatus.isGranted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -267,7 +260,6 @@ class _ChatScreenState extends State<ChatScreen> {
           return;
         }
       } else {
-        // Permission permanently denied
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -284,7 +276,6 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
 
-    // Permissions granted, proceed with location
     widget.messagesProvider.getCurrentLocationForChat(widget.messagesProvider, (
       location,
     ) {
@@ -334,6 +325,15 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
 
+    // Responsive sizes
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final baseFont = screenWidth / 25;
+    final smallFont = baseFont * 0.75;
+    final largeFont = baseFont * 1.3;
+    final iconSize = screenWidth / 13;
+    final avatarRadius = screenWidth / 15;
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primarySecondColor],
       body: SafeArea(
@@ -341,39 +341,38 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Align(
               alignment: Alignment.bottomCenter,
-              child: AnimatedVisibility(
-                visible: _isBottomSheetVisible,
+              child: AnimatedContainer(
                 duration: Duration(milliseconds: 500),
-                child: Container(
-                  width: double.infinity,
-                  height: 95,
-                  decoration: BoxDecoration(
-                    color: colorScheme[AppStrings.primaryColor],
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      top: 8.0,
-                      left: 16,
-                      right: 16,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [],
-                    ),
+                height: _isBottomSheetVisible ? screenHeight * 0.13 : 0,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: colorScheme[AppStrings.primaryColor],
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(screenWidth * 0.04),
+                    topRight: Radius.circular(screenWidth * 0.04),
                   ),
                 ),
+                child: _isBottomSheetVisible
+                    ? Padding(
+                        padding: EdgeInsets.only(
+                          top: screenHeight * 0.01,
+                          left: screenWidth * 0.04,
+                          right: screenWidth * 0.04,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [],
+                        ),
+                      )
+                    : null,
               ),
             ),
             Stack(
               children: [
                 Container(color: colorScheme[AppStrings.primaryColor]),
                 Padding(
-                  padding: const EdgeInsets.only(top: 25.0),
+                  padding: EdgeInsets.only(top: screenHeight * 0.03),
                   child: Column(
                     children: [
                       Row(
@@ -382,11 +381,10 @@ class _ChatScreenState extends State<ChatScreen> {
                             icon: Icon(
                               Icons.arrow_back,
                               color: colorScheme[AppStrings.secondaryColor],
-                              size: 28,
+                              size: iconSize * 1.1,
                             ),
                             onPressed: () {
-                              widget.messagesProvider
-                                  .clearAllFirebaseListeners();
+                              widget.messagesProvider.clearAllFirebaseListeners();
                               widget.messagesProvider.setupConversationListener(
                                 currentUserId,
                               );
@@ -395,36 +393,33 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           CircleAvatar(
                             backgroundColor: Colors.transparent,
-                            radius: 25,
+                            radius: avatarRadius,
                             child: ClipOval(
-                              child:
-                                  _iAmBlocked
-                                      ? SvgPicture.asset(
-                                        AppStrings.defaultUserImagePath,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
-                                        fit: BoxFit.cover,
-                                      )
-                                      : _profileImageUrl != null
+                              child: _iAmBlocked
+                                  ? SvgPicture.asset(
+                                      AppStrings.defaultUserImagePath,
+                                      color: Theme.of(context).colorScheme.secondary,
+                                      fit: BoxFit.cover,
+                                      width: avatarRadius * 2,
+                                      height: avatarRadius * 2,
+                                    )
+                                  : _profileImageUrl != null
                                       ? Image.network(
-                                        _profileImageUrl!,
-                                        fit: BoxFit.cover,
-                                        width: 50,
-                                        height: 50,
-                                      )
+                                          _profileImageUrl!,
+                                          fit: BoxFit.cover,
+                                          width: avatarRadius * 2,
+                                          height: avatarRadius * 2,
+                                        )
                                       : SvgPicture.asset(
-                                        AppStrings.defaultUserImagePath,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
-                                        fit: BoxFit.cover,
-                                      ),
+                                          AppStrings.defaultUserImagePath,
+                                          color: Theme.of(context).colorScheme.secondary,
+                                          fit: BoxFit.cover,
+                                          width: avatarRadius * 2,
+                                          height: avatarRadius * 2,
+                                        ),
                             ),
                           ),
-                          SizedBox(width: 8),
+                          SizedBox(width: screenWidth * 0.02),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -432,7 +427,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 _artistName,
                                 style: TextStyle(
                                   color: colorScheme[AppStrings.secondaryColor],
-                                  fontSize: 20,
+                                  fontSize: largeFont,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
@@ -441,7 +437,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     : AppStrings.offlineStatus,
                                 style: TextStyle(
                                   color: _isOnline ? Colors.green : Colors.grey,
-                                  fontSize: 12,
+                                  fontSize: smallFont,
                                 ),
                               ),
                             ],
@@ -459,6 +455,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 return MessageItem(
                                   message: rawList[index],
                                   currentUserId: currentUserId,
+                                  baseFont: baseFont,
+                                  screenWidth: screenWidth,
                                 );
                               },
                             );
@@ -467,14 +465,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       Container(
                         color: colorScheme[AppStrings.primarySecondColor],
-                        padding: EdgeInsets.all(8),
+                        padding: EdgeInsets.all(screenWidth * 0.02),
                         child: Row(
                           children: [
                             IconButton(
                               icon: Icon(
                                 Icons.image,
                                 color: colorScheme[AppStrings.essentialColor],
-                                size: 30,
+                                size: iconSize,
                               ),
                               onPressed: () async {
                                 if (_iAmBlocked) {
@@ -485,10 +483,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   final pickedFile =
                                       await widget.messagesProvider.pickMedia();
                                   if (pickedFile != null) {
-                                    widget
-                                        .messagesProvider
-                                        .selectedImageFile
-                                        .value = pickedFile;
+                                    widget.messagesProvider.selectedImageFile.value = pickedFile;
                                     if (context.mounted) {
                                       widget.goRouter.push(
                                         AppStrings.imagePreviewScreenRoute,
@@ -498,40 +493,38 @@ class _ChatScreenState extends State<ChatScreen> {
                                 }
                               },
                             ),
-                            SizedBox(width: 4),
+                            SizedBox(width: screenWidth * 0.01),
                             IconButton(
                               icon: Icon(
                                 Icons.location_on,
                                 color: colorScheme[AppStrings.essentialColor],
-                                size: 30,
+                                size: iconSize,
                               ),
                               onPressed: _handleLocationSharing,
                             ),
-                            SizedBox(width: 8),
+                            SizedBox(width: screenWidth * 0.02),
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.grey[700],
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius: BorderRadius.circular(screenWidth * 0.08),
                                 ),
-                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                                 child: Row(
                                   children: [
                                     Expanded(
                                       child: TextField(
                                         controller: _messageController,
                                         style: TextStyle(
-                                          color:
-                                              colorScheme[AppStrings
-                                                  .secondaryColor],
+                                          color: colorScheme[AppStrings.secondaryColor],
+                                          fontSize: baseFont,
                                         ),
                                         maxLines: null,
                                         decoration: InputDecoration(
                                           border: InputBorder.none,
                                           hintStyle: TextStyle(
-                                            color:
-                                                colorScheme[AppStrings
-                                                    .grayColor],
+                                            color: colorScheme[AppStrings.grayColor],
+                                            fontSize: smallFont,
                                           ),
                                         ),
                                         onChanged: (_) => setState(() {}),
@@ -540,30 +533,23 @@ class _ChatScreenState extends State<ChatScreen> {
                                     IconButton(
                                       icon: Icon(
                                         Icons.send,
-                                        color:
-                                            _messageController.text
-                                                    .trim()
-                                                    .isEmpty
-                                                ? colorScheme[AppStrings
-                                                    .essentialColor]
-                                                : colorScheme[AppStrings
-                                                    .essentialColor],
-                                        size: 30,
+                                        color: _messageController.text.trim().isEmpty
+                                            ? colorScheme[AppStrings.essentialColor]
+                                            : colorScheme[AppStrings.essentialColor],
+                                        size: iconSize,
                                       ),
-                                      onPressed:
-                                          _messageController.text.trim().isEmpty
-                                              ? null
-                                              : () {
-                                                _sendMessage();
-                                                if (!_iAmBlocked &&
-                                                    !_iBlocked) {
-                                                  sendNotification(
-                                                    "te ha enviado un mensaje",
-                                                    _artistName,
-                                                    token,
-                                                  );
-                                                }
-                                              },
+                                      onPressed: _messageController.text.trim().isEmpty
+                                          ? null
+                                          : () {
+                                              _sendMessage();
+                                              if (!_iAmBlocked && !_iBlocked) {
+                                                sendNotification(
+                                                  "te ha enviado un mensaje",
+                                                  _artistName,
+                                                  token,
+                                                );
+                                              }
+                                            },
                                     ),
                                   ],
                                 ),
@@ -578,40 +564,91 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
             if (_showBlockedDialog)
-              AlertDialog(
-                title: Text(AppStrings.blockedAlertTitle),
-                content: Text(AppStrings.blockedAlertMessage),
-                actions: [
-                  TextButton(
-                    onPressed: () => setState(() => _showBlockedDialog = false),
-                    child: Text(AppStrings.accept),
-                  ),
-                ],
+              Center(
+                child: AlertDialog(
+                  title: Text(AppStrings.blockedAlertTitle, style: TextStyle(fontSize: largeFont * 0.9)),
+                  content: Text(AppStrings.blockedAlertMessage, style: TextStyle(fontSize: baseFont)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => setState(() => _showBlockedDialog = false),
+                      child: Text(AppStrings.accept, style: TextStyle(fontSize: baseFont * 0.9)),
+                    ),
+                  ],
+                ),
               ),
             if (_showUnblockDialog)
-              AlertDialog(
-                title: Text(AppStrings.blockedUserAlertTitle),
-                content: Text(AppStrings.blockedUserAlertMessage),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _showUnblockDialog = false;
-                        widget.messagesProvider.unblockUser(
-                          currentUserId,
-                          _otherUserId,
-                        );
-                      });
-                    },
-                    child: Text(AppStrings.unblock),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() => _showUnblockDialog = false),
-                    child: Text(AppStrings.cancel),
-                  ),
-                ],
+              Center(
+                child: AlertDialog(
+                  title: Text(AppStrings.blockedUserAlertTitle, style: TextStyle(fontSize: largeFont * 0.9)),
+                  content: Text(AppStrings.blockedUserAlertMessage, style: TextStyle(fontSize: baseFont)),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _showUnblockDialog = false;
+                          widget.messagesProvider.unblockUser(
+                            currentUserId,
+                            _otherUserId,
+                          );
+                        });
+                      },
+                      child: Text(AppStrings.unblock, style: TextStyle(fontSize: baseFont * 0.9)),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _showUnblockDialog = false),
+                      child: Text(AppStrings.cancel, style: TextStyle(fontSize: baseFont * 0.9)),
+                    ),
+                  ],
+                ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Adapt your MessageItem widget to use baseFont and screenWidth for sizing:
+// Example:
+class MessageItem extends StatelessWidget {
+  final dynamic message;
+  final String currentUserId;
+  final double baseFont;
+  final double screenWidth;
+
+  const MessageItem({
+    Key? key,
+    required this.message,
+    required this.currentUserId,
+    required this.baseFont,
+    required this.screenWidth,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Example responsive styling
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: screenWidth * 0.01, horizontal: screenWidth * 0.03),
+      child: Align(
+        alignment: message['senderId'] == currentUserId
+            ? Alignment.centerRight
+            : Alignment.centerLeft,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+              vertical: screenWidth * 0.018, horizontal: screenWidth * 0.04),
+          decoration: BoxDecoration(
+            color: message['senderId'] == currentUserId
+                ? Colors.blue[200]
+                : Colors.grey[300],
+            borderRadius: BorderRadius.circular(screenWidth * 0.06),
+          ),
+          child: Text(
+            message['text'] ?? '',
+            style: TextStyle(
+              fontSize: baseFont,
+              color: Colors.black87,
+            ),
+          ),
         ),
       ),
     );

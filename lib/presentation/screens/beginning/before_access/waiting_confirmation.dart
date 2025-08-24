@@ -23,7 +23,7 @@ class WaitingConfirmScreen extends StatefulWidget {
   final GoRouter goRouter;
 
   const WaitingConfirmScreen({Key? key, required this.goRouter})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _WaitingConfirmScreenState createState() => _WaitingConfirmScreenState();
@@ -62,7 +62,6 @@ class _WaitingConfirmScreenState extends State<WaitingConfirmScreen> {
         errorMessage = result;
       } else {
         email = result;
-        // activamos el reenvío inmediatamente después de mostrar la pantalla
         _startResendCountdown();
       }
     });
@@ -93,31 +92,47 @@ class _WaitingConfirmScreenState extends State<WaitingConfirmScreen> {
         const SnackBar(content: Text('Correo reenviado correctamente')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al reenviar: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al reenviar: $e')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Medidas adaptativas
+    final horizontalPadding = screenWidth * 0.06;
+    final verticalPadding = screenHeight * 0.02;
+    final iconSize = screenWidth * 0.2; // ícono principal
+    final titleFontSize = screenWidth * 0.065;
+    final messageFontSize = screenWidth * 0.045;
+    final buttonFontSize = screenWidth * 0.045;
+    final buttonPaddingH = screenWidth * 0.08;
+    final buttonPaddingV = screenHeight * 0.015;
+    final iconButtonSize = screenWidth * 0.08;
+    final spacing = screenHeight * 0.02;
 
     return Scaffold(
       backgroundColor: colors[AppStrings.primaryColor],
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(horizontalPadding),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Botón de volver
                 Align(
                   alignment: Alignment.topLeft,
                   child: IconButton(
                     icon: Icon(
                       Icons.arrow_back,
                       color: colors[AppStrings.secondaryColor],
+                      size: iconButtonSize,
                     ),
                     onPressed: () {
                       try {
@@ -128,65 +143,85 @@ class _WaitingConfirmScreenState extends State<WaitingConfirmScreen> {
                     },
                   ),
                 ),
-                const Spacer(),
+                SizedBox(height: spacing),
+
+                // Ícono principal
                 Icon(
                   Icons.mark_email_read_outlined,
-                  size: 80,
+                  size: iconSize,
                   color: colors[AppStrings.secondaryColor],
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  AppStrings.verifyYourEmail,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colors[AppStrings.secondaryColor],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                if (email != null)
-                  Text(
-                    '${AppStrings.verifyEmailInstructions} $email\n\n${AppStrings.checkSpamFolder}',
+                SizedBox(height: spacing),
+
+                // Título adaptativo
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppStrings.verifyYourEmail,
                     style: TextStyle(
-                      color: colors[AppStrings.grayColor],
-                      fontSize: 16,
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.bold,
+                      color: colors[AppStrings.secondaryColor],
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: spacing * 0.5),
+
+                // Mensaje de email o error
+                if (email != null)
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${AppStrings.verifyEmailInstructions} $email\n\n${AppStrings.checkSpamFolder}',
+                      style: TextStyle(
+                        color: colors[AppStrings.grayColor],
+                        fontSize: messageFontSize,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   )
                 else if (errorMessage != null)
-                  Text(
-                    errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
-                    textAlign: TextAlign.center,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
                   )
                 else
                   CircularProgressIndicator(
                     color: colors[AppStrings.essentialColor],
                   ),
-                const SizedBox(height: 32),
+                SizedBox(height: spacing * 2),
+
+                // Botón de reenviar
                 if (email != null)
                   ElevatedButton.icon(
                     onPressed: _canResend ? _onResendPressed : null,
-                    icon: const Icon(Icons.refresh),
-                    label: Text(
-                      _canResend
-                          ? 'Reenviar correo'
-                          : 'Reenviar en $_secondsRemaining s',
+                    icon: Icon(Icons.refresh, size: buttonFontSize),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _canResend
+                            ? 'Reenviar correo'
+                            : 'Reenviar en $_secondsRemaining s',
+                        style: TextStyle(fontSize: buttonFontSize),
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colors[AppStrings.essentialColor],
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: buttonPaddingH,
+                        vertical: buttonPaddingV,
                       ),
                     ),
                   ),
-                const Spacer(),
               ],
             ),
           ),

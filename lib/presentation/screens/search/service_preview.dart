@@ -275,15 +275,26 @@ class _ServicePreviewState extends State<ServicePreview> {
     Map<String, Color?> colorScheme,
     UserProvider userProvider,
   ) {
+    // Adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final avatarRadius = screenWidth * 0.07;
+    final artistNameFontSize = screenWidth * 0.049;
+    final buttonHeight = screenWidth * 0.13;
+    final buttonIconSize = screenWidth * 0.055;
+    final buttonFontSize = screenWidth * 0.042;
+
     if (_loadingProfile) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24.0),
-        child: Center(child: CircularProgressIndicator()),
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: screenWidth * 0.07),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 18.0),
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.04,
+        vertical: screenWidth * 0.045,
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -297,37 +308,37 @@ class _ServicePreviewState extends State<ServicePreview> {
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 28,
+                    radius: avatarRadius,
                     backgroundImage:
                         _profileImageUrl != null && _profileImageUrl!.isNotEmpty
                             ? NetworkImage(_profileImageUrl!)
                             : null,
                     backgroundColor: colorScheme[AppStrings.primaryColorLight]!
                         .withOpacity(0.4),
-                    child:
-                        _profileImageUrl == null || _profileImageUrl!.isEmpty
-                            ? Icon(
-                              Icons.person,
-                              color: colorScheme[AppStrings.secondaryColor],
-                            )
-                            : null,
+                    child: _profileImageUrl == null || _profileImageUrl!.isEmpty
+                        ? Icon(
+                            Icons.person,
+                            color: colorScheme[AppStrings.secondaryColor],
+                            size: avatarRadius * 1.1,
+                          )
+                        : null,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: screenWidth * 0.025),
                   Text(
                     _artistName ?? '',
                     style: TextStyle(
                       color: colorScheme[AppStrings.secondaryColor],
-                      fontSize: 18,
+                      fontSize: artistNameFontSize,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: screenWidth * 0.045),
             // Botón de contactar
             SizedBox(
-              height: 50,
+              height: buttonHeight,
               child: ElevatedButton(
                 onPressed: () {
                   userProvider.setOtherUserId(otherUserId);
@@ -336,17 +347,26 @@ class _ServicePreviewState extends State<ServicePreview> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme[AppStrings.essentialColor],
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(screenWidth * 0.018),
                   ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.04,
+                  ),
+                  elevation: 1,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.message, color: Colors.white, size: 20),
-                    const SizedBox(width: 6),
+                    Icon(Icons.message,
+                        color: Colors.white, size: buttonIconSize),
+                    SizedBox(width: screenWidth * 0.017),
                     Text(
                       AppStrings.contact,
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: buttonFontSize,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -399,84 +419,87 @@ class _ServicePreviewState extends State<ServicePreview> {
   }
 
   Widget _buildFullScreenImagePreview(BuildContext context) {
+    // Adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final closeIconSize = screenWidth * 0.09;
+    final pageTextFontSize = screenWidth * 0.05;
+
     return _loadingPreviewImages
         ? const Center(child: CircularProgressIndicator())
         : GestureDetector(
-          onTap: () => setState(() => _showImagePreview = false),
-          child: Container(
-            color: Colors.black.withOpacity(0.98),
-            child: Stack(
-              children: [
-                PageView.builder(
-                  controller: PageController(initialPage: _previewInitialIndex),
-                  itemCount: _allPreviewImages.length,
-                  onPageChanged:
-                      (i) => setState(() => _previewInitialIndex = i),
-                  itemBuilder: (context, index) {
-                    final url = _allPreviewImages[index];
-                    return Center(
-                      child: InteractiveViewer(
-                        child: Image.network(
-                          url,
-                          fit: BoxFit.contain,
-                          errorBuilder:
-                              (_, __, ___) => Icon(
-                                Icons.broken_image_rounded,
-                                color: Colors.white70,
-                                size: 120,
-                              ),
-                          loadingBuilder:
-                              (_, child, progress) =>
-                                  progress == null
-                                      ? child
-                                      : const Center(
+            onTap: () => setState(() => _showImagePreview = false),
+            child: Container(
+              color: Colors.black.withOpacity(0.98),
+              child: Stack(
+                children: [
+                  PageView.builder(
+                    controller: PageController(initialPage: _previewInitialIndex),
+                    itemCount: _allPreviewImages.length,
+                    onPageChanged: (i) =>
+                        setState(() => _previewInitialIndex = i),
+                    itemBuilder: (context, index) {
+                      final url = _allPreviewImages[index];
+                      return Center(
+                        child: InteractiveViewer(
+                          child: Image.network(
+                            url,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.broken_image_rounded,
+                              color: Colors.white70,
+                              size: closeIconSize * 1.3,
+                            ),
+                            loadingBuilder: (_, child, progress) =>
+                                progress == null
+                                    ? child
+                                    : const Center(
                                         child: CircularProgressIndicator(),
                                       ),
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                Positioned(
-                  top: 40,
-                  left: 16,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 34,
-                    ),
-                    onPressed: () => setState(() => _showImagePreview = false),
+                      );
+                    },
                   ),
-                ),
-                Positioned(
-                  bottom: 36,
-                  right: 16,
-                  left: 16,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                  Positioned(
+                    top: screenWidth * 0.12,
+                    left: screenWidth * 0.04,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: closeIconSize,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${_previewInitialIndex + 1}/${_allPreviewImages.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                        ),
-                      ),
+                      onPressed: () => setState(() => _showImagePreview = false),
                     ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: screenWidth * 0.09,
+                    right: screenWidth * 0.04,
+                    left: screenWidth * 0.04,
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.03,
+                          vertical: screenWidth * 0.017,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(screenWidth * 0.025),
+                        ),
+                        child: Text(
+                          '${_previewInitialIndex + 1}/${_allPreviewImages.length}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: pageTextFontSize,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
   }
 
   @override
@@ -485,6 +508,15 @@ class _ServicePreviewState extends State<ServicePreview> {
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final isLiked = favoritesProvider.isUserLiked(otherUserId);
+
+    // Adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final packageCardHeight = screenHeight * 0.1;
+    final packageCardWidth = screenWidth * 0.23;
+    final packageCardFontSize = screenWidth * 0.045;
+    final infoFontSize = screenWidth * 0.042;
+    final titleFontSize = screenWidth * 0.053;
 
     if (_showSaveMessage) {
       Future.delayed(const Duration(seconds: 3), () {
@@ -522,99 +554,91 @@ class _ServicePreviewState extends State<ServicePreview> {
                         width: double.infinity,
                         color: colorScheme[AppStrings.primaryColorLight]
                             ?.withOpacity(0.1),
-                        child:
-                            _isLoadingImages
-                                ? Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      colorScheme[AppStrings.secondaryColor]!,
-                                    ),
+                        child: _isLoadingImages
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    colorScheme[AppStrings.secondaryColor]!,
                                   ),
-                                )
-                                : (_localImageUrls.isNotEmpty
-                                    ? GestureDetector(
-                                      onTap: () {
-                                        if (_localImageUrls.isNotEmpty) {
-                                          _showAllImagesPreview(
-                                            _findGlobalImageIndex(),
-                                          );
-                                        }
-                                      },
-                                      child: PageView.builder(
-                                        controller: _pageController,
-                                        itemCount: _localImageUrls.length,
-                                        itemBuilder: (context, index) {
-                                          return Image.network(
-                                            _localImageUrls[index],
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (_, __, ___) => Center(
-                                                  child: Icon(
-                                                    Icons.broken_image_rounded,
-                                                    size: 100,
-                                                    color:
-                                                        colorScheme[AppStrings
-                                                            .secondaryColor],
-                                                  ),
-                                                ),
-                                            loadingBuilder:
-                                                (_, child, progress) =>
-                                                    progress == null
-                                                        ? child
-                                                        : const Center(
-                                                          child:
-                                                              CircularProgressIndicator(),
-                                                        ),
-                                          );
-                                        },
-                                      ),
-                                    )
-                                    : Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.image_not_supported,
-                                            size: 80,
-                                            color: colorScheme[AppStrings
-                                                    .secondaryColor]
-                                                ?.withOpacity(0.5),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          Text(
-                                            'No hay imágenes para este paquete.',
-                                            style: TextStyle(
-                                              color: colorScheme[AppStrings
-                                                      .secondaryColor]
-                                                  ?.withOpacity(0.7),
+                                ),
+                              )
+                            : (_localImageUrls.isNotEmpty
+                                ? GestureDetector(
+                                    onTap: () {
+                                      if (_localImageUrls.isNotEmpty) {
+                                        _showAllImagesPreview(
+                                          _findGlobalImageIndex(),
+                                        );
+                                      }
+                                    },
+                                    child: PageView.builder(
+                                      controller: _pageController,
+                                      itemCount: _localImageUrls.length,
+                                      itemBuilder: (context, index) {
+                                        return Image.network(
+                                          _localImageUrls[index],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Center(
+                                            child: Icon(
+                                              Icons.broken_image_rounded,
+                                              size: screenWidth * 0.22,
+                                              color: colorScheme[AppStrings.secondaryColor],
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    )),
+                                          loadingBuilder: (_, child, progress) =>
+                                              progress == null
+                                                  ? child
+                                                  : const Center(
+                                                      child: CircularProgressIndicator(),
+                                                    ),
+                                        );
+                                      },
+                                    ),
+                                  )
+                                : Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.image_not_supported,
+                                          size: screenWidth * 0.2,
+                                          color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.5),
+                                        ),
+                                        SizedBox(height: screenWidth * 0.03),
+                                        Text(
+                                          'No hay imágenes para este paquete.',
+                                          style: TextStyle(
+                                            color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7),
+                                            fontSize: infoFontSize,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
                       ),
                       Positioned(
-                        top: 16,
-                        left: 16,
+                        top: screenWidth * 0.04,
+                        left: screenWidth * 0.04,
                         child: CircleAvatar(
                           backgroundColor: Colors.black54,
+                          radius: screenWidth * 0.054,
                           child: IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_back,
                               color: Colors.white,
+                              size: screenWidth * 0.056,
                             ),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ),
                       ),
                       Positioned(
-                        top: 16,
-                        right: 16,
+                        top: screenWidth * 0.04,
+                        right: screenWidth * 0.04,
                         child: GestureDetector(
                           onTap: _handleSave,
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(screenWidth * 0.02),
                             decoration: BoxDecoration(
                               color: Colors.black54,
                               shape: BoxShape.circle,
@@ -622,29 +646,29 @@ class _ServicePreviewState extends State<ServicePreview> {
                             child: Icon(
                               isLiked ? Icons.favorite : Icons.favorite_border,
                               color: isLiked ? Colors.red : Colors.white,
-                              size: 28,
+                              size: screenWidth * 0.07,
                             ),
                           ),
                         ),
                       ),
                       if (_localImageUrls.isNotEmpty && !_isLoadingImages)
                         Positioned(
-                          bottom: 16,
-                          right: 16,
+                          bottom: screenWidth * 0.04,
+                          right: screenWidth * 0.04,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.025,
+                              vertical: screenWidth * 0.012,
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black54,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(screenWidth * 0.025),
                             ),
                             child: Text(
                               '${_currentPageIndex + 1}/${_localImageUrls.length}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: infoFontSize,
                               ),
                             ),
                           ),
@@ -654,82 +678,69 @@ class _ServicePreviewState extends State<ServicePreview> {
                 ),
                 _buildProfileRow(context, colorScheme, userProvider),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
                   child: Divider(
-                    color:
-                        colorScheme[AppStrings.secondaryColor]?.withOpacity(
-                          0.3,
-                        ) ??
-                        Colors.grey,
-                    thickness: 1.1,
+                    color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.3) ?? Colors.grey,
+                    thickness: screenWidth * 0.003,
                     height: 0,
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(
-                    left: 16.0,
-                    top: 16,
-                    bottom: 8,
+                  padding: EdgeInsets.only(
+                    left: screenWidth * 0.04,
+                    top: screenWidth * 0.04,
+                    bottom: screenWidth * 0.02,
                   ),
                   child: Text(
                     'Paquetes de precios',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
                       color: colorScheme[AppStrings.secondaryColor],
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 2,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.04,
+                    vertical: screenWidth * 0.007,
                   ),
                   child: SizedBox(
-                    height: 80,
+                    height: packageCardHeight,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: _packages.length,
                       itemBuilder: (context, index) {
                         final pkg = _packages[index];
-                        final bool isSelected =
-                            pkg['index'] == _selectedPackageIndex;
+                        final bool isSelected = pkg['index'] == _selectedPackageIndex;
                         final price = pkg['price'] ?? 0;
                         return Padding(
-                          padding: const EdgeInsets.all(14.0),
+                          padding: EdgeInsets.all(screenWidth * 0.035),
                           child: GestureDetector(
                             onTap: () => _selectPackage(pkg['index']),
                             child: Container(
-                              width: 100,
+                              width: packageCardWidth,
                               decoration: BoxDecoration(
-                                color:
-                                    isSelected
-                                        ? colorScheme[AppStrings.essentialColor]
-                                        : colorScheme[AppStrings
-                                            .primaryColorLight],
-                                borderRadius: BorderRadius.circular(12.0),
+                                color: isSelected
+                                    ? colorScheme[AppStrings.essentialColor]
+                                    : colorScheme[AppStrings.primaryColorLight],
+                                borderRadius: BorderRadius.circular(screenWidth * 0.03),
                                 border: Border.all(
-                                  color:
-                                      isSelected
-                                          ? colorScheme[AppStrings
-                                              .secondaryColor]!
-                                          : colorScheme[AppStrings
-                                                  .secondaryColor]!
-                                              .withOpacity(0.5),
-                                  width: isSelected ? 2 : 1,
+                                  color: isSelected
+                                      ? colorScheme[AppStrings.secondaryColor]!
+                                      : colorScheme[AppStrings.secondaryColor]!.withOpacity(0.5),
+                                  width: isSelected ? screenWidth * 0.007 : screenWidth * 0.0035,
                                 ),
                               ),
                               child: Center(
                                 child: Text(
                                   '\$$price',
                                   style: TextStyle(
-                                    color:
-                                        isSelected
-                                            ? Colors.white
-                                            : colorScheme[AppStrings
-                                                .secondaryColor],
+                                    color: isSelected
+                                        ? Colors.white
+                                        : colorScheme[AppStrings.secondaryColor],
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                    fontSize: packageCardFontSize,
                                   ),
                                 ),
                               ),
@@ -741,7 +752,7 @@ class _ServicePreviewState extends State<ServicePreview> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -751,7 +762,7 @@ class _ServicePreviewState extends State<ServicePreview> {
                           Text(
                             '¿Qué incluye este paquete?',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: titleFontSize,
                               fontWeight: FontWeight.bold,
                               color: colorScheme[AppStrings.secondaryColor],
                             ),
@@ -762,6 +773,7 @@ class _ServicePreviewState extends State<ServicePreview> {
                                   ? Icons.expand_less
                                   : Icons.expand_more,
                               color: colorScheme[AppStrings.secondaryColor],
+                              size: screenWidth * 0.065,
                             ),
                             onPressed: _toggleInformationVisibility,
                           ),
@@ -769,7 +781,7 @@ class _ServicePreviewState extends State<ServicePreview> {
                       ),
                       if (_isInformationExpanded)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
+                          padding: EdgeInsets.only(bottom: screenWidth * 0.025),
                           child: TextField(
                             controller: _informationController,
                             enabled: false,
@@ -778,30 +790,31 @@ class _ServicePreviewState extends State<ServicePreview> {
                             keyboardType: TextInputType.multiline,
                             style: TextStyle(
                               color: colorScheme[AppStrings.secondaryColor],
+                              fontSize: infoFontSize,
                             ),
                             decoration: InputDecoration(
                               labelText: 'Información del Paquete',
+                              labelStyle: TextStyle(fontSize: infoFontSize),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8.0),
+                                borderRadius: BorderRadius.circular(screenWidth * 0.02),
                               ),
                               floatingLabelStyle: TextStyle(
                                 color: colorScheme[AppStrings.secondaryColor],
+                                fontSize: infoFontSize,
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
-                                  color:
-                                      colorScheme[AppStrings.secondaryColor]!,
-                                  width: 2.0,
+                                  color: colorScheme[AppStrings.secondaryColor]!,
+                                  width: screenWidth * 0.007,
                                 ),
-                                borderRadius: BorderRadius.circular(8.0),
+                                borderRadius: BorderRadius.circular(screenWidth * 0.02),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
-                                  color: colorScheme[AppStrings.secondaryColor]!
-                                      .withOpacity(0.5),
-                                  width: 1.0,
+                                  color: colorScheme[AppStrings.secondaryColor]!.withOpacity(0.5),
+                                  width: screenWidth * 0.0035,
                                 ),
-                                borderRadius: BorderRadius.circular(8.0),
+                                borderRadius: BorderRadius.circular(screenWidth * 0.02),
                               ),
                             ),
                           ),
@@ -809,7 +822,7 @@ class _ServicePreviewState extends State<ServicePreview> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: screenHeight * 0.05),
               ],
             ),
             if (_showSaveMessage && _selectedList != null)
@@ -827,8 +840,7 @@ class _ServicePreviewState extends State<ServicePreview> {
                 favoritesProvider: favoritesProvider,
                 userIdToRemove: otherUserId,
                 onLikeClick: () => _onUserAddedToList(_selectedList!),
-                onUnlikeClick:
-                    () => favoritesProvider.onUnlikeClick(otherUserId),
+                onUnlikeClick: () => favoritesProvider.onUnlikeClick(otherUserId),
                 currentUserId: currentUserId,
               ),
             if (_showBottomSaveDialog)
@@ -851,10 +863,9 @@ class _ServicePreviewState extends State<ServicePreview> {
             if (_showBottomFavoritesListCreatorDialog)
               BottomFavoritesListCreatorDialog(
                 userId: otherUserId,
-                onDismiss:
-                    () => setState(
-                      () => _showBottomFavoritesListCreatorDialog = false,
-                    ),
+                onDismiss: () => setState(
+                  () => _showBottomFavoritesListCreatorDialog = false,
+                ),
                 favoritesProvider: favoritesProvider,
                 onLikeClick: () async {
                   await Future.delayed(const Duration(milliseconds: 250));
@@ -894,39 +905,40 @@ class _ServicePreviewState extends State<ServicePreview> {
                   'Confirmar eliminación',
                   style: TextStyle(
                     color: colorScheme[AppStrings.secondaryColor],
+                    fontSize: titleFontSize,
                   ),
                 ),
                 content: Text(
                   '¿Estás seguro de que quieres eliminar este servicio de tus favoritos?',
                   style: TextStyle(
                     color: colorScheme[AppStrings.secondaryColor],
+                    fontSize: infoFontSize,
                   ),
                 ),
                 actions: [
                   TextButton(
-                    onPressed:
-                        () => setState(() => _showConfirmRemoveDialog = false),
+                    onPressed: () => setState(() => _showConfirmRemoveDialog = false),
                     style: TextButton.styleFrom(
-                      backgroundColor:
-                          colorScheme[AppStrings.primaryColorLight],
+                      backgroundColor: colorScheme[AppStrings.primaryColorLight],
                     ),
                     child: Text(
                       'Cancelar',
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: infoFontSize,
                       ),
                     ),
                   ),
                   TextButton(
                     onPressed: _removeFromFavorites,
                     style: TextButton.styleFrom(
-                      backgroundColor:
-                          colorScheme[AppStrings.primaryColorLight],
+                      backgroundColor: colorScheme[AppStrings.primaryColorLight],
                     ),
                     child: Text(
                       'Eliminar',
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: infoFontSize,
                       ),
                     ),
                   ),
@@ -943,7 +955,6 @@ class _ServicePreviewState extends State<ServicePreview> {
     if (_packages.isEmpty || _localImageUrls.isEmpty) return 0;
     final List<Map<String, dynamic>> sorted = List.from(_packages)
       ..sort((a, b) => (a['price'] as num).compareTo(b['price'] as num));
-    final List<String> allImages = [];
     int globalIndex = 0;
     for (final pkg in sorted) {
       final imgs = List<String>.from(pkg['imageList'] ?? []);

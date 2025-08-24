@@ -52,109 +52,130 @@ class FinalConfirmation extends HookWidget {
         userType: userType,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Botón para volver a la pantalla anterior
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                  onPressed: () {
-                    try {
-                      context.pop(); // Vuelve a la pantalla anterior
-                    } catch (e) {
-                      goRouter.go(
-                        AppStrings.deleteAccountRoute,
-                      ); // En caso de error, va a la ruta de eliminación
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-              // Título de la pantalla
-              Center(
-                child: Text(
-                  AppStrings.deleteTitle,
-                  style: TextStyle(
-                    fontSize: 25,
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Advertencia sobre la eliminación de cuenta
-              Container(
-                width: double.infinity,
-                child: Text(
-                  AppStrings.deleteWarning,
-                  style: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                  textAlign: TextAlign.justify,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Indicador de carga si está procesando la solicitud
-              if (isLoading.value)
-                CircularProgressIndicator(
-                  color: colorScheme[AppStrings.essentialColor],
-                ),
-              // Mostrar mensaje de error si ocurre
-              if (errorMessage.value != null)
-                Text(
-                  errorMessage.value!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              const SizedBox(height: 16),
-              // Botón para confirmar la eliminación de la cuenta
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: colorScheme[AppStrings.essentialColor],
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                onPressed: () async {
-                  if (reason != null) {
-                    isLoading.value = true;
-                    errorMessage.value = null;
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final widthFactor = constraints.maxWidth / 400;
+            final heightFactor = constraints.maxHeight / 800;
+            final scale = widthFactor < heightFactor ? widthFactor : heightFactor;
 
-                    // Realiza la solicitud de eliminación
-                    await profileProvider.saveDeletionRequest(
-                      userId: currentUserId ?? '',
-                      reason: reason,
-                      currentDay: DateFormat(
-                        AppStrings.dateFormat,
-                      ).format(DateTime.now()),
-                      eliminationDay: DateFormat(
-                        AppStrings.dateFormat,
-                      ).format(DateTime.now().add(const Duration(days: 30))),
-                      onSuccess: () async {
-                        isLoading.value = false;
-                        // Cierra sesión y navega
-                        await profileProvider.signOutAndNavigate(context);
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16 * scale),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Botón de retroceso
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: colorScheme[AppStrings.secondaryColor],
+                        size: 28 * scale,
+                      ),
+                      onPressed: () {
+                        try {
+                          context.pop();
+                        } catch (e) {
+                          goRouter.go(AppStrings.deleteAccountRoute);
+                        }
                       },
-                      onFailure: (message) {
-                        isLoading.value = false;
-                        errorMessage.value =
-                            message; // Muestra mensaje de error
+                    ),
+                  ),
+                  SizedBox(height: 8 * scale),
+                  // Título centrado
+                  Center(
+                    child: FittedBox(
+                      child: Text(
+                        AppStrings.deleteTitle,
+                        style: TextStyle(
+                          fontSize: 25 * scale,
+                          color: colorScheme[AppStrings.secondaryColor],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Advertencia sobre eliminación
+                  Container(
+                    width: double.infinity,
+                    child: Text(
+                      AppStrings.deleteWarning,
+                      style: TextStyle(
+                        fontSize: 14 * scale,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                      textAlign: TextAlign.justify,
+                    ),
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Indicador de carga
+                  if (isLoading.value)
+                    Center(
+                      child: CircularProgressIndicator(
+                        color: colorScheme[AppStrings.essentialColor],
+                      ),
+                    ),
+                  if (errorMessage.value != null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8 * scale),
+                      child: Text(
+                        errorMessage.value!,
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14 * scale,
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: 16 * scale),
+                  // Botón de confirmar eliminación
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50 * scale,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme[AppStrings.essentialColor],
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        if (reason != null) {
+                          isLoading.value = true;
+                          errorMessage.value = null;
+
+                          await profileProvider.saveDeletionRequest(
+                            userId: currentUserId ?? '',
+                            reason: reason,
+                            currentDay: DateFormat(AppStrings.dateFormat)
+                                .format(DateTime.now()),
+                            eliminationDay: DateFormat(AppStrings.dateFormat)
+                                .format(DateTime.now().add(Duration(days: 30))),
+                            onSuccess: () async {
+                              isLoading.value = false;
+                              await profileProvider.signOutAndNavigate(context);
+                            },
+                            onFailure: (message) {
+                              isLoading.value = false;
+                              errorMessage.value = message;
+                            },
+                          );
+                        } else {
+                          errorMessage.value = AppStrings.deletionRequestError;
+                        }
                       },
-                    );
-                  } else {
-                    errorMessage.value =
-                        AppStrings
-                            .deletionRequestError; // Error si no hay razón de eliminación
-                  }
-                },
-                child: Text(AppStrings.deleteAccountButton),
+                      child: FittedBox(
+                        child: Text(
+                          AppStrings.deleteAccountButton,
+                          style: TextStyle(
+                            fontSize: 16 * scale,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

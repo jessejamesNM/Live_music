@@ -38,33 +38,39 @@ import '../../widgets/liked_artist/recently_viewed_card.dart';
 import '../buttom_navigation_bar.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-// Pantalla principal que muestra las listas de artistas/perfiles favoritos
 class LikedArtistsScreen extends StatefulWidget {
-  final GoRouter goRouter; // Router para navegación
+  final GoRouter goRouter;
 
   const LikedArtistsScreen({required this.goRouter, Key? key})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _LikedArtistsScreenState createState() => _LikedArtistsScreenState();
 }
 
 class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
-  bool isEditMode = false; // Controla el modo de edición de listas
-  bool showDeleteDialog = false; // Controla visibilidad del diálogo de borrado
-  LikedUsersList? listToDelete; // Almacena temporalmente la lista a eliminar
+  bool isEditMode = false;
+  bool showDeleteDialog = false;
+  LikedUsersList? listToDelete;
 
   @override
   Widget build(BuildContext context) {
-    // Obtener providers y datos del usuario
     final userProvider = Provider.of<UserProvider>(context);
-    final userType = userProvider.userType;
-    final isArtist = userType == 'artist'; // Determinar si es artista
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final colorScheme = ColorPalette.getPalette(context); // Esquema de colores
+    final colorScheme = ColorPalette.getPalette(context);
 
-    // Configurar listener para cambios en listas de favoritos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Medidas adaptativas
+    final horizontalPadding = screenWidth * 0.04;
+    final verticalPadding = screenHeight * 0.02;
+    final iconSize = screenWidth * 0.07;
+    final titleFontSize = screenWidth * 0.065;
+    final editFontSize = screenWidth * 0.045;
+    final gridSpacing = screenWidth * 0.03;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       favoritesProvider.removeLikedUsersListener();
       if (currentUserId != null) {
@@ -72,7 +78,6 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
       }
     });
 
-    // Mostrar diálogo de confirmación para borrar lista
     if (showDeleteDialog && listToDelete != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -80,16 +85,21 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
           builder: (context) {
             return AlertDialog(
               backgroundColor: colorScheme[AppStrings.primaryColorLight],
-              title: Text(
-                AppStrings.deleteFavoriteListTitle,
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+              title: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppStrings.deleteFavoriteListTitle,
+                  style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+                ),
               ),
-              content: Text(
-                AppStrings.deleteFavoriteListMessage,
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+              content: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppStrings.deleteFavoriteListMessage,
+                  style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
+                ),
               ),
               actions: [
-                // Botón Cancelar
                 TextButton(
                   onPressed: () {
                     setState(() {
@@ -98,53 +108,53 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
                     });
                     widget.goRouter.pop();
                   },
-                  child: Text(
-                    AppStrings.cancel,
-                    style: TextStyle(
-                      color: colorScheme[AppStrings.essentialColor],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.cancel,
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.essentialColor],
+                      ),
                     ),
                   ),
                 ),
-                // Botón Eliminar
                 TextButton(
                   onPressed: () async {
                     if (listToDelete == null) return;
-
                     final listId = listToDelete!.listId;
                     final likedUserIds = listToDelete!.likedUsersList;
 
-                    // Eliminar de Firestore (operación en la nube)
                     await FirebaseFirestore.instance
                         .collection("users")
                         .doc(currentUserId)
                         .update({
-                          "likedUsers": FieldValue.arrayRemove([listId]),
-                        });
+                      "likedUsers": FieldValue.arrayRemove([listId]),
+                    });
 
                     await FirebaseFirestore.instance
                         .collection("users")
                         .doc(currentUserId)
                         .update({
-                          "likedUsers": FieldValue.arrayRemove(likedUserIds),
-                        });
+                      "likedUsers": FieldValue.arrayRemove(likedUserIds),
+                    });
 
-                    // Eliminar localmente en el provider
                     favoritesProvider.removeLikedUserList(listId);
 
-                    // Actualizar estado si el widget sigue montado
                     if (mounted) {
                       setState(() {
                         showDeleteDialog = false;
                         listToDelete = null;
                       });
                     }
-
-                    widget.goRouter.pop(); // Cerrar diálogo
+                    widget.goRouter.pop();
                   },
-                  child: Text(
-                    AppStrings.delete,
-                    style: TextStyle(
-                      color: colorScheme[AppStrings.essentialColor],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.delete,
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.essentialColor],
+                      ),
                     ),
                   ),
                 ),
@@ -157,64 +167,67 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
-      // Barra de navegación inferior
       bottomNavigationBar: BottomNavigationBarWidget(
-        userType: userType,
+        userType: userProvider.userType,
         goRouter: widget.goRouter,
       ),
       body: SafeArea(
-        bottom: false, // Solo protege la parte superior
+        bottom: false,
         child: Column(
           children: [
-            // Header con botones
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                verticalPadding,
+                horizontalPadding,
+                0,
+              ),
               child: Row(
                 children: [
-                  // Botón de retroceso
                   GestureDetector(
                     onTap: () => widget.goRouter.pop(),
                     child: Icon(
                       Icons.arrow_back,
                       color: colorScheme[AppStrings.secondaryColor],
-                      size: 28,
+                      size: iconSize,
                     ),
                   ),
-                  // Título centrado
                   Expanded(
                     child: Align(
                       alignment: Alignment.center,
-                      child: Text(
-                        AppStrings.favorites,
-                        style: TextStyle(
-                          fontSize: 26,
-                          color: colorScheme[AppStrings.secondaryColor],
-                          fontWeight: FontWeight.bold,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppStrings.favorites,
+                          style: TextStyle(
+                            fontSize: titleFontSize,
+                            color: colorScheme[AppStrings.secondaryColor],
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  // Botón de edición (toggle)
                   GestureDetector(
                     onTap: () => setState(() => isEditMode = !isEditMode),
-                    child: Text(
-                      isEditMode ? AppStrings.done : AppStrings.edit,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.essentialColor],
-                        fontSize: 18,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        isEditMode ? AppStrings.done : AppStrings.edit,
+                        style: TextStyle(
+                          color: colorScheme[AppStrings.essentialColor],
+                          fontSize: editFontSize,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-
-            // Lista principal de favoritos
             Expanded(
               child: StreamBuilder<List<LikedUsersList>>(
                 stream: favoritesProvider.likedUsersLists,
                 builder: (context, snapshot) {
-                  // Mostrar indicador de carga mientras se obtienen datos
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(
                       child: CircularProgressIndicator(
@@ -225,51 +238,40 @@ class _LikedArtistsScreenState extends State<LikedArtistsScreen> {
 
                   final likedUsersLists = snapshot.data ?? [];
 
-                  // GridView para mostrar las listas
                   return GridView.builder(
-                    padding: const EdgeInsets.all(8.0),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2, // 2 columnas
-                          mainAxisSpacing: 8, // Espaciado vertical
-                          crossAxisSpacing: 8, // Espaciado horizontal
-                          childAspectRatio: 0.8, // Relación de aspecto
-                        ),
-                    itemCount:
-                        likedUsersLists.length +
-                        1, // +1 para el primer item especial
+                    padding: EdgeInsets.all(gridSpacing),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: gridSpacing,
+                      crossAxisSpacing: gridSpacing,
+                      childAspectRatio: 0.8,
+                    ),
+                    itemCount: likedUsersLists.length + 1,
                     itemBuilder: (context, index) {
-                      // Primer item es especial (RecentlyViewedCard)
-                      if (index == 0) {
-                        return RecentlyViewedCard();
-                      } else {
-                        // Items normales (tarjetas de lista de favoritos)
-                        final likedList = likedUsersLists[index - 1];
-                        return LikedUsersListCard(
-                          likedUsersList: likedList,
-                          isEditMode: isEditMode,
-                          onDeleteClick: (list) {
-                            // Manejar clic para eliminar
-                            setState(() {
-                              listToDelete = list;
-                              showDeleteDialog = true;
-                            });
-                          },
-                          onClick: () {
-                            // Manejar clic para ver detalles
-                            favoritesProvider.setSelectedListName(
-                              likedList.name,
-                            );
-                            favoritesProvider.loadProfilesByIds(
-                              likedList.likedUsersList,
-                            );
-                            widget.goRouter.push(
-                              AppStrings.likedUsersListScreen,
-                            );
-                          },
-                          imageSize: 170, // Tamaño de imagen
-                        );
-                      }
+                      if (index == 0) return RecentlyViewedCard();
+                      final likedList = likedUsersLists[index - 1];
+
+                      // Imagen adaptativa basada en ancho de pantalla
+                      final imageSize = screenWidth * 0.4;
+
+                      return LikedUsersListCard(
+                        likedUsersList: likedList,
+                        isEditMode: isEditMode,
+                        onDeleteClick: (list) {
+                          setState(() {
+                            listToDelete = list;
+                            showDeleteDialog = true;
+                          });
+                        },
+                        onClick: () {
+                          favoritesProvider.setSelectedListName(likedList.name);
+                          favoritesProvider.loadProfilesByIds(
+                            likedList.likedUsersList,
+                          );
+                          widget.goRouter.push(AppStrings.likedUsersListScreen);
+                        },
+                        imageSize: imageSize,
+                      );
                     },
                   );
                 },

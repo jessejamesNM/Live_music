@@ -33,7 +33,6 @@ import 'artist_elements_bar/review_content.dart';
 import 'artist_elements_bar/works_content.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 
-// Widget de pantalla Stateful que muestra el perfil del artista
 class ProfileArtistScreen extends StatefulWidget {
   final UploadProfileImagesToServer uploadProfileImagesToServer;
   final UploadWorkMediaToServer uploadWorkImagesToServer;
@@ -60,9 +59,7 @@ class ProfileArtistScreen extends StatefulWidget {
 
 class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
   final ValueNotifier<int> selectedButtonIndex = ValueNotifier<int>(0);
-  final ValueNotifier<ImageData?> showImageDetail = ValueNotifier<ImageData?>(
-    null,
-  );
+  final ValueNotifier<ImageData?> showImageDetail = ValueNotifier<ImageData?>(null);
   File? _selectedProfileImage;
   bool _isUploadingProfileImage = false;
   StreamSubscription<DocumentSnapshot>? _userDataSubscription;
@@ -90,10 +87,10 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
           .doc(currentUserId)
           .snapshots()
           .listen((document) {
-            if (document.exists) {
-              widget.userProvider.updateUserDataFromDocument(document);
-            }
-          });
+        if (document.exists) {
+          widget.userProvider.updateUserDataFromDocument(document);
+        }
+      });
 
       _initialDataLoaded = true;
     }
@@ -152,9 +149,7 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${AppStrings.uploadProfileImageError}: ${e.toString()}',
-            ),
+            content: Text('${AppStrings.uploadProfileImageError}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -162,7 +157,6 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
     }
   }
 
-  // Update your _buildSelectedContent method in ProfileArtistScreen
   Widget _buildSelectedContent(String userId) {
     switch (selectedButtonIndex.value) {
       case 0:
@@ -174,16 +168,10 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
       case 1:
         return WorksContent();
       case 2:
-        return AvailabilityContent(
-        
-          userId: userId,
-        );
+        return AvailabilityContent(userId: userId);
       case 3:
-        return DatesContent(
-          profileProvider: widget.profileProvider,
-          currentUserId: userId,
-        );
-      case 4: // New case for Services
+        return DatesContent(profileProvider: widget.profileProvider, currentUserId: userId);
+      case 4:
         return ReviewsContent(
           messagesProvider: widget.messagesProvider,
           userProvider: widget.userProvider,
@@ -201,6 +189,8 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
     final isArtist = userProvider.userType == AppStrings.artist;
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColorLight],
@@ -208,48 +198,46 @@ class _ProfileArtistScreenState extends State<ProfileArtistScreen> {
         userType: userType,
         goRouter: widget.goRouter,
       ),
-      body:
-          currentUserId == null
-              ? const Center(child: CircularProgressIndicator())
-              : ValueListenableBuilder<int>(
-                valueListenable: selectedButtonIndex,
-                builder: (context, index, _) {
-                  return CustomScrollView(
-                    slivers: [
-                      SliverAppBar(
-                        expandedHeight: 220.0,
-                        pinned: true,
-                        backgroundColor:
-                            colorScheme[AppStrings.primaryColorLight],
-                        flexibleSpace: SafeArea(
-                          bottom: false,
-                          child: FlexibleSpaceBar(
-                            background: ProfileHeader(
-                              profileImageUrl: userProvider.profileImageUrl,
-                              userName: userProvider.userName,
-                              nickname: userProvider.nickname,
-                              isUploading: _isUploadingProfileImage,
-                              currentUserId: currentUserId,
-                              goRouter: widget.goRouter,
-                            ),
+      body: currentUserId == null
+          ? const Center(child: CircularProgressIndicator())
+          : ValueListenableBuilder<int>(
+              valueListenable: selectedButtonIndex,
+              builder: (context, index, _) {
+                return CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      expandedHeight: screenHeight * 0.28,
+                      pinned: true,
+                      backgroundColor: colorScheme[AppStrings.primaryColorLight],
+                      flexibleSpace: SafeArea(
+                        bottom: false,
+                        child: FlexibleSpaceBar(
+                          background: ProfileHeader(
+                            profileImageUrl: userProvider.profileImageUrl,
+                            userName: userProvider.userName,
+                            nickname: userProvider.nickname,
+                            isUploading: _isUploadingProfileImage,
+                            currentUserId: currentUserId,
+                            goRouter: widget.goRouter,
                           ),
                         ),
                       ),
-                      SliverToBoxAdapter(
-                        child: ButtonRow(
-                          selectedButtonIndex: selectedButtonIndex,
-                          onButtonSelect: (int index) {
-                            selectedButtonIndex.value = index;
-                          },
-                        ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: ButtonRow(
+                        selectedButtonIndex: selectedButtonIndex,
+                        onButtonSelect: (int index) {
+                          selectedButtonIndex.value = index;
+                        },
                       ),
-                      SliverToBoxAdapter(
-                        child: _buildSelectedContent(currentUserId),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildSelectedContent(currentUserId),
+                    ),
+                  ],
+                );
+              },
+            ),
     );
   }
 

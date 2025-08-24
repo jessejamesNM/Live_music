@@ -33,8 +33,10 @@ class SelectionScreen extends StatelessWidget {
     final colorScheme = ColorPalette.getPalette(context);
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth =
-        (screenWidth - 60) / 2; // Ajustado con margen y separación
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Ancho adaptativo para las tarjetas (mitad de pantalla - márgenes)
+    final cardWidth = (screenWidth - 60) / 2;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
@@ -46,15 +48,18 @@ class SelectionScreen extends StatelessWidget {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  AppStrings.appName,
-                  style: TextStyle(
-                    fontFamily: fontMainFamily,
-                    color: colorScheme[AppStrings.secondaryColor],
-                    fontSize: 37,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppStrings.appName,
+                    style: TextStyle(
+                      fontFamily: fontMainFamily,
+                      color: colorScheme[AppStrings.secondaryColor],
+                      fontSize: screenWidth * 0.09, // Escala con ancho pantalla
+                    ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: screenHeight * 0.05),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -85,12 +90,18 @@ class SelectionScreen extends StatelessWidget {
               alignment: Alignment.bottomRight,
               child: GestureDetector(
                 onTap: onLoginClick,
-                child: Text(
-                  AppStrings.logIn,
-                  style: TextStyle(
-                    fontFamily: fontMainFamily,
-                    color: colorScheme[AppStrings.secondaryColor],
-                    fontSize: 17,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.logIn,
+                      style: TextStyle(
+                        fontFamily: fontMainFamily,
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: screenWidth * 0.045, // Adaptativo
+                      ),
+                    ),
                   ),
                 ),
               ),

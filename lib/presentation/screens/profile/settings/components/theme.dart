@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/data/provider_logics/theme_provider/theme_provider.dart';
 import 'package:live_music/data/provider_logics/user/user_provider.dart';
-import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/screens/buttom_navigation_bar.dart';
 import 'package:provider/provider.dart';
 
@@ -17,63 +16,81 @@ class ThemeSettingsScreen extends StatelessWidget {
 
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    double titleFontSize = screenWidth * 0.055; // ~22 en 400px
+    double optionFontSize = screenWidth * 0.045; // ~18 en 400px
+    double dividerThickness = screenHeight * 0.0013; // ~1 en 750px
+    double listPadding = screenWidth * 0.06; // ~24 en 400px
+
     return Scaffold(
       backgroundColor: colorScheme.primary,
       appBar: AppBar(
         title: Text(
           'Configuración de Tema',
-          style: TextStyle(color: colorScheme.secondary), // ✅ corregido
+          style: TextStyle(
+            color: colorScheme.secondary,
+            fontSize: titleFontSize,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.secondary, // ✅ corregido
+        foregroundColor: colorScheme.secondary,
+        centerTitle: true,
+        elevation: 0,
       ),
-      body:
-          themeProvider.isLoading
-              ? Center(
-                child: CircularProgressIndicator(color: colorScheme.secondary),
-              )
-              : ListView(
-                children: [
-                  _buildThemeOption(
-                    context,
-                    title: 'Modo Claro',
-                    value: AppTheme.light,
-                    currentTheme: themeProvider.currentTheme,
-                    colorScheme: colorScheme,
-                    onChanged: (value) {
-                      if (value != null) {
-                        themeProvider.setTheme(value);
-                      }
-                    },
-                  ),
-                  _buildDivider(colorScheme),
-                  _buildThemeOption(
-                    context,
-                    title: 'Modo Oscuro',
-                    value: AppTheme.dark,
-                    currentTheme: themeProvider.currentTheme,
-                    colorScheme: colorScheme,
-                    onChanged: (value) {
-                      if (value != null) {
-                        themeProvider.setTheme(value);
-                      }
-                    },
-                  ),
-                  _buildDivider(colorScheme),
-                  _buildThemeOption(
-                    context,
-                    title: 'Usar configuración del sistema',
-                    value: AppTheme.system,
-                    currentTheme: themeProvider.currentTheme,
-                    colorScheme: colorScheme,
-                    onChanged: (value) {
-                      if (value != null) {
-                        themeProvider.setTheme(value);
-                      }
-                    },
-                  ),
-                ],
-              ),
+      body: themeProvider.isLoading
+          ? Center(
+              child: CircularProgressIndicator(color: colorScheme.secondary),
+            )
+          : ListView(
+              padding: EdgeInsets.symmetric(
+                  vertical: listPadding, horizontal: listPadding),
+              children: [
+                _buildThemeOption(
+                  context,
+                  title: 'Modo Claro',
+                  value: AppTheme.light,
+                  currentTheme: themeProvider.currentTheme,
+                  colorScheme: colorScheme,
+                  optionFontSize: optionFontSize,
+                  onChanged: (value) {
+                    if (value != null) {
+                      themeProvider.setTheme(value);
+                    }
+                  },
+                ),
+                _buildDivider(colorScheme, dividerThickness),
+                _buildThemeOption(
+                  context,
+                  title: 'Modo Oscuro',
+                  value: AppTheme.dark,
+                  currentTheme: themeProvider.currentTheme,
+                  colorScheme: colorScheme,
+                  optionFontSize: optionFontSize,
+                  onChanged: (value) {
+                    if (value != null) {
+                      themeProvider.setTheme(value);
+                    }
+                  },
+                ),
+                _buildDivider(colorScheme, dividerThickness),
+                _buildThemeOption(
+                  context,
+                  title: 'Usar configuración del sistema',
+                  value: AppTheme.system,
+                  currentTheme: themeProvider.currentTheme,
+                  colorScheme: colorScheme,
+                  optionFontSize: optionFontSize,
+                  onChanged: (value) {
+                    if (value != null) {
+                      themeProvider.setTheme(value);
+                    }
+                  },
+                ),
+              ],
+            ),
       bottomNavigationBar: BottomNavigationBarWidget(
         userType: userProvider.userType,
         goRouter: goRouter,
@@ -87,6 +104,7 @@ class ThemeSettingsScreen extends StatelessWidget {
     required AppTheme value,
     required AppTheme currentTheme,
     required ColorScheme colorScheme,
+    required double optionFontSize,
     required ValueChanged<AppTheme?> onChanged,
   }) {
     return Container(
@@ -95,8 +113,9 @@ class ThemeSettingsScreen extends StatelessWidget {
         title: Text(
           title,
           style: TextStyle(
-            color: colorScheme.secondary, // ✅ corregido
-            fontSize: 16,
+            color: colorScheme.secondary,
+            fontSize: optionFontSize,
+            fontWeight: FontWeight.w500,
           ),
         ),
         value: value,
@@ -105,15 +124,16 @@ class ThemeSettingsScreen extends StatelessWidget {
         activeColor: colorScheme.secondary,
         tileColor: colorScheme.primary,
         selectedTileColor: colorScheme.primaryContainer,
+        contentPadding: EdgeInsets.symmetric(horizontal: 0),
       ),
     );
   }
 
-  Widget _buildDivider(ColorScheme colorScheme) {
+  Widget _buildDivider(ColorScheme colorScheme, double thickness) {
     return Divider(
-      height: 1,
-      thickness: 1,
-      color: colorScheme.secondary.withOpacity(0.1), // ✅ corregido
+      height: thickness * 12,
+      thickness: thickness,
+      color: colorScheme.secondary.withOpacity(0.1),
     );
   }
 }

@@ -45,6 +45,17 @@ class ConversationsScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Tamaños adaptativos
+    final topBarHeight = screenHeight * 0.06;
+    final iconSize = screenWidth * 0.06;
+    final titleFontSize = screenWidth * 0.06;
+    final buttonFontSize = screenWidth * 0.045;
+    final conversationPadding = screenWidth * 0.04;
+    final selectionCircleSize = screenWidth * 0.06;
+    final selectionIconSize = screenWidth * 0.04;
 
     // Estado para manejar el UID reactivamente
     final currentUserIdState = useState<String?>(
@@ -60,11 +71,8 @@ class ConversationsScreen extends HookWidget {
     }, []);
 
     final currentUserId = currentUserIdState.value;
-
-    // Estados internos para seguimiento del usuario anterior
     final previousUserId = useRef<String?>(null);
 
-    // Si cambia el currentUserId, se reinicia todo — POST FRAME
     useEffect(() {
       if (previousUserId.value != currentUserId) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -82,71 +90,10 @@ class ConversationsScreen extends HookWidget {
 
     final userType = userProvider.userType;
     final isArtist = userType == AppStrings.artist;
-
     final selectedReceivers = useState<List<String>>([]);
     final showSelectionCircles = useState(false);
     final selectionButtonText = useState(AppStrings.edit);
     final isBottomSheetVisible = useState(false);
-    final showActionBar = useState(false);
-
-    void deleteSelectedConversations() {
-      if (currentUserId == null) return;
-
-      selectedReceivers.value.forEach((otherUserId) async {
-        if (otherUserId.isEmpty) return;
-
-        try {
-          final conversationRef = ConversationReference();
-          final reference = await conversationRef.getConversationReference(
-            currentUserId,
-            otherUserId,
-          );
-          await reference.remove();
-          messagesProvider.deleteConversation(otherUserId);
-          messagesProvider.deleteAllMessages(currentUserId, otherUserId);
-        } catch (_) {}
-      });
-
-      selectedReceivers.value = [];
-      showSelectionCircles.value = false;
-      selectionButtonText.value = AppStrings.edit;
-      showActionBar.value = false;
-      isBottomSheetVisible.value = false;
-    }
-
-    void blockSelectedConversations() {
-      if (currentUserId == null) return;
-
-      selectedReceivers.value.forEach((otherUserId) async {
-        if (otherUserId.isEmpty) return;
-
-        try {
-          userProvider.blockUser(currentUserId, otherUserId);
-        } catch (_) {}
-      });
-
-      selectedReceivers.value = [];
-      showSelectionCircles.value = false;
-      selectionButtonText.value = AppStrings.edit;
-      showActionBar.value = false;
-      isBottomSheetVisible.value = false;
-    }
-
-    void blockOneConversation(String otherUserId) {
-      if (currentUserId == null || otherUserId.isEmpty) return;
-      userProvider.blockUser(currentUserId, otherUserId);
-    }
-
-    void unblockOneConversation(String otherUserId) {
-      if (currentUserId == null || otherUserId.isEmpty) return;
-      userProvider.unblockUser(currentUserId, otherUserId);
-    }
-
-    void deleteOneConversation(String otherUserId) {
-      if (currentUserId == null || otherUserId.isEmpty) return;
-      messagesProvider.deleteConversation(otherUserId);
-      messagesProvider.deleteAllMessages(currentUserId, otherUserId);
-    }
 
     void toggleSelectionMode() {
       if (selectionButtonText.value == AppStrings.edit) {
@@ -161,6 +108,35 @@ class ConversationsScreen extends HookWidget {
       }
     }
 
+    void deleteSelectedConversations() {
+      if (currentUserId == null) return;
+
+      for (var otherUserId in selectedReceivers.value) {
+        if (otherUserId.isEmpty) continue;
+        messagesProvider.deleteConversation(otherUserId);
+        messagesProvider.deleteAllMessages(currentUserId, otherUserId);
+      }
+
+      selectedReceivers.value = [];
+      showSelectionCircles.value = false;
+      selectionButtonText.value = AppStrings.edit;
+      isBottomSheetVisible.value = false;
+    }
+
+    void blockSelectedConversations() {
+      if (currentUserId == null) return;
+
+      for (var otherUserId in selectedReceivers.value) {
+        if (otherUserId.isEmpty) continue;
+        userProvider.blockUser(currentUserId, otherUserId);
+      }
+
+      selectedReceivers.value = [];
+      showSelectionCircles.value = false;
+      selectionButtonText.value = AppStrings.edit;
+      isBottomSheetVisible.value = false;
+    }
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
@@ -171,62 +147,65 @@ class ConversationsScreen extends HookWidget {
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: EdgeInsets.symmetric(horizontal: conversationPadding),
               child: Column(
                 children: [
-                  SafeArea(
-                    bottom: false,
-                    child: SizedBox(
-                      height: 40,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: GestureDetector(
-                              onTap: toggleSelectionMode,
+                  SizedBox(
+                    height: topBarHeight,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: toggleSelectionMode,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
                               child: Text(
                                 selectionButtonText.value,
                                 style: TextStyle(
                                   color: colorScheme[AppStrings.essentialColor],
-                                  fontSize: 16,
+                                  fontSize: buttonFontSize,
                                 ),
                               ),
                             ),
                           ),
-                          Center(
+                        ),
+                        Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
                             child: Text(
                               AppStrings.messages,
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: titleFontSize,
                                 color: colorScheme[AppStrings.secondaryColor],
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: screenHeight * 0.02),
                   Expanded(
                     child: StreamBuilder<List<Conversation>>(
                       stream: messagesProvider.conversations,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
                         }
 
                         if (snapshot.hasError) {
                           return Center(
-                            child: Text(
-                              AppStrings.errorLoadingConversations,
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: colorScheme[AppStrings.secondaryColor],
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                AppStrings.errorLoadingConversations,
+                                style: TextStyle(
+                                  fontSize: buttonFontSize,
+                                  color: colorScheme[AppStrings.secondaryColor],
+                                ),
                               ),
                             ),
                           );
@@ -234,85 +213,73 @@ class ConversationsScreen extends HookWidget {
 
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return Center(
-                            child: Text(
-                              AppStrings.noMessagesYet,
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: colorScheme[AppStrings.secondaryColor],
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                AppStrings.noMessagesYet,
+                                style: TextStyle(
+                                  fontSize: buttonFontSize,
+                                  color: colorScheme[AppStrings.secondaryColor],
+                                ),
                               ),
                             ),
                           );
                         }
 
                         final conversationList = snapshot.data!;
-
                         return ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 80),
+                          padding: EdgeInsets.only(bottom: screenHeight * 0.1),
                           itemCount: conversationList.length,
                           itemBuilder: (context, index) {
                             final conversation = conversationList[index];
                             final id = conversation.otherUserId;
 
-                            return Row(
-                              children: [
-                                if (showSelectionCircles.value)
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (selectedReceivers.value.contains(
-                                        id,
-                                      )) {
-                                        selectedReceivers.value = List.from(
-                                          selectedReceivers.value,
-                                        )..remove(id);
-                                      } else {
-                                        selectedReceivers.value = List.from(
-                                          selectedReceivers.value,
-                                        )..add(id);
-                                      }
-                                    },
-                                    child: Container(
-                                      width: 25,
-                                      height: 25,
-                                      margin: const EdgeInsets.only(right: 12),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            colorScheme[AppStrings
-                                                .primaryColor],
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color:
-                                              colorScheme[AppStrings
-                                                  .secondaryColor]!,
-                                          width: 1,
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.005),
+                              child: Row(
+                                children: [
+                                  if (showSelectionCircles.value)
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (selectedReceivers.value.contains(id)) {
+                                          selectedReceivers.value = List.from(selectedReceivers.value)..remove(id);
+                                        } else {
+                                          selectedReceivers.value = List.from(selectedReceivers.value)..add(id);
+                                        }
+                                      },
+                                      child: Container(
+                                        width: selectionCircleSize,
+                                        height: selectionCircleSize,
+                                        margin: EdgeInsets.only(right: screenWidth * 0.03),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme[AppStrings.primaryColor],
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: colorScheme[AppStrings.secondaryColor]!,
+                                            width: 1,
+                                          ),
                                         ),
+                                        child: selectedReceivers.value.contains(id)
+                                            ? Icon(Icons.check,
+                                                color: colorScheme[AppStrings.secondaryColor],
+                                                size: selectionIconSize)
+                                            : null,
                                       ),
-                                      child:
-                                          selectedReceivers.value.contains(id)
-                                              ? Icon(
-                                                Icons.check,
-                                                color:
-                                                    colorScheme[AppStrings
-                                                        .secondaryColor],
-                                                size: 16,
-                                              )
-                                              : null,
+                                    ),
+                                  Expanded(
+                                    child: ConversationItem(
+                                      conversation: conversation,
+                                      currentUserId: currentUserId ?? '',
+                                      messagesProvider: messagesProvider,
+                                      deleteOneConversation: (id) {},
+                                      blockOneConversation: (id) {},
+                                      unblockOneConversation: (id) {},
+                                      isArtist: isArtist,
+                                      goRouter: goRouter,
                                     ),
                                   ),
-                                Expanded(
-                                  child: ConversationItem(
-                                    conversation: conversation,
-                                    currentUserId: currentUserId ?? '',
-                                    messagesProvider: messagesProvider,
-                                    blockOneConversation: blockOneConversation,
-                                    unblockOneConversation:
-                                        unblockOneConversation,
-                                    deleteOneConversation:
-                                        deleteOneConversation,
-                                    isArtist: isArtist,
-                                    goRouter: goRouter,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             );
                           },
                         );
@@ -392,35 +359,31 @@ class _ConversationItemState extends State<ConversationItem> {
         .doc(widget.conversation.otherUserId)
         .snapshots()
         .listen((snapshot) {
-          if (!mounted) return;
-          final data = snapshot.data();
-          if (data != null) {
-            setState(() {
-              isOnline = data['userUsingApp'] ?? false;
-              final blockedUsers = List<String>.from(
-                data['blockedUsers'] ?? [],
-              );
-              iAmBlocked = blockedUsers.contains(widget.currentUserId);
-            });
-          }
+      if (!mounted) return;
+      final data = snapshot.data();
+      if (data != null) {
+        setState(() {
+          isOnline = data['userUsingApp'] ?? false;
+          final blockedUsers = List<String>.from(data['blockedUsers'] ?? []);
+          iAmBlocked = blockedUsers.contains(widget.currentUserId);
         });
+      }
+    });
 
     currentUserSub = FirebaseFirestore.instance
         .collection("users")
         .doc(widget.currentUserId)
         .snapshots()
         .listen((snapshot) {
-          if (!mounted) return;
-          final data = snapshot.data();
-          if (data != null) {
-            setState(() {
-              final blockedUsers = List<String>.from(
-                data['blockedUsers'] ?? [],
-              );
-              iBlocked = blockedUsers.contains(widget.conversation.otherUserId);
-            });
-          }
+      if (!mounted) return;
+      final data = snapshot.data();
+      if (data != null) {
+        setState(() {
+          final blockedUsers = List<String>.from(data['blockedUsers'] ?? []);
+          iBlocked = blockedUsers.contains(widget.conversation.otherUserId);
         });
+      }
+    });
   }
 
   @override
@@ -432,8 +395,6 @@ class _ConversationItemState extends State<ConversationItem> {
 
   @override
   Widget build(BuildContext context) {
-    ColorPalette.getPalette(context);
-
     return ReceiverCard(
       conversation: widget.conversation,
       isOnline: isOnline,

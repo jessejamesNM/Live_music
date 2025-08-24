@@ -46,7 +46,7 @@ class EventSpecializationScreen extends StatelessWidget {
     MapEntry('Conferencia', 'assets/svg/ic_conferencia.svg'),
     MapEntry('Posada', 'assets/svg/ic_piñata.svg'),
     MapEntry('Graduación', 'assets/svg/ic_graduaciones.svg'),
-    MapEntry(AppStrings.noParticularEvent, null), // Sin ícono y va al final
+    MapEntry(AppStrings.noParticularEvent, null),
   ];
 
   EventSpecializationScreen({
@@ -61,8 +61,7 @@ class EventSpecializationScreen extends StatelessWidget {
       final currentUser = auth.currentUser;
       if (currentUser == null) return [];
 
-      final doc =
-          await firestore.collection('users').doc(currentUser.uid).get();
+      final doc = await firestore.collection('users').doc(currentUser.uid).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         final specialties = data[AppStrings.specialtyField] as List<dynamic>?;
@@ -97,6 +96,14 @@ class EventSpecializationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final titleFontSize = screenWidth * 0.06;
+    final buttonFontSize = screenWidth * 0.045;
+    final iconHeight = screenWidth * 0.15;
+    final borderRadius = screenWidth * 0.04;
+    final cardSpacing = screenWidth * 0.04;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
@@ -106,126 +113,113 @@ class EventSpecializationScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(cardSpacing),
         child: Consumer<BeginningProvider>(
           builder: (context, provider, child) {
             return Column(
               children: [
-                Text(
-                  AppStrings.eventSpecializationQuestion,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme[AppStrings.secondaryColor],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppStrings.eventSpecializationQuestion,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: screenHeight * 0.04),
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
+                    mainAxisSpacing: cardSpacing,
+                    crossAxisSpacing: cardSpacing,
                     childAspectRatio: 1.1,
-                    children:
-                        eventTypeEntries.map((entry) {
-                          final event = entry.key;
-                          final iconPath = entry.value;
+                    children: eventTypeEntries.map((entry) {
+                      final event = entry.key;
+                      final iconPath = entry.value;
 
-                          return FutureBuilder<List<String>>(
-                            future: _getCurrentSpecialties(),
-                            builder: (context, snapshot) {
-                              final isSelected =
-                                  snapshot.hasData
-                                      ? snapshot.data!.contains(event)
-                                      : provider.selectedEvents.contains(event);
+                      return FutureBuilder<List<String>>(
+                        future: _getCurrentSpecialties(),
+                        builder: (context, snapshot) {
+                          final isSelected = snapshot.hasData
+                              ? snapshot.data!.contains(event)
+                              : provider.selectedEvents.contains(event);
 
-                              return GestureDetector(
-                                onTap: () async {
-                                  final currentSpecialties =
-                                      await _getCurrentSpecialties();
-                                  final isCurrentlySelected = currentSpecialties
-                                      .contains(event);
-                                  await _updateSpecialty(
-                                    event,
-                                    isCurrentlySelected,
-                                  );
-                                  provider.toggleEventSelection(event);
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? colorScheme[AppStrings
-                                                .essentialColor]
-                                            : colorScheme[AppStrings
-                                                .primaryColor],
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color:
-                                          isSelected
-                                              ? colorScheme[AppStrings
-                                                  .essentialColor]!
-                                              : colorScheme[AppStrings
-                                                      .secondaryColor]!
-                                                  .withOpacity(0.3),
-                                      width: 1.5,
-                                    ),
-                                    boxShadow:
-                                        isSelected
-                                            ? [
-                                              BoxShadow(
-                                                color: colorScheme[AppStrings
-                                                        .essentialColor]!
-                                                    .withOpacity(0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ]
-                                            : null,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (iconPath != null) ...[
-                                        SvgPicture.asset(
-                                          iconPath,
-                                          height: 40,
-                                          colorFilter: ColorFilter.mode(
-                                            isSelected
-                                                ? colorScheme[AppStrings
-                                                    .primaryColor]!
-                                                : colorScheme[AppStrings
-                                                    .secondaryColor]!,
-                                            BlendMode.srcIn,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                      ],
-                                      Text(
-                                        event,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color:
-                                              isSelected
-                                                  ? colorScheme[AppStrings
-                                                      .primaryColor]
-                                                  : colorScheme[AppStrings
-                                                      .secondaryColor],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
+                          return GestureDetector(
+                            onTap: () async {
+                              final currentSpecialties = await _getCurrentSpecialties();
+                              final isCurrentlySelected =
+                                  currentSpecialties.contains(event);
+                              await _updateSpecialty(event, isCurrentlySelected);
+                              provider.toggleEventSelection(event);
                             },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? colorScheme[AppStrings.essentialColor]
+                                    : colorScheme[AppStrings.primaryColor],
+                                borderRadius: BorderRadius.circular(borderRadius),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? colorScheme[AppStrings.essentialColor]!
+                                      : colorScheme[AppStrings.secondaryColor]!
+                                          .withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: colorScheme[AppStrings.essentialColor]!
+                                              .withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (iconPath != null) ...[
+                                    SvgPicture.asset(
+                                      iconPath,
+                                      height: iconHeight,
+                                      colorFilter: ColorFilter.mode(
+                                        isSelected
+                                            ? colorScheme[AppStrings.primaryColor]!
+                                            : colorScheme[AppStrings.secondaryColor]!,
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
+                                    SizedBox(height: screenHeight * 0.015),
+                                  ],
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      event,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: screenWidth * 0.04,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? colorScheme[AppStrings.primaryColor]
+                                            : colorScheme[AppStrings.secondaryColor],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           );
-                        }).toList(),
+                        },
+                      );
+                    }).toList(),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: screenHeight * 0.04),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -245,17 +239,20 @@ class EventSpecializationScreen extends StatelessWidget {
                       backgroundColor: colorScheme[AppStrings.essentialColor],
                       foregroundColor: colorScheme[AppStrings.primaryColor],
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(borderRadius),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
                       elevation: 4,
                     ),
-                    child: Text(
-                      AppStrings.myContinue,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme[AppStrings.primaryColor],
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppStrings.myContinue,
+                        style: TextStyle(
+                          fontSize: buttonFontSize,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme[AppStrings.primaryColor],
+                        ),
                       ),
                     ),
                   ),

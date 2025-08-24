@@ -14,9 +14,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:live_music/data/provider_logics/beginning/beginning_provider.dart';
 import 'package:live_music/data/repositories/render_http_client/images/upload_profile_image.dart';
 import 'package:live_music/data/widgets/cut_and_upload_images.dart';
-import 'package:live_music/data/widgets/media_upload_event.dart';
 import 'package:live_music/presentation/resources/strings.dart';
-import 'package:live_music/presentation/screens/profile/artist/artist_elements_bar/works_content.dart';
 import 'package:live_music/presentation/screens/search_fun/profile_artist_ws/menuComponents/work_content_ws.dart';
 import '../../../../data/repositories/render_http_client/images/upload_work_image.dart';
 import 'package:live_music/presentation/resources/colors.dart';
@@ -26,7 +24,6 @@ import 'dart:io';
 import 'dart:async';
 import '../../../../../data/provider_logics/user/user_provider.dart';
 import 'package:dio/dio.dart';
-
 class ProfileHeader extends StatefulWidget {
   final String? profileImageUrl;
   final String userName;
@@ -244,16 +241,16 @@ class _ProfileHeaderState extends State<ProfileHeader> {
             child: Wrap(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.image),
-                  title: const Text('Subir imagen'),
+                  leading: Icon(Icons.image, size: MediaQuery.of(context).size.width * 0.06),
+                  title: Text('Subir imagen', style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04)),
                   onTap: () {
                     Navigator.pop(context);
                     _pickImageForWorks();
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.videocam),
-                  title: const Text('Subir video'),
+                  leading: Icon(Icons.videocam, size: MediaQuery.of(context).size.width * 0.06),
+                  title: Text('Subir video', style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04)),
                   onTap: () {
                     Navigator.pop(context);
                     _pickVideo();
@@ -272,12 +269,12 @@ class _ProfileHeaderState extends State<ProfileHeader> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
+            title: Text(title, style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.045)),
+            content: Text(message, style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.038)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Entendido'),
+                child: Text('Entendido', style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.038)),
               ),
             ],
           ),
@@ -294,16 +291,22 @@ class _ProfileHeaderState extends State<ProfileHeader> {
             Icon(
               isError ? Icons.error_outline : Icons.check_circle_outline,
               color: Colors.white,
+              size: MediaQuery.of(context).size.width * 0.06,
             ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            SizedBox(width: MediaQuery.of(context).size.width * 0.02),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),
+              ),
+            ),
           ],
         ),
         duration: const Duration(seconds: 4),
         backgroundColor: isError ? Colors.red[700] : Colors.green[700],
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.03)),
+        margin: EdgeInsets.all(MediaQuery.of(context).size.width * 0.03),
       ),
     );
   }
@@ -311,23 +314,24 @@ class _ProfileHeaderState extends State<ProfileHeader> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Container(
       width: double.infinity,
       color: colorScheme[AppStrings.primaryColorLight],
-
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 16.0),
+            padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
                   onTap: _isUploading ? null : _handleProfileImageUpdate,
                   child: CircleAvatar(
-                    radius: 60,
+                    radius: screenWidth * 0.15,
                     backgroundColor: colorScheme[AppStrings.primaryColorLight],
                     child:
                         _isUploading
@@ -340,8 +344,8 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                             ? ClipOval(
                               child: Image.network(
                                 widget.profileImageUrl!,
-                                width: 110,
-                                height: 110,
+                                width: screenWidth * 0.28,
+                                height: screenWidth * 0.28,
                                 fit: BoxFit.cover,
                                 loadingBuilder: (context, child, progress) {
                                   if (progress == null) return child;
@@ -358,7 +362,7 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                                 errorBuilder: (context, error, stackTrace) {
                                   return Icon(
                                     Icons.person,
-                                    size: 60,
+                                    size: screenWidth * 0.15,
                                     color:
                                         colorScheme[AppStrings.secondaryColor],
                                   );
@@ -367,34 +371,34 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                             )
                             : Icon(
                               Icons.person,
-                              size: 60,
+                              size: screenWidth * 0.15,
                               color: colorScheme[AppStrings.secondaryColor],
                             ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: screenHeight * 0.01),
                 Text(
                   widget.userName,
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: screenWidth * 0.06,
                     color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: screenHeight * 0.005),
                 Text(
                   "@${widget.nickname}",
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: screenWidth * 0.04,
                     color: colorScheme[AppStrings.grayColor],
                   ),
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: screenHeight * 0.02),
               ],
             ),
           ),
           Positioned(
-            top: 16,
-            right: 16,
+            top: screenHeight * 0.02,
+            right: screenWidth * 0.04,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -402,27 +406,27 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                   onTap: _onAddPressed,
                   child: Card(
                     color: colorScheme[AppStrings.mainColorGray],
-
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(screenWidth * 0.015),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(screenWidth * 0.02),
                       child: Icon(
                         Icons.add,
                         color: colorScheme[AppStrings.secondaryColor],
+                        size: screenWidth * 0.06,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: screenWidth * 0.02),
                 GestureDetector(
                   onTap:
                       () =>
                           widget.goRouter.push(AppStrings.settingsScreenRoute),
                   child: Icon(
                     Icons.settings,
-                    size: 42,
+                    size: screenWidth * 0.1,
                     color: colorScheme[AppStrings.grayColor],
                   ),
                 ),
@@ -445,56 +449,25 @@ class ButtonRow extends StatelessWidget {
     Key? key,
   }) : super(key: key);
 
-  // Updated list of buttons to include "Servicios"
   final List<ButtonData> buttons = [
     ButtonData(
-      text: 'Servicios', // New button for Services
-      shape: const BorderRadius.only(
-        topLeft: Radius.circular(8),
-        bottomLeft: Radius.circular(8),
-        bottomRight: Radius.circular(8),
-        topRight: Radius.circular(8),
-      ),
+      text: 'Servicios',
       index: 0,
     ),
     ButtonData(
       text: AppStrings.works,
-      shape: const BorderRadius.only(
-        topLeft: Radius.circular(8),
-        bottomLeft: Radius.circular(8),
-        bottomRight: Radius.circular(8),
-        topRight: Radius.circular(8),
-      ),
       index: 1,
     ),
     ButtonData(
       text: AppStrings.availability,
-      shape: BorderRadius.only(
-        topLeft: Radius.circular(8),
-        bottomLeft: Radius.circular(8),
-        bottomRight: Radius.circular(8),
-        topRight: Radius.circular(8),
-      ),
       index: 2,
     ),
     ButtonData(
       text: AppStrings.dates,
-      shape: BorderRadius.only(
-        topLeft: Radius.circular(8),
-        bottomLeft: Radius.circular(8),
-        bottomRight: Radius.circular(8),
-        topRight: Radius.circular(8),
-      ),
       index: 3,
     ),
     ButtonData(
       text: AppStrings.review,
-      shape: const BorderRadius.only(
-        topLeft: Radius.circular(8),
-        bottomLeft: Radius.circular(8),
-        bottomRight: Radius.circular(8),
-        topRight: Radius.circular(8),
-      ),
       index: 4,
     ),
   ];
@@ -502,61 +475,66 @@ class ButtonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Adaptativo: calcula tamaño de fuente y paddings
+    double fontSize = screenWidth * 0.04;
+    double horizontalPadding = screenWidth * 0.035;
+    double verticalPadding = screenHeight * 0.012;
+    double buttonSpacing = screenWidth * 0.01;
+    double borderRadiusValue = screenWidth * 0.04;
 
     return ValueListenableBuilder<int>(
       valueListenable: selectedButtonIndex,
       builder: (context, value, child) {
         return Container(
           color: colorScheme[AppStrings.primaryColorLight],
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: EdgeInsets.symmetric(vertical: verticalPadding),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children:
-                  buttons.map((button) {
-                    final isSelected = value == button.index;
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Material(
-                        borderRadius: button.shape,
-                        color:
-                            isSelected
-                                ? colorScheme[AppStrings.primaryColorLight]
-                                : colorScheme[AppStrings.primaryColorLight],
-                        child: InkWell(
-                          borderRadius: button.shape,
-                          onTap: () => onButtonSelect(button.index),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: button.shape,
-                              border:
-                                  isSelected
-                                      ? Border.all(
-                                        color:
-                                            colorScheme[AppStrings
-                                                .secondaryColor]!,
-                                        width: 1.5,
-                                      )
-                                      : null,
-                            ),
-                            child: Text(
-                              button.text,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: colorScheme[AppStrings.secondaryColor],
-                              ),
-                            ),
+              children: buttons.map((button) {
+                final isSelected = value == button.index;
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: buttonSpacing),
+                  child: Material(
+                    borderRadius: BorderRadius.circular(borderRadiusValue),
+                    color: colorScheme[AppStrings.primaryColorLight],
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(borderRadiusValue),
+                      onTap: () => onButtonSelect(button.index),
+                      child: Container(
+                        constraints: BoxConstraints(
+                          minWidth: screenWidth * 0.25,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: verticalPadding,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(borderRadiusValue),
+                          border: isSelected
+                              ? Border.all(
+                                  color: colorScheme[AppStrings.secondaryColor]!,
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                        child: Text(
+                          button.text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme[AppStrings.secondaryColor],
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         );
@@ -567,8 +545,7 @@ class ButtonRow extends StatelessWidget {
 
 class ButtonData {
   final String text;
-  final BorderRadius shape;
   final int index;
 
-  ButtonData({required this.text, required this.shape, required this.index});
+  ButtonData({required this.text, required this.index});
 }

@@ -39,128 +39,150 @@ class DeleteAccount extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userType = userProvider.userType; // Obtener el tipo de usuario
-    final isArtist =
-        userType == AppStrings.artist; // Verificar si el usuario es artista
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtener los colores del tema
+    final userType = userProvider.userType;
+    final isArtist = userType == AppStrings.artist;
+    final colorScheme = ColorPalette.getPalette(context);
 
     var reason = ""; // Variable local para almacenar el texto del TextField
 
     return Scaffold(
-      backgroundColor:
-          colorScheme[AppStrings.primaryColor], // Fondo con el color primario
+      backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
         userType: userType,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Stack(
-                alignment: Alignment.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final widthFactor = constraints.maxWidth / 400;
+            final heightFactor = constraints.maxHeight / 800;
+            final scale = widthFactor < heightFactor ? widthFactor : heightFactor;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16 * scale),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back,
+                  // Header con botón de retroceso y título
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.arrow_back,
+                            color: colorScheme[AppStrings.secondaryColor],
+                            size: 28 * scale,
+                          ),
+                          onPressed: () {
+                            try {
+                              context.pop();
+                            } catch (e) {
+                              goRouter.go(AppStrings.myAccountScreenRoute);
+                            }
+                          },
+                        ),
+                      ),
+                      FittedBox(
+                        child: Text(
+                          AppStrings.deleteAccount,
+                          style: TextStyle(
+                            fontSize: 25 * scale,
+                            color: colorScheme[AppStrings.secondaryColor],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Mensaje sobre la eliminación de la cuenta
+                  FittedBox(
+                    child: Text(
+                      AppStrings.accountDeletionMessage,
+                      style: TextStyle(
+                        fontSize: 14 * scale,
                         color: colorScheme[AppStrings.secondaryColor],
                       ),
-                      onPressed: () {
-                        try {
-                          // Intentamos hacer pop en la pila de navegación
-                          context.pop();
-                        } catch (e) {
-                          // Si falla, navegamos a la ruta /myaccountscreen
-                          goRouter.go(AppStrings.myAccountScreenRoute);
-                        }
-                      },
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  Text(
-                    AppStrings.deleteAccount, // Título de la pantalla
+                  SizedBox(height: 16 * scale),
+                  // Campo de texto para ingresar razón de eliminación
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: AppStrings.deletionReason,
+                      labelStyle: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: 14 * scale,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: colorScheme[AppStrings.secondaryColor]!,
+                        ),
+                        borderRadius: BorderRadius.circular(8 * scale),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: colorScheme[AppStrings.essentialColor]!,
+                        ),
+                        borderRadius: BorderRadius.circular(8 * scale),
+                      ),
+                    ),
                     style: TextStyle(
-                      fontSize: 25,
                       color: colorScheme[AppStrings.secondaryColor],
+                      fontSize: 14 * scale,
+                    ),
+                    onChanged: (value) => reason = value,
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Botón de continuar
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50 * scale,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (reason.isNotEmpty) {
+                          userProvider.deletionRequest = reason;
+
+                          final isGoogleUser = FirebaseAuth.instance.currentUser
+                                  ?.providerData
+                                  .any((info) =>
+                                      info.providerId ==
+                                      GoogleAuthProvider.PROVIDER_ID) ??
+                              false;
+
+                          if (isGoogleUser) {
+                            context.go(AppStrings.finalConfirmationRoute);
+                          } else {
+                            context.go(AppStrings.confirmIdentityRoute);
+                          }
+                        } else {
+                          Fluttertoast.showToast(
+                            msg: AppStrings.enterReasonMessage,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            colorScheme[AppStrings.essentialColor],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: FittedBox(
+                        child: Text(
+                          AppStrings.continueText,
+                          style: TextStyle(
+                            fontSize: 16 * scale,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              Text(
-                AppStrings
-                    .accountDeletionMessage, // Mensaje sobre la eliminación de la cuenta
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colorScheme[AppStrings.secondaryColor],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              TextField(
-                decoration: InputDecoration(
-                  labelText:
-                      AppStrings
-                          .deletionReason, // Etiqueta para el campo de texto
-                  labelStyle: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: colorScheme[AppStrings.secondaryColor]!,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: colorScheme[AppStrings.essentialColor]!,
-                    ),
-                  ),
-                ),
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
-                onChanged:
-                    (value) =>
-                        reason = value, // Actualizar la razón de eliminación
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  if (reason.isNotEmpty) {
-                    userProvider.deletionRequest =
-                        reason; // Guardar la razón en el proveedor
-
-                    final isGoogleUser =
-                        FirebaseAuth.instance.currentUser?.providerData.any(
-                          (info) =>
-                              info.providerId == GoogleAuthProvider.PROVIDER_ID,
-                        ) ??
-                        false;
-
-                    // Navegar a la pantalla de confirmación según el tipo de usuario
-                    if (isGoogleUser) {
-                      context.go(AppStrings.finalConfirmationRoute);
-                    } else {
-                      context.go(AppStrings.confirmIdentityRoute);
-                    }
-                  } else {
-                    Fluttertoast.showToast(
-                      msg: AppStrings.enterReasonMessage,
-                    ); // Mostrar mensaje si no se ingresa razón
-                  }
-                },
-                child: Text(AppStrings.continueText), // Texto del botón
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: colorScheme[AppStrings.essentialColor],
-                  minimumSize: Size(double.infinity, 50),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

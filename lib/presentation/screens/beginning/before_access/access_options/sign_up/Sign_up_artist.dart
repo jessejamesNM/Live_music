@@ -41,267 +41,286 @@ import '../../../../../../data/provider_logics/user/user_provider.dart';
 import '../../../../../resources/colors.dart';
 import '../../../../../resources/strings.dart';
 
-
- class RegisterOptionsArtistScreen extends StatelessWidget {
- final GoRouter goRouter;
+class RegisterOptionsArtistScreen extends StatelessWidget {
+  final GoRouter goRouter;
  
- const RegisterOptionsArtistScreen({
- Key? key, 
- required this.goRouter
- }) : super(key: key);
+  const RegisterOptionsArtistScreen({
+    Key? key, 
+    required this.goRouter
+  }) : super(key: key);
  
- @override
- Widget build(BuildContext context) {
- final registerWithGoogleProvider = RegisterWithGoogleProvider();
- final registerWithAppleProvider = RegisterWithAppleProvider();
- final userProvider = Provider.of<UserProvider>(context, listen: false);
+  @override
+  Widget build(BuildContext context) {
+    final registerWithGoogleProvider = RegisterWithGoogleProvider();
+    final registerWithAppleProvider = RegisterWithAppleProvider();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
  
- return RegisterOptionsArtistUI(
- registerWithGoogleProvider: registerWithGoogleProvider,
- registerWithAppleProvider: registerWithAppleProvider,
- userProvider: userProvider,
- goRouter: goRouter,
- );
- }
- }
+    return RegisterOptionsArtistUI(
+      registerWithGoogleProvider: registerWithGoogleProvider,
+      registerWithAppleProvider: registerWithAppleProvider,
+      userProvider: userProvider,
+      goRouter: goRouter,
+    );
+  }
+}
  
- class RegisterOptionsArtistUI extends StatelessWidget {
- final RegisterWithGoogleProvider registerWithGoogleProvider;
- final RegisterWithAppleProvider registerWithAppleProvider;
- final UserProvider userProvider;
- final GoRouter goRouter;
+class RegisterOptionsArtistUI extends StatelessWidget {
+  final RegisterWithGoogleProvider registerWithGoogleProvider;
+  final RegisterWithAppleProvider registerWithAppleProvider;
+  final UserProvider userProvider;
+  final GoRouter goRouter;
  
- const RegisterOptionsArtistUI({
- Key? key,
- required this.registerWithGoogleProvider,
- required this.registerWithAppleProvider,
- required this.userProvider,
- required this.goRouter,
- }) : super(key: key);
+  const RegisterOptionsArtistUI({
+    Key? key,
+    required this.registerWithGoogleProvider,
+    required this.registerWithAppleProvider,
+    required this.userProvider,
+    required this.goRouter,
+  }) : super(key: key);
  
- @override
- Widget build(BuildContext context) {
- final colorScheme = ColorPalette.getPalette(context);
- const double paddingAll = 16.0;
- const double iconPaddingTop = 16.0;
- const double textFieldSpacing = 8.0;
- const double buttonHeight = 45.0;
- const double buttonBorderWidth = 1.0;
- const double buttonIconSize = 24.0;
- const double buttonPaddingHorizontal = 10.0;
- const double titleFontSize = 32.0;
- const double buttonFontSize = 16.0;
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = ColorPalette.getPalette(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Tamaños adaptativos basados en porcentaje de pantalla
+    final double paddingAll = screenWidth * 0.04;
+    final double iconPaddingTop = screenHeight * 0.02;
+    final double textFieldSpacing = screenHeight * 0.01;
+    final double buttonHeight = screenHeight * 0.065;
+    final double buttonBorderWidth = 1.0;
+    final double buttonIconSize = screenHeight * 0.028;
+    final double buttonPaddingHorizontal = screenWidth * 0.03;
+    final double titleFontSize = screenHeight * 0.035;
+    final double buttonFontSize = screenHeight * 0.02;
  
- final String userType = userProvider.userType ?? '';
+    final String userType = userProvider.userType ?? '';
  
- return Scaffold(
- backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
- body: Padding(
- padding: const EdgeInsets.all(paddingAll),
- child: Stack(
- children: [
- Positioned(
- top: iconPaddingTop,
- child: IconButton(
- icon: Icon(
- Icons.arrow_back,
- color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
- size: 26.0,
- ),
- onPressed: () {
- if (goRouter.canPop()) {
- goRouter.pop();
- } else {
- goRouter.go(AppStrings.selectionScreenRoute);
- }
- },
- ),
- ),
- Column(
- mainAxisAlignment: MainAxisAlignment.center,
- crossAxisAlignment: CrossAxisAlignment.center,
- children: [
- Padding(
- padding: const EdgeInsets.symmetric(horizontal: paddingAll),
- child: Text(
- AppStrings.signUp,
- style: TextStyle(
- fontSize: titleFontSize,
- color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
- ),
- ),
- ),
- const SizedBox(height: textFieldSpacing * 2.5),
+    return Scaffold(
+      backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: EdgeInsets.all(paddingAll),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: iconPaddingTop,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.arrow_back,
+                            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                            size: screenHeight * 0.03,
+                          ),
+                          onPressed: () {
+                            if (goRouter.canPop()) {
+                              goRouter.pop();
+                            } else {
+                              goRouter.go(AppStrings.selectionScreenRoute);
+                            }
+                          },
+                        ),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(height: screenHeight * 0.08),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: paddingAll),
+                            child: Text(
+                              AppStrings.signUp,
+                              style: TextStyle(
+                                fontSize: titleFontSize,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: textFieldSpacing * 2.5),
+                          
+                          // Botón de correo electrónico
+                          _buildAuthButton(
+                            icon: Icons.mail,
+                            text: AppStrings.continueWithMail,
+                            onPressed: () {
+                              if (userType.isNotEmpty) {
+                                goRouter.push(AppStrings.registerArtistMailScreenRoute);
+                              } else {
+                                _showUserTypeError(context);
+                              }
+                            },
+                            colorScheme: colorScheme,
+                            buttonHeight: buttonHeight,
+                            buttonIconSize: buttonIconSize,
+                            buttonPaddingHorizontal: buttonPaddingHorizontal,
+                            buttonBorderWidth: buttonBorderWidth,
+                            backgroundColor: AppStrings.essentialColor,
+                            textColor: Colors.white,
+                            iconColor: Colors.white,
+                          ),
+                          SizedBox(height: textFieldSpacing),
+                          
+                          // Botón de Google
+                          _buildAuthButton(
+                            icon: FontAwesomeIcons.google,
+                            text: AppStrings.continueWithGoogle,
+                            onPressed: () {
+                              if (userType.isNotEmpty) {
+                                registerWithGoogleProvider.signInWithGoogle(
+                                  context, 
+                                  userProvider, 
+                                  goRouter, 
+                                  userType,
+                                );
+                              } else {
+                                _showUserTypeError(context);
+                              }
+                            },
+                            colorScheme: colorScheme,
+                            buttonHeight: buttonHeight,
+                            buttonIconSize: buttonIconSize,
+                            buttonPaddingHorizontal: buttonPaddingHorizontal,
+                            buttonBorderWidth: buttonBorderWidth,
+                            backgroundColor: AppStrings.primaryColor,
+                            borderColor: AppStrings.secondaryColor,
+                            textColor: colorScheme[AppStrings.secondaryColor],
+                          ),
+                          SizedBox(height: textFieldSpacing),
+                          
+                          // Botón de Apple (solo iOS) - MODIFICADO CON BORDE BLANCO
+                          if (Theme.of(context).platform == TargetPlatform.iOS)
+                            _buildAuthButton(
+                              icon: FontAwesomeIcons.apple,
+                              text: AppStrings.continueWithApple,
+                              onPressed: () {
+                                if (userType.isNotEmpty) {
+                                  registerWithAppleProvider.signInWithApple(
+                                    context: context,
+                                    userProvider: userProvider,
+                                    goRouter: goRouter,
+                                    userType: userType,
+                                  );
+                                } else {
+                                  _showUserTypeError(context);
+                                }
+                              },
+                              colorScheme: colorScheme,
+                              buttonHeight: buttonHeight,
+                              buttonIconSize: buttonIconSize,
+                              buttonPaddingHorizontal: buttonPaddingHorizontal,
+                              buttonBorderWidth: buttonBorderWidth,
+                              backgroundColor: 'black',
+                              borderColor: 'white', // AÑADIDO: Borde blanco
+                              textColor: Colors.white,
+                              iconColor: Colors.white,
+                            ),
+                          if (Theme.of(context).platform == TargetPlatform.iOS)
+                            SizedBox(height: textFieldSpacing),
+                          
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: paddingAll),
+                            child: TextButton(
+                              onPressed: () => goRouter.push(AppStrings.loginOptionsScreenRoute),
+                              child: Text(
+                                AppStrings.logIn,
+                                style: TextStyle(
+                                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                                  fontSize: buttonFontSize,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: screenHeight * 0.05),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
  
- // Botón de correo electrónico
- _buildAuthButton(
- icon: Icons.mail,
- text: AppStrings.continueWithMail,
- onPressed: () {
- if (userType.isNotEmpty) {
- goRouter.push(AppStrings.registerArtistMailScreenRoute);
- } else {
- _showUserTypeError(context);
- }
- },
- colorScheme: colorScheme,
- buttonHeight: buttonHeight,
- buttonIconSize: buttonIconSize,
- buttonPaddingHorizontal: buttonPaddingHorizontal,
- buttonBorderWidth: buttonBorderWidth,
- backgroundColor: AppStrings.essentialColor,
- textColor: Colors.white,
- iconColor: Colors.white,
- ),
- const SizedBox(height: textFieldSpacing),
+  void _showUserTypeError(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor selecciona un tipo de usuario antes de continuar.'),
+      ),
+    );
+  }
  
- // Botón de Google
- _buildAuthButton(
- icon: FontAwesomeIcons.google,
- text: AppStrings.continueWithGoogle,
- onPressed: () {
- if (userType.isNotEmpty) {
- registerWithGoogleProvider.signInWithGoogle(
- context, 
- userProvider, 
- goRouter, 
- userType,
- );
- } else {
- _showUserTypeError(context);
- }
- },
- colorScheme: colorScheme,
- buttonHeight: buttonHeight,
- buttonIconSize: buttonIconSize,
- buttonPaddingHorizontal: buttonPaddingHorizontal,
- buttonBorderWidth: buttonBorderWidth,
- backgroundColor: AppStrings.primaryColor,
- borderColor: AppStrings.secondaryColor,
- textColor: colorScheme[AppStrings.secondaryColor],
- ),
- const SizedBox(height: textFieldSpacing),
- 
- // Botón de Apple (solo iOS) - MODIFICADO CON BORDE BLANCO
- if (Theme.of(context).platform == TargetPlatform.iOS)
- _buildAuthButton(
- icon: FontAwesomeIcons.apple,
- text: AppStrings.continueWithApple,
- onPressed: () {
- if (userType.isNotEmpty) {
- registerWithAppleProvider.signInWithApple(
- context: context,
- userProvider: userProvider,
- goRouter: goRouter,
- userType: userType,
- );
- } else {
- _showUserTypeError(context);
- }
- },
- colorScheme: colorScheme,
- buttonHeight: buttonHeight,
- buttonIconSize: buttonIconSize,
- buttonPaddingHorizontal: buttonPaddingHorizontal,
- buttonBorderWidth: buttonBorderWidth,
- backgroundColor: 'black',
- borderColor: 'white', // AÑADIDO: Borde blanco
- textColor: Colors.white,
- iconColor: Colors.white,
- ),
- const SizedBox(height: textFieldSpacing),
- 
- Padding(
- padding: const EdgeInsets.symmetric(horizontal: paddingAll),
- child: TextButton(
- onPressed: () => goRouter.push(AppStrings.loginOptionsScreenRoute),
- child: Text(
- AppStrings.logIn,
- style: TextStyle(
- color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
- fontSize: buttonFontSize,
- ),
- ),
- ),
- ),
- ],
- ),
- ],
- ),
- ),
- );
- }
- 
- void _showUserTypeError(BuildContext context) {
- ScaffoldMessenger.of(context).showSnackBar(
- const SnackBar(
- content: Text('Por favor selecciona un tipo de usuario antes de continuar.'),
- ),
- );
- }
- 
- Widget _buildAuthButton({
- required IconData icon,
- required String text,
- required VoidCallback onPressed,
- required Map<String, Color?> colorScheme,
- required double buttonHeight,
- required double buttonIconSize,
- required double buttonPaddingHorizontal,
- required double buttonBorderWidth,
- required String backgroundColor,
- String borderColor = '',
- Color? textColor,
- Color? iconColor,
- }) {
- return Padding(
- padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal),
- child: ElevatedButton(
- onPressed: onPressed,
- style: ElevatedButton.styleFrom(
- backgroundColor: backgroundColor == 'black' 
- ? Colors.black 
- : colorScheme[backgroundColor] ?? Colors.white,
- side: BorderSide(
- color: borderColor.isNotEmpty 
- ? (borderColor == 'white' 
- ? Colors.white 
- : colorScheme[borderColor] ?? Colors.black)
- : backgroundColor == 'black' 
- ? Colors.black 
- : colorScheme[backgroundColor] ?? Colors.black,
- width: buttonBorderWidth,
- ),
- minimumSize: Size(double.infinity, buttonHeight),
- ),
- child: SizedBox(
- height: buttonHeight,
- child: Stack(
- alignment: Alignment.centerLeft,
- children: [
- Positioned(
- left: 0,
- child: Padding(
- padding: const EdgeInsets.only(left: 12.0),
- child: Icon(
- icon,
- color: iconColor ?? colorScheme[AppStrings.secondaryColor] ?? Colors.black,
- size: buttonIconSize,
- ),
- ),
- ),
- Center(
- child: Text(
- text,
- style: TextStyle(
- color: textColor ?? colorScheme[AppStrings.secondaryColor] ?? Colors.black,
- ),
- ),
- ),
- ],
- ),
- ),
- ),
- );
- }
- }
+  Widget _buildAuthButton({
+    required IconData icon,
+    required String text,
+    required VoidCallback onPressed,
+    required Map<String, Color?> colorScheme,
+    required double buttonHeight,
+    required double buttonIconSize,
+    required double buttonPaddingHorizontal,
+    required double buttonBorderWidth,
+    required String backgroundColor,
+    String borderColor = '',
+    Color? textColor,
+    Color? iconColor,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor == 'black' 
+            ? Colors.black 
+            : colorScheme[backgroundColor] ?? Colors.white,
+          side: BorderSide(
+            color: borderColor.isNotEmpty 
+              ? (borderColor == 'white' 
+                ? Colors.white 
+                : colorScheme[borderColor] ?? Colors.black)
+              : backgroundColor == 'black' 
+                ? Colors.black 
+                : colorScheme[backgroundColor] ?? Colors.black,
+            width: buttonBorderWidth,
+          ),
+          minimumSize: Size(double.infinity, buttonHeight),
+        ),
+        child: SizedBox(
+          height: buttonHeight,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Positioned(
+                left: 0,
+                child: Padding(
+                  padding: EdgeInsets.only(left: buttonHeight * 0.3),
+                  child: Icon(
+                    icon,
+                    color: iconColor ?? colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                    size: buttonIconSize,
+                  ),
+                ),
+              ),
+              Center(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: textColor ?? colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                    fontSize: buttonHeight * 0.30,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -40,8 +40,7 @@ import '../../../data/provider_logics/nav_buttom_bar_components/favorites/favori
 import '../../widgets/search/artist_card.dart';
 import '../../widgets/search/top_drop_dowm.dart';
 import '../buttom_navigation_bar.dart';
-
-class SearchScreen extends StatefulWidget {
+ class SearchScreen extends StatefulWidget {
   final GoRouter goRouter;
   final UserProvider userProvider;
 
@@ -264,7 +263,7 @@ class _SearchScreenState extends State<SearchScreen> {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 12,
-        crossAxisSpacing: 4,
+        crossAxisSpacing: 8,
         childAspectRatio: cellWidth / cellHeight,
       ),
       itemCount: provider.artists.length,
@@ -274,9 +273,8 @@ class _SearchScreenState extends State<SearchScreen> {
         final firstImage = images.isNotEmpty ? images[0] : "";
         final artistUserId = artist["userId"] ?? "";
 
-        return SizedBox(
-          width: cellWidth,
-          height: cellHeight,
+        return Container(
+          margin: EdgeInsets.all(4),
           child: ArtistCard(
             profileImageUrl: firstImage,
             name: artist["name"] ?? AppStrings.noName,
@@ -309,10 +307,16 @@ class _SearchScreenState extends State<SearchScreen> {
     final colorScheme = ColorPalette.getPalette(context);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final userType = widget.userProvider.userType;
-    final scaleFactor = MediaQuery.of(context).size.width / 390.0;
-    final cellWidth = 190.0 * scaleFactor;
-    final reduceHeight = 10.0 * scaleFactor;
-    final cellHeight = cellWidth - reduceHeight;
+    
+    // Tamaños adaptativos basados en porcentaje de pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double baseFontSize = screenWidth * 0.04;
+    final double paddingAll = screenWidth * 0.04;
+    final double spacing = screenWidth * 0.03;
+    // Aumentamos el ancho de las celdas para la vista 2
+    final double cellWidth = screenWidth * 0.45;
+    final double cellHeight = cellWidth * 1.2; // Aumentado para dar más espacio vertical
 
     // Mensaje de guardado temporal
     if (_showSaveMessage) {
@@ -332,40 +336,45 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Container(
               color: colorScheme[AppStrings.primaryColor],
-              padding: const EdgeInsets.symmetric(
-                vertical: 16.0,
-                horizontal: 8.0,
+              padding: EdgeInsets.symmetric(
+                vertical: screenHeight * 0.02,
+                horizontal: paddingAll,
               ),
               child: Column(
                 children: [
                   Text(
                     AppStrings.search,
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: baseFontSize * 1.6,
                       fontWeight: FontWeight.bold,
                       color: colorScheme[AppStrings.secondaryColor],
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  SizedBox(height: screenHeight * 0.02),
                   TextField(
                     onChanged: (q) => setState(() => searchQuery = q),
                     style: TextStyle(
                       color: colorScheme[AppStrings.secondaryColor],
+                      fontSize: baseFontSize,
                     ),
                     decoration: InputDecoration(
                       hintText: AppStrings.searchGroupsOrCategories,
-                      hintStyle: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor]
-                            ?.withOpacity(0.6),
-                      ),
+                   hintStyle: TextStyle(
+  color: colorScheme[AppStrings.secondaryColor]?.withAlpha(
+    (255 * 0.6).round() // Convierte opacidad 0.6 a valor alpha (153)
+  ),
+  fontSize: baseFontSize,
+),
                       prefixIcon: Icon(
                         Icons.search,
                         color: colorScheme[AppStrings.secondaryColor],
+                        size: baseFontSize * 1.5,
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           Icons.send,
                           color: colorScheme[AppStrings.essentialColor],
+                          size: baseFontSize * 1.5,
                         ),
                         onPressed: () {
                           if (searchQuery.isNotEmpty) {
@@ -390,7 +399,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  SizedBox(height: screenHeight * 0.02),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -403,12 +412,13 @@ class _SearchScreenState extends State<SearchScreen> {
                             Icon(
                               Icons.filter_list,
                               color: colorScheme[AppStrings.essentialColor],
+                              size: baseFontSize * 1.5,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: screenWidth * 0.02),
                             Text(
                               AppStrings.filterResults,
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: baseFontSize,
                                 color: colorScheme[AppStrings.secondaryColor],
                               ),
                             ),
@@ -421,9 +431,10 @@ class _SearchScreenState extends State<SearchScreen> {
                             'Vista:',
                             style: TextStyle(
                               color: colorScheme[AppStrings.secondaryColor],
+                              fontSize: baseFontSize,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: screenWidth * 0.02),
                           ToggleButtons(
                             isSelected: [currentView == 1, currentView == 2],
                             onPressed: (int index) {
@@ -431,21 +442,24 @@ class _SearchScreenState extends State<SearchScreen> {
                                 currentView = index + 1;
                               });
                             },
-                            children: const [Text('1'), Text('2')],
+                            children: [
+                              Text('1', style: TextStyle(fontSize: baseFontSize)),
+                              Text('2', style: TextStyle(fontSize: baseFontSize)),
+                            ],
                             borderRadius: BorderRadius.circular(8),
                             selectedColor: Colors.white,
                             fillColor: colorScheme[AppStrings.essentialColor],
                             color: colorScheme[AppStrings.secondaryColor],
-                            constraints: const BoxConstraints(
-                              minHeight: 36,
-                              minWidth: 36,
+                            constraints: BoxConstraints(
+                              minHeight: screenHeight * 0.045,
+                              minWidth: screenWidth * 0.09,
                             ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 15),
+                  SizedBox(height: screenHeight * 0.02),
                   Expanded(
                     child: Consumer<SearchProvider>(
                       builder: (context, provider, child) {
@@ -479,7 +493,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             if (showTopDropdown)
               Positioned(
-                top: 20,
+                top: screenHeight * 0.03,
                 left: 0,
                 right: 0,
                 bottom: 0,
@@ -488,7 +502,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: SafeArea(
                     top: false,
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 0.0),
+                      padding: EdgeInsets.only(top: screenHeight * 0.0),
                       child: TopDropdown(
                         searchProvider: searchProvider,
                         isVisible: showTopDropdown,
@@ -609,12 +623,14 @@ class _SearchScreenState extends State<SearchScreen> {
                   'Confirmar eliminación',
                   style: TextStyle(
                     color: colorScheme[AppStrings.secondaryColor],
+                    fontSize: baseFontSize * 1.2,
                   ),
                 ),
                 content: Text(
                   '¿Estás seguro de que quieres eliminar este servicio de tus favoritos?',
                   style: TextStyle(
                     color: colorScheme[AppStrings.secondaryColor],
+                    fontSize: baseFontSize,
                   ),
                 ),
                 actions: [
@@ -629,6 +645,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       'Cancelar',
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: baseFontSize,
                       ),
                     ),
                   ),
@@ -642,6 +659,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       'Eliminar',
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: baseFontSize,
                       ),
                     ),
                   ),
@@ -726,6 +744,8 @@ class _ServiceCardState extends State<ServiceCard> {
     final images = widget.images;
     final dotIndexes = _getDotIndexes();
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final baseFontSize = screenWidth * 0.04;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -756,9 +776,9 @@ class _ServiceCardState extends State<ServiceCard> {
                               errorBuilder:
                                   (_, __, ___) => Container(
                                     color: Colors.grey[300],
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.broken_image,
-                                      size: 80,
+                                      size: size * 0.2,
                                       color: Colors.grey,
                                     ),
                                   ),
@@ -767,8 +787,8 @@ class _ServiceCardState extends State<ServiceCard> {
                     ),
                   ),
                   Positioned(
-                    top: 12,
-                    right: 14,
+                    top: size * 0.03,
+                    right: size * 0.035,
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -782,13 +802,13 @@ class _ServiceCardState extends State<ServiceCard> {
                             shape: BoxShape.circle,
                             color: Colors.black.withOpacity(0.16),
                           ),
-                          padding: const EdgeInsets.all(7),
+                          padding: EdgeInsets.all(size * 0.018),
                           child: Icon(
                             widget.userLiked
                                 ? Icons.favorite
                                 : Icons.favorite_border,
                             color: widget.userLiked ? Colors.red : Colors.white,
-                            size: 27,
+                            size: size * 0.07,
                           ),
                         ),
                       ),
@@ -796,7 +816,7 @@ class _ServiceCardState extends State<ServiceCard> {
                   ),
                   if (images.length > 1)
                     Positioned(
-                      bottom: 14,
+                      bottom: size * 0.035,
                       left: 0,
                       right: 0,
                       child: Center(
@@ -807,11 +827,11 @@ class _ServiceCardState extends State<ServiceCard> {
                                 final isActive = i == _currentIndex;
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 3,
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: size * 0.008,
                                   ),
-                                  width: isActive ? 10 : 7,
-                                  height: isActive ? 10 : 7,
+                                  width: isActive ? size * 0.025 : size * 0.018,
+                                  height: isActive ? size * 0.025 : size * 0.018,
                                   decoration: BoxDecoration(
                                     color:
                                         isActive
@@ -827,17 +847,17 @@ class _ServiceCardState extends State<ServiceCard> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: size * 0.025),
             GestureDetector(
               onTap: _handleTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                padding: EdgeInsets.symmetric(horizontal: size * 0.005),
                 child: Text(
                   widget.name,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: colorScheme[AppStrings.secondaryColor],
-                    fontSize: 25,
+                    fontSize: baseFontSize * 1.4,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -847,16 +867,16 @@ class _ServiceCardState extends State<ServiceCard> {
             GestureDetector(
               onTap: _handleTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 2.0,
-                  vertical: 2,
+                padding: EdgeInsets.symmetric(
+                  horizontal: size * 0.005,
+                  vertical: size * 0.005,
                 ),
                 child: Text(
                   '\$${widget.price.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: colorScheme[AppStrings.secondaryColor],
                     fontWeight: FontWeight.w500,
-                    fontSize: 20,
+                    fontSize: baseFontSize * 1.2,
                   ),
                 ),
               ),
@@ -897,6 +917,8 @@ class ArtistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final baseFontSize = screenWidth * 0.04;
 
     return Card(
       elevation: 4,
@@ -911,8 +933,8 @@ class ArtistCard extends StatelessWidget {
           ).setOtherUserId(userId);
           goRouter.push(AppStrings.profileArtistScreenWSRoute);
         },
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
+        child: Container(
+          padding: EdgeInsets.all(screenWidth * 0.03),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -923,28 +945,28 @@ class ArtistCard extends StatelessWidget {
                     child: Image.network(
                       profileImageUrl,
                       width: double.infinity,
-                      height: 120,
+                      height: screenWidth * 0.35,
                       fit: BoxFit.cover,
                       errorBuilder:
                           (_, __, ___) => Container(
                             width: double.infinity,
-                            height: 120,
+                            height: screenWidth * 0.35,
                             color: Colors.grey[300],
                             child: Icon(
                               Icons.person,
                               color: Colors.grey[600],
-                              size: 40,
+                              size: screenWidth * 0.1,
                             ),
                           ),
                     ),
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: screenWidth * 0.02,
+                    right: screenWidth * 0.02,
                     child: GestureDetector(
                       onTap: userLiked ? onUnlikeClick : onLikeClick,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: EdgeInsets.all(screenWidth * 0.015),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.4),
                           shape: BoxShape.circle,
@@ -952,29 +974,37 @@ class ArtistCard extends StatelessWidget {
                         child: Icon(
                           userLiked ? Icons.favorite : Icons.favorite_border,
                           color: userLiked ? Colors.red : Colors.white,
-                          size: 20,
+                          size: screenWidth * 0.05,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme[AppStrings.secondaryColor],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                '\$${price.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colorScheme[AppStrings.essentialColor],
+              SizedBox(height: screenWidth * 0.02),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: baseFontSize * 1.1,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '\$${price.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: baseFontSize,
+                        color: colorScheme[AppStrings.essentialColor],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

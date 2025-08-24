@@ -26,7 +26,7 @@ import 'package:live_music/data/provider_logics/nav_buttom_bar_components/favori
 import '../../../data/model/liked_artist/profile_base.dart';
 import 'artis_profile_card.dart';
 
-/// Widget que muestra una cuadrícula de artistas
+/// Cuadrícula adaptativa de artistas
 class ArtistGrid<T extends ProfileBase> extends StatelessWidget {
   final GoRouter goRouter;
   final FavoritesProvider favoritesProvider;
@@ -52,53 +52,35 @@ class ArtistGrid<T extends ProfileBase> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[ArtistGrid] Building grid with ${profiles.length} profiles');
-    debugPrint('[ArtistGrid] Current user ID: $currentUserId');
-    debugPrint('[ArtistGrid] Edit mode: $isEditMode');
+    final screenWidth = MediaQuery.of(context).size.width;
+    final gridSpacing = screenWidth * 0.03;
+    final imageSize = screenWidth * 0.42;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      padding: EdgeInsets.all(gridSpacing),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
+        mainAxisSpacing: gridSpacing,
+        crossAxisSpacing: gridSpacing,
         childAspectRatio: 0.8,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
       ),
       itemCount: profiles.length,
       itemBuilder: (context, index) {
         final profile = profiles[index];
-        
-        // Log detallado de cada perfil
-        debugPrint('[ArtistGrid] Profile at index $index:');
-        debugPrint('  - User ID: ${profile.userId}');
-        debugPrint('  - Name: ${profile.name}');
-        debugPrint('  - Price: ${profile.price}');
-        debugPrint('  - Image URL: ${profile.profileImageUrl}');
-        debugPrint('  - Liked: ${profile.userLiked}');
-        debugPrint('  - Timestamp: ${profile.timestamp}');
-
         return ArtistProfileCard(
           profileImageUrl: profile.profileImageUrl,
           name: profile.name,
           price: profile.price,
           userId: profile.userId,
           userLiked: profile.userLiked,
-          onLikeClick: () {
-            debugPrint('[ArtistGrid] Like clicked for user ${profile.userId}');
-            favoritesProvider.onLikeClick(profile.userId, currentUserId);
-          },
-          onUnlikeClick: () {
-            debugPrint('[ArtistGrid] Unlike clicked for user ${profile.userId}');
-            favoritesProvider.onUnlikeClick(profile.userId);
-          },
-          toggleFavoritesDialog: () {
-            debugPrint('[ArtistGrid] Favorites dialog toggled');
-            toggleFavoritesDialog();
-          },
+          onLikeClick: () => favoritesProvider.onLikeClick(profile.userId, currentUserId),
+          onUnlikeClick: () => favoritesProvider.onUnlikeClick(profile.userId),
+          toggleFavoritesDialog: toggleFavoritesDialog,
           isEditMode: isEditMode,
           currentUserId: currentUserId,
           goRouter: goRouter,
           favoritesProvider: favoritesProvider,
+          imageSize: imageSize,
         );
       },
     );

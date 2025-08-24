@@ -30,7 +30,6 @@ import '../../data/provider_logics/user/user_provider.dart';
 import '../../data/provider_logics/user/review_provider.dart';
 import '../../data/sources/local/internal_data_base.dart';
 import 'package:live_music/presentation/resources/colors.dart';
-
 class ArtistItem extends StatelessWidget {
   final Map<String, dynamic> artist;
   final ReviewProvider reviewProvider;
@@ -66,6 +65,9 @@ class ArtistItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final imageSize = screenWidth * 0.6; // 60% del ancho de pantalla
+    final padding = screenWidth * 0.04; // 4% del ancho de pantalla
 
     final String profileImageUrl = safeCast<String>(
       artist[AppStrings.profileImageUrlField],
@@ -86,7 +88,7 @@ class ArtistItem extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0),
+      padding: EdgeInsets.only(left: padding),
       child: GestureDetector(
         onTap: () {
           userProvider.setOtherUserId(userId);
@@ -107,29 +109,29 @@ class ArtistItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
                 profileImageUrl,
-                width: 245,
-                height: 245,
+                width: imageSize,
+                height: imageSize,
                 fit: BoxFit.cover,
                 errorBuilder:
                     (context, error, stackTrace) => Container(
-                      width: 245,
-                      height: 245,
+                      width: imageSize,
+                      height: imageSize,
                       color: Colors.grey[300],
                       child: Icon(
                         Icons.person,
-                        size: 60,
+                        size: imageSize * 0.25, // 25% del tamaño de la imagen
                         color: Colors.grey[600],
                       ),
                     ),
               ),
             ),
             SizedBox(
-              width: 245, // Mismo ancho que la imagen
+              width: imageSize,
               child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 4.0,
-                  top: 6.0,
-                  bottom: 6.0,
+                padding: EdgeInsets.only(
+                  left: padding * 0.25,
+                  top: padding * 0.375,
+                  bottom: padding * 0.375,
                 ),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -137,7 +139,7 @@ class ArtistItem extends StatelessWidget {
                   child: Text(
                     name,
                     style: TextStyle(
-                      fontSize: 25, // Tamaño máximo inicial
+                      fontSize: screenWidth * 0.06, // 6% del ancho de pantalla
                       fontWeight: FontWeight.bold,
                       color: colorScheme[AppStrings.secondaryColor],
                     ),
@@ -153,7 +155,6 @@ class ArtistItem extends StatelessWidget {
     );
   }
 }
-
 /// Diálogo que muestra una vista previa extendida del perfil del artista
 class ProfilePreviewCard extends StatefulWidget {
   final String profileImageUrl; // URL de la imagen de perfil

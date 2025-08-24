@@ -50,7 +50,6 @@ class ConfirmIdentity extends StatefulWidget {
 }
 
 class _ConfirmIdentityState extends State<ConfirmIdentity> {
-  // Variables para almacenar los datos del usuario
   String email = "";
   String password = "";
   String? profileImageUrl;
@@ -60,19 +59,18 @@ class _ConfirmIdentityState extends State<ConfirmIdentity> {
   @override
   void initState() {
     super.initState();
-    // Llamada para obtener los datos del usuario al iniciar la pantalla
     _fetchUserData();
   }
 
-  // Método para obtener los datos del usuario desde Firestore
   Future<void> _fetchUserData() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final userDoc =
-        await FirebaseFirestore.instance
-            .collection(AppStrings.usersCollection)
-            .doc(currentUserId)
-            .get();
+    if (currentUserId == null) return;
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection(AppStrings.usersCollection)
+        .doc(currentUserId)
+        .get();
+
     setState(() {
       email = userDoc.get(AppStrings.emailField) ?? "";
       profileImageUrl = userDoc.get(AppStrings.profileImageUrlField);
@@ -82,7 +80,6 @@ class _ConfirmIdentityState extends State<ConfirmIdentity> {
     });
   }
 
-  // Método para reautenticar al usuario con Firebase Auth
   Future<void> _reauthenticateUser() async {
     final user = FirebaseAuth.instance.currentUser;
     final credential = EmailAuthProvider.credential(
@@ -92,29 +89,22 @@ class _ConfirmIdentityState extends State<ConfirmIdentity> {
 
     if (user != null) {
       try {
-        // Intento de reautenticación con las credenciales proporcionadas
         await user.reauthenticateWithCredential(credential);
-        context.go(
-          AppStrings.finalConfirmationRoute,
-        ); // Navegar a la pantalla final de confirmación
+        context.go(AppStrings.finalConfirmationRoute);
       } catch (e) {
-        // Si ocurre un error, se muestra un mensaje de error
-        Fluttertoast.showToast(msg: "${AppStrings.error}: ${e.toString()}");
+        Fluttertoast.showToast(
+            msg: "${AppStrings.error}: ${e.toString()}");
       }
     } else {
-      // Si no se ha completado correctamente el formulario, se muestra un mensaje de error
       Fluttertoast.showToast(msg: AppStrings.fillAllFields);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Se obtiene la información del proveedor de usuario
     final userProvider = Provider.of<UserProvider>(context);
     final colorScheme = ColorPalette.getPalette(context);
-
     final userType = userProvider.userType;
-    final isArtist = userType == AppStrings.artist;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
@@ -123,109 +113,141 @@ class _ConfirmIdentityState extends State<ConfirmIdentity> {
         userType: userType,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Barra superior con el botón de retroceso y el título
-              Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final widthFactor = constraints.maxWidth / 400;
+            final heightFactor = constraints.maxHeight / 800;
+            final scale = widthFactor < heightFactor ? widthFactor : heightFactor;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16 * scale),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: colorScheme[AppStrings.essentialColor],
-                    ),
-                    onPressed: () => context.pop(),
+                  // Barra superior con botón de retroceso y título
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: colorScheme[AppStrings.essentialColor],
+                          size: 28 * scale,
+                        ),
+                        onPressed: () => context.pop(),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: FittedBox(
+                            child: Text(
+                              AppStrings.confirmIdentity,
+                              style: TextStyle(
+                                fontSize: 25 * scale,
+                                color: colorScheme[AppStrings.secondaryColor],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        AppStrings.confirmIdentity,
-                        style: TextStyle(
-                          fontSize: 25,
-                          color: colorScheme[AppStrings.secondaryColor],
+                  SizedBox(height: 16 * scale),
+                  // Imagen de perfil
+                  CircleAvatar(
+                    backgroundImage: profileImageUrl != null
+                        ? NetworkImage(profileImageUrl!)
+                        : AssetImage(AppStrings.defaultUserImagePath)
+                            as ImageProvider,
+                    radius: 50 * scale,
+                  ),
+                  SizedBox(height: 10 * scale),
+                  // Nombre del usuario
+                  FittedBox(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 18 * scale,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 6 * scale),
+                  // Apodo del usuario
+                  FittedBox(
+                    child: Text(
+                      nickname,
+                      style: TextStyle(
+                        fontSize: 16 * scale,
+                        color: colorScheme[AppStrings.grayColor],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Campo de correo electrónico
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: AppStrings.email,
+                      labelStyle: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: 14 * scale,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8 * scale),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme[AppStrings.primaryColor],
+                    ),
+                    style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: 14 * scale),
+                    onChanged: (value) => setState(() => email = value),
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Campo de contraseña
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: AppStrings.password,
+                      labelStyle: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: 14 * scale,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8 * scale),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme[AppStrings.primaryColor],
+                    ),
+                    style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: 14 * scale),
+                    obscureText: true,
+                    onChanged: (value) => setState(() => password = value),
+                  ),
+                  SizedBox(height: 16 * scale),
+                  // Botón de continuar
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50 * scale,
+                    child: ElevatedButton(
+                      onPressed: _reauthenticateUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme[AppStrings.essentialColor],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: FittedBox(
+                        child: Text(
+                          AppStrings.continueText,
+                          style: TextStyle(
+                            fontSize: 16 * scale,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              // Mostrar imagen de perfil
-              CircleAvatar(
-                backgroundImage:
-                    profileImageUrl != null
-                        ? NetworkImage(profileImageUrl!)
-                        : AssetImage(AppStrings.defaultUserImagePath)
-                            as ImageProvider,
-                radius: 50,
-              ),
-              const SizedBox(height: 10),
-              // Mostrar nombre del usuario
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: colorScheme[AppStrings.secondaryColor],
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Mostrar apodo del usuario
-              Text(
-                nickname,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: colorScheme[AppStrings.grayColor],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Campo de texto para ingresar el correo electrónico
-              TextField(
-                decoration: InputDecoration(
-                  labelText: AppStrings.email,
-                  labelStyle: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: colorScheme[AppStrings.primaryColor],
-                ),
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
-                onChanged: (value) => setState(() => email = value),
-              ),
-              const SizedBox(height: 16),
-              // Campo de texto para ingresar la contraseña
-              TextField(
-                decoration: InputDecoration(
-                  labelText: AppStrings.password,
-                  labelStyle: TextStyle(
-                    color: colorScheme[AppStrings.secondaryColor],
-                  ),
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: colorScheme[AppStrings.primaryColor],
-                ),
-                style: TextStyle(color: colorScheme[AppStrings.secondaryColor]),
-                obscureText: true,
-                onChanged: (value) => setState(() => password = value),
-              ),
-              const SizedBox(height: 16),
-              // Botón para reautenticar al usuario
-              ElevatedButton(
-                onPressed: _reauthenticateUser,
-                child: Text(
-                  AppStrings.continueText,
-                  style: TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: colorScheme[AppStrings.essentialColor],
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

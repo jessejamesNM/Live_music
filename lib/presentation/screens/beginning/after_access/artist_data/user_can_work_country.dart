@@ -28,57 +28,67 @@ import '../../../../../data/provider_logics/beginning/beginning_provider.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 
-// Pantalla donde el usuario selecciona los países y estados en los que puede trabajar
 class UserCanWorkCountryStateScreen extends StatelessWidget {
   final GoRouter goRouter;
 
   const UserCanWorkCountryStateScreen({Key? key, required this.goRouter})
-    : super(key: key);
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Se obtiene la paleta de colores para aplicar estilo según el tema
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final titleFontSize = screenWidth * 0.06;
+    final subtitleFontSize = screenWidth * 0.045;
+    final buttonFontSize = screenWidth * 0.045;
+    final chipFontSize = screenWidth * 0.04;
+    final borderRadius = screenWidth * 0.04;
+    final spacingVertical = screenHeight * 0.02;
+    final paddingAll = screenWidth * 0.06;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(paddingAll),
         child: Consumer<BeginningProvider>(
           builder: (context, provider, child) {
-            // Se configura la opción de incluir todos los estados
             provider.setIncludeAllStatesOption(true);
 
-            // Widget que crea un selector múltiple con chips para seleccionar países/estados
             Widget buildMultiSelectWithChips({
-              required String hint, // Texto que aparece cuando no hay selección
-              required List<String> items, // Elementos disponibles para seleccionar
-              required List<String> selectedItems, // Elementos ya seleccionados
-              required Function(String) onItemSelected, // Función para añadir un elemento
-              required Function(String) onItemRemoved, // Función para eliminar un elemento
+              required String hint,
+              required List<String> items,
+              required List<String> selectedItems,
+              required Function(String) onItemSelected,
+              required Function(String) onItemRemoved,
             }) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Muestra los chips de los elementos seleccionados
                   if (selectedItems.isNotEmpty)
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: spacingVertical * 0.4,
+                      runSpacing: spacingVertical * 0.4,
                       children: selectedItems.map((item) {
                         return Chip(
-                          label: Text(item),
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                color: colorScheme[AppStrings.primaryColor],
+                                fontSize: chipFontSize,
+                              ),
+                            ),
+                          ),
                           backgroundColor: colorScheme[AppStrings.essentialColor],
                           deleteIconColor: colorScheme[AppStrings.primaryColor],
-                          onDeleted: () => onItemRemoved(item), // Elimina el chip seleccionado
-                          labelStyle: TextStyle(
-                            color: colorScheme[AppStrings.primaryColor],
-                          ),
+                          onDeleted: () => onItemRemoved(item),
                         );
                       }).toList(),
                     ),
-
-                  // Botón para abrir el diálogo de selección múltiple
+                  SizedBox(height: spacingVertical),
                   Theme(
                     data: Theme.of(context).copyWith(
                       popupMenuTheme: PopupMenuThemeData(
@@ -87,46 +97,66 @@ class UserCanWorkCountryStateScreen extends StatelessWidget {
                             color: colorScheme[AppStrings.secondaryColor]!,
                             width: 1.5,
                           ),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(borderRadius),
                         ),
                       ),
                     ),
                     child: Container(
                       decoration: BoxDecoration(
                         color: colorScheme[AppStrings.primaryColor],
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(borderRadius),
                         border: Border.all(
-                          color: colorScheme[AppStrings.secondaryColor]!.withOpacity(0.3),
+                          color: colorScheme[AppStrings.secondaryColor]!
+                              .withOpacity(0.3),
                           width: 1.5,
                         ),
                       ),
                       child: ListTile(
-                        title: Text(
-                          hint,
-                          style: TextStyle(
-                            color: selectedItems.isEmpty
-                                ? colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7)
-                                : colorScheme[AppStrings.secondaryColor],
+                        title: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            hint,
+                            style: TextStyle(
+                              color: selectedItems.isEmpty
+                                  ? colorScheme[AppStrings.secondaryColor]
+                                      ?.withOpacity(0.7)
+                                  : colorScheme[AppStrings.secondaryColor],
+                              fontSize: subtitleFontSize,
+                            ),
                           ),
                         ),
                         trailing: Icon(
                           Icons.arrow_drop_down,
                           color: colorScheme[AppStrings.secondaryColor],
+                          size: screenWidth * 0.08,
                         ),
                         onTap: () {
-                          // Mostrar el diálogo de selección múltiple
                           showDialog(
                             context: context,
                             builder: (BuildContext context) {
                               return Consumer<BeginningProvider>(
                                 builder: (context, provider, child) {
                                   return AlertDialog(
-                                    title: Text(hint),
+                                    title: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        hint,
+                                        style: TextStyle(fontSize: subtitleFontSize),
+                                      ),
+                                    ),
                                     content: SingleChildScrollView(
                                       child: ListBody(
                                         children: items.map((item) {
                                           return CheckboxListTile(
-                                            title: Text(item),
+                                            title: FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Text(
+                                                item,
+                                                style: TextStyle(
+                                                  fontSize: chipFontSize,
+                                                ),
+                                              ),
+                                            ),
                                             value: selectedItems.contains(item),
                                             onChanged: (bool? value) {
                                               if (value != null) {
@@ -145,10 +175,14 @@ class UserCanWorkCountryStateScreen extends StatelessWidget {
                                     ),
                                     actions: [
                                       TextButton(
-                                        child: Text(
-                                          'Cerrar',
-                                          style: TextStyle(
-                                            color: colorScheme[AppStrings.essentialColor],
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            'Cerrar',
+                                            style: TextStyle(
+                                              color: colorScheme[AppStrings.essentialColor],
+                                              fontSize: subtitleFontSize,
+                                            ),
                                           ),
                                         ),
                                         onPressed: () {
@@ -172,19 +206,19 @@ class UserCanWorkCountryStateScreen extends StatelessWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
-                // Título de la pregunta sobre los países en los que se puede trabajar
-                Text(
-                  AppStrings.whereCanWorkQuestion,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme[AppStrings.secondaryColor],
+                SizedBox(height: spacingVertical * 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppStrings.whereCanWorkQuestion,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme[AppStrings.secondaryColor],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Selector múltiple de países
+                SizedBox(height: spacingVertical * 1.5),
                 buildMultiSelectWithChips(
                   hint: AppStrings.selectCountries,
                   items: provider.countries,
@@ -192,22 +226,20 @@ class UserCanWorkCountryStateScreen extends StatelessWidget {
                   onItemSelected: provider.selectCountry,
                   onItemRemoved: provider.removeCountry,
                 ),
-
-                // Solo mostrar selector de estados si se selecciona exactamente 1 país
                 if (provider.selectedCountries.length == 1) ...[
-                  const SizedBox(height: 32),
-                  // Título de la pregunta sobre los estados en los que se puede trabajar
-                  Text(
-                    AppStrings.whereCanWorkStatesQuestion,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme[AppStrings.secondaryColor],
+                  SizedBox(height: spacingVertical * 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.whereCanWorkStatesQuestion,
+                      style: TextStyle(
+                        fontSize: subtitleFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Selector múltiple de estados
+                  SizedBox(height: spacingVertical),
                   buildMultiSelectWithChips(
                     hint: AppStrings.selectStates,
                     items: provider.states,
@@ -216,11 +248,7 @@ class UserCanWorkCountryStateScreen extends StatelessWidget {
                     onItemRemoved: provider.removeState,
                   ),
                 ],
-
-                const Spacer(),
-
-                // Mostrar botón solo si hay al menos un país seleccionado
-                // y si es un solo país, también al menos un estado seleccionado
+                Spacer(),
                 if (provider.selectedCountries.isNotEmpty &&
                     (provider.selectedCountries.length > 1 ||
                         provider.selectedStates.isNotEmpty))
@@ -228,31 +256,31 @@ class UserCanWorkCountryStateScreen extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        provider.saveSelection(
-                          context,
-                          goRouter,
-                        ); // Guarda la selección del usuario
+                        provider.saveSelection(context, goRouter);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colorScheme[AppStrings.essentialColor],
                         foregroundColor: colorScheme[AppStrings.primaryColor],
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(borderRadius),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: spacingVertical),
                         elevation: 4,
                       ),
-                      child: Text(
-                        AppStrings.myContinue,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme[AppStrings.primaryColor],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppStrings.myContinue,
+                          style: TextStyle(
+                            fontSize: buttonFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme[AppStrings.primaryColor],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
+                SizedBox(height: spacingVertical),
               ],
             );
           },

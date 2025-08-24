@@ -27,7 +27,6 @@ import '../../../../../data/provider_logics/beginning/beginning_provider.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:go_router/go_router.dart';
 
-// Pantalla que permite al usuario seleccionar los géneros musicales que toca su grupo.
 class MusicGenresScreen extends StatelessWidget {
   final GoRouter goRouter;
 
@@ -47,92 +46,102 @@ class MusicGenresScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Se obtienen colores personalizados y tema actual.
     final colorScheme = ColorPalette.getPalette(context);
+
+    // Tamaños relativos a la pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final double baseText = screenWidth * 0.04; // tamaño base de texto
+    final double titleText = screenWidth * 0.05; // título adaptable
+    final double paddingValue = screenWidth * 0.04; // padding adaptable
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
 
-      // AppBar superior con el título de la pantalla.
       appBar: AppBar(
         title: Text(
-          AppStrings
-              .genresPlayedByGroupQuestion, // Pregunta al usuario por los géneros.
+          AppStrings.genresPlayedByGroupQuestion,
           style: TextStyle(
             color: colorScheme[AppStrings.secondaryColor],
             fontWeight: FontWeight.bold,
-            fontSize: 20.0,
+            fontSize: titleText.clamp(16.0, 24.0), // se adapta, con límites
           ),
         ),
         backgroundColor: colorScheme[AppStrings.primaryColor],
-        iconTheme: IconThemeData(color: colorScheme[AppStrings.secondaryColor]),
+        iconTheme: IconThemeData(
+          color: colorScheme[AppStrings.secondaryColor],
+          size: screenWidth * 0.06, // iconos adaptativos
+        ),
         elevation: 0,
       ),
 
-      // Cuerpo principal de la pantalla.
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(paddingValue),
         child: Column(
           children: [
-            // Grid con tarjetas que representan cada género musical.
+            // Grid con tarjetas adaptativas
             Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12.0,
-                  mainAxisSpacing: 12.0,
-                  childAspectRatio: 1.5,
-                ),
-                itemCount: genres.length,
-                itemBuilder: (context, index) {
-                  String genre = genres[index];
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final cardTextSize = constraints.maxWidth * 0.07;
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: screenWidth < 600 ? 2 : 3,
+                      crossAxisSpacing: paddingValue * 0.7,
+                      mainAxisSpacing: paddingValue * 0.7,
+                      childAspectRatio: 1.5,
+                    ),
+                    itemCount: genres.length,
+                    itemBuilder: (context, index) {
+                      String genre = genres[index];
 
-                  // Usamos Consumer para escuchar los cambios del BeginningProvider.
-                  return Consumer<BeginningProvider>(
-                    builder: (context, provider, child) {
-                      // Verificamos si este género está seleccionado.
-                      bool isSelected = provider.selectedGenres.contains(genre);
+                      return Consumer<BeginningProvider>(
+                        builder: (context, provider, child) {
+                          bool isSelected =
+                              provider.selectedGenres.contains(genre);
 
-                      return GestureDetector(
-                        // Al tocar una tarjeta se alterna su selección.
-                        onTap: () => provider.toggleGenre(genre),
-                        child: Card(
-                          // Color de fondo cambia según si está seleccionado o no.
-                          color:
-                              isSelected
+                          return GestureDetector(
+                            onTap: () => provider.toggleGenre(genre),
+                            child: Card(
+                              color: isSelected
                                   ? colorScheme[AppStrings.essentialColor]
                                   : colorScheme[AppStrings.primaryColor],
-                          elevation: isSelected ? 4 : 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            side: BorderSide(
-                              color:
-                                  isSelected
+                              elevation: isSelected ? 4 : 1,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.0),
+                                side: BorderSide(
+                                  color: isSelected
                                       ? colorScheme[AppStrings.essentialColor]!
                                       : colorScheme[AppStrings.secondaryColor]!
                                           .withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                genre,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      isSelected
-                                          ? colorScheme[AppStrings.primaryColor]
-                                          : colorScheme[AppStrings
-                                              .secondaryColor],
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(paddingValue * 0.4),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      genre,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: cardTextSize.clamp(12.0, 20.0),
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? colorScheme[
+                                                AppStrings.primaryColor]
+                                            : colorScheme[
+                                                AppStrings.secondaryColor],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       );
                     },
                   );
@@ -140,38 +149,40 @@ class MusicGenresScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24.0),
+            SizedBox(height: screenHeight * 0.03),
 
-            // Botón de continuar, solo visible si al menos un género está seleccionado.
             Consumer<BeginningProvider>(
               builder: (context, provider, child) {
                 return provider.selectedGenres.isNotEmpty
                     ? SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        // Al presionar, guarda los géneros seleccionados y navega a la siguiente pantalla.
-                        onPressed: () => provider.saveGenres(context, goRouter),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              colorScheme[AppStrings.essentialColor],
-                          foregroundColor: colorScheme[AppStrings.primaryColor],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              provider.saveGenres(context, goRouter),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                colorScheme[AppStrings.essentialColor],
+                            foregroundColor:
+                                colorScheme[AppStrings.primaryColor],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16.0),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              vertical: screenHeight * 0.02,
+                            ),
+                            elevation: 4.0,
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          elevation: 4.0,
-                        ),
-                        child: Text(
-                          AppStrings.myContinue,
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme[AppStrings.primaryColor],
+                          child: Text(
+                            AppStrings.myContinue,
+                            style: TextStyle(
+                              fontSize: baseText.clamp(14.0, 20.0),
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme[AppStrings.primaryColor],
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                    : const SizedBox.shrink(); // Oculta el botón si no hay géneros seleccionados.
+                      )
+                    : const SizedBox.shrink();
               },
             ),
           ],

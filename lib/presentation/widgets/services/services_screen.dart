@@ -1199,19 +1199,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                     ),
                   ],
                 ),
-                if (_isSaving)
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.black.withOpacity(0.5),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            colorScheme[AppStrings.secondaryColor]!,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+       
               ],
             ),
           ),

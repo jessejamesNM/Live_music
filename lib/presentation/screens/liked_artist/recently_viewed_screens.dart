@@ -39,6 +39,8 @@ import '../../widgets/liked_artist/artist_grid.dart';
 import '../../widgets/liked_artist/empty_state.dart';
 import '../buttom_navigation_bar.dart';
 import 'package:go_router/go_router.dart';
+
+/// Pantalla de perfiles recientemente vistos
 class RecentlyViewedScreens extends StatefulWidget {
   final UserProvider userProvider;
   final ReviewProvider reviewProvider;
@@ -59,7 +61,6 @@ class RecentlyViewedScreens extends StatefulWidget {
 
 class _RecentlyViewedScreenState extends State<RecentlyViewedScreens> {
   bool showFavoritesDialog = false;
-  String? selectedArtistId;
 
   @override
   void initState() {
@@ -80,32 +81,37 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreens> {
 
   @override
   Widget build(BuildContext context) {
-    final userType = widget.userProvider.userType;
-    final isArtist = userType == 'artist';
     final colorScheme = ColorPalette.getPalette(context);
-    final recentProfiles = widget.favoritesProvider.recentlyViewedProfiles;
+    final userType = widget.userProvider.userType;
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final recentProfiles = widget.favoritesProvider.recentlyViewedProfiles;
+
+    // Tamaños adaptativos según pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final horizontalPadding = screenWidth * 0.04;
+    final verticalPadding = screenHeight * 0.02;
+    final iconSize = screenWidth * 0.07;
+    final titleFontSize = screenWidth * 0.065;
 
     return Scaffold(
-      backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white, // 🔹 Fondo primario
+      backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
       body: DefaultTextStyle(
-        style: const TextStyle(
-          fontFamily: null,
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.normal,
           decoration: TextDecoration.none,
-          shadows: [],
-          backgroundColor: Colors.transparent,
-          color: Colors.black, // color por defecto
+          color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
         ),
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(
-                top: 40,
-                left: 16,
-                right: 16,
-                bottom: 8,
+              padding: EdgeInsets.only(
+                top: verticalPadding + 20,
+                left: horizontalPadding,
+                right: horizontalPadding,
+                bottom: verticalPadding / 2,
               ),
               child: Row(
                 children: [
@@ -113,22 +119,23 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreens> {
                     icon: Icon(
                       Icons.arrow_back,
                       color: colorScheme[AppStrings.secondaryColor],
+                      size: iconSize,
                     ),
-                    onPressed: () {
-                      widget.goRouter.pop();
-                    },
+                    onPressed: () => widget.goRouter.pop(),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppStrings.recentlyViewedTitle,
-                    style: TextStyle(
-                      fontFamily: null,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme[AppStrings.secondaryColor],
-                      decoration: TextDecoration.none,
-                      shadows: const [],
-                      backgroundColor: Colors.transparent,
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        AppStrings.recentlyViewedTitle,
+                        style: TextStyle(
+                          fontSize: titleFontSize,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme[AppStrings.secondaryColor],
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -139,17 +146,20 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreens> {
                 stream: recentProfiles as Stream<List<RecentlyViewedProfile>>?,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: colorScheme[AppStrings.essentialColor],
+                      ),
+                    );
                   } else if (snapshot.hasError) {
                     return Center(
-                      child: Text(
-                        "${AppStrings.error}: ${snapshot.error}",
-                        style: TextStyle(
-                          fontFamily: null,
-                          color: colorScheme[AppStrings.secondaryColor],
-                          decoration: TextDecoration.none,
-                          shadows: const [],
-                          backgroundColor: Colors.transparent,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "${AppStrings.error}: ${snapshot.error}",
+                          style: TextStyle(
+                            color: colorScheme[AppStrings.secondaryColor],
+                          ),
                         ),
                       ),
                     );

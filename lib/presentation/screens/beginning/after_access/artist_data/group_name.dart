@@ -44,7 +44,10 @@ class GroupNameScreen extends HookWidget {
 
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Determinar el texto según el tipo de usuario
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Pregunta por tipo de usuario
     String getQuestionByUserType(String? userType) {
       switch (userType) {
         case 'artist':
@@ -56,7 +59,6 @@ class GroupNameScreen extends HookWidget {
         case 'place':
           return '¿Cómo se llama su local?';
         case 'furniture':
-          return '¿Cómo se llama su negocio?';
         case 'entertainment':
           return '¿Cómo se llama su negocio?';
         case 'contractor':
@@ -66,7 +68,7 @@ class GroupNameScreen extends HookWidget {
       }
     }
 
-    // Determinar la ruta siguiente según el tipo de usuario
+    // Ruta siguiente por tipo de usuario
     String getNextRouteByUserType(String? userType) {
       return userType == 'contractor'
           ? AppStrings.welcomeScreenRoute
@@ -78,23 +80,28 @@ class GroupNameScreen extends HookWidget {
 
     return Scaffold(
       body: Container(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(screenWidth * 0.05),
         color: colorScheme[AppStrings.primaryColor],
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              questionText,
-              style: TextStyle(
-                color: colorScheme[AppStrings.secondaryColor],
-                fontSize: 24.0,
-                fontWeight: FontWeight.bold,
+            // Pregunta
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                questionText,
+                style: TextStyle(
+                  color: colorScheme[AppStrings.secondaryColor],
+                  fontSize: screenWidth * 0.06,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16.0),
 
+            SizedBox(height: screenHeight * 0.03),
+
+            // Campo de texto
             TextField(
               onChanged: (value) {
                 groupName.value = value;
@@ -106,20 +113,17 @@ class GroupNameScreen extends HookWidget {
                 border: const OutlineInputBorder(),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
+                    color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
                     width: 1.5,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.blue,
+                    color: colorScheme[AppStrings.secondaryColor] ?? Colors.blue,
                     width: 2.0,
                   ),
                 ),
-                errorText:
-                    errorMessage.value.isNotEmpty ? errorMessage.value : null,
+                errorText: errorMessage.value.isNotEmpty ? errorMessage.value : null,
                 errorBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.red),
                 ),
@@ -128,18 +132,19 @@ class GroupNameScreen extends HookWidget {
                 ),
                 hintText: AppStrings.groupName,
                 hintStyle: TextStyle(
-                  color: colorScheme[AppStrings.secondaryColor]?.withOpacity(
-                    0.5,
-                  ),
+                  fontSize: screenWidth * 0.04,
+                  color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.5),
                 ),
               ),
               style: TextStyle(
                 color: colorScheme[AppStrings.secondaryColor],
-                fontSize: 16.0,
+                fontSize: screenWidth * 0.045,
               ),
             ),
-            const SizedBox(height: 16.0),
 
+            SizedBox(height: screenHeight * 0.03),
+
+            // Botón continuar
             if (groupName.value.isNotEmpty && errorMessage.value.isEmpty)
               SizedBox(
                 width: double.infinity,
@@ -159,15 +164,18 @@ class GroupNameScreen extends HookWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.0),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
                     elevation: 4.0,
                   ),
-                  child: Text(
-                    AppStrings.myContinue,
-                    style: TextStyle(
-                      color: colorScheme[AppStrings.primaryColor],
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.myContinue,
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.primaryColor],
+                        fontSize: screenWidth * 0.045,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

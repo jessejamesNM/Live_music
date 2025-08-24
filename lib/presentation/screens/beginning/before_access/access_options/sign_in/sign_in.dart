@@ -1,32 +1,32 @@
-/// Autor: kingdomOfJames
-/// Fecha: 2025-04-22
-///
-/// Descripción:
-/// Pantalla de opciones de inicio de sesión de la aplicación. Esta es una de las primeras
-/// pantallas que se muestra al usuario luego de elegir el tipo de cuenta (artista o contratante).
-/// Su objetivo es ofrecer distintos métodos de autenticación para acceder a la plataforma.
-///
-/// Actualmente soporta dos métodos de inicio de sesión:
-/// 1. Correo electrónico y contraseña (navega a una pantalla aparte para introducir credenciales)
-/// 2. Inicio de sesión con Google usando Firebase Auth
-///
-/// En el futuro está diseñada para escalar y soportar hasta:
-/// - 3 métodos en Android: Email, Google y Facebook
-/// - 4 métodos en Apple: Email, Google, Facebook e inicio de sesión con Apple (Apple Sign-In)
-///
-/// Características destacadas:
-/// - Usa `GoRouter` para navegación
-/// - Muestra errores si el usuario no está registrado
-/// - Usa colores temáticos obtenidos dinámicamente de la paleta `ColorPalette`
-/// - Usa assets SVG para los íconos de Google y el botón de email
-/// - Control de carga (`isLoading`) para evitar múltiples intentos de inicio de sesión simultáneos
-///
-/// Consideraciones:
-/// - `errorMessage` se muestra si hay errores con el login
-/// - Si el usuario existe en Firebase pero no tiene el campo `isRegistered` o está en false,
-///   se fuerza un cierre de sesión y se muestra el mensaje correspondiente
-/// - Si en el futuro se agregan más métodos de login, se recomienda encapsular los botones en
-///   un widget reutilizable para mantener la consistencia visual y lógica
+// Autor: kingdomOfJames
+// Fecha: 2025-04-22
+//
+// Descripción:
+// Pantalla de opciones de inicio de sesión de la aplicación. Esta es una de las primeras
+// pantallas que se muestra al usuario luego de elegir el tipo de cuenta (artista o contratante).
+// Su objetivo es ofrecer distintos métodos de autenticación para acceder a la plataforma.
+//
+// Actualmente soporta dos métodos de inicio de sesión:
+// 1. Correo electrónico y contraseña (navega a una pantalla aparte para introducir credenciales)
+// 2. Inicio de sesión con Google usando Firebase Auth
+//
+// En el futuro está diseñada para escalar y soportar hasta:
+// - 3 métodos en Android: Email, Google y Facebook
+// - 4 métodos en Apple: Email, Google, Facebook e inicio de sesión con Apple (Apple Sign-In)
+//
+// Características destacadas:
+// - Usa `GoRouter` para navegación
+// - Muestra errores si el usuario no está registrado
+// - Usa colores temáticos obtenidos dinámicamente de la paleta `ColorPalette`
+// - Usa assets SVG para los íconos de Google y el botón de email
+// - Control de carga (`isLoading`) para evitar múltiples intentos de inicio de sesión simultáneos
+//
+// Consideraciones:
+// - `errorMessage` se muestra si hay errores con el login
+// - Si el usuario existe en Firebase pero no tiene el campo `isRegistered` o está en false,
+//   se fuerza un cierre de sesión y se muestra el mensaje correspondiente
+// - Si en el futuro se agregan más métodos de login, se recomienda encapsular los botones en
+//   un widget reutilizable para mantener la consistencia visual y lógica
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -323,228 +323,247 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
-
-    // Design constants
-    const double paddingAll = 16.0;
-    const double iconPaddingTop = 16.0;
-    const double textFieldSpacing = 8.0;
-    const double buttonHeight = 45.0;
-    const double buttonBorderWidth = 1.0;
-    const double buttonIconSize = 24.0;
-    const double buttonPaddingHorizontal = 10.0;
-    const double titleFontSize = 32.0;
-    const double svgIconSize = 23.0;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Tamaños adaptativos basados en porcentaje de pantalla
+    final double paddingAll = screenWidth * 0.04;
+    final double iconPaddingTop = screenHeight * 0.02;
+    final double textFieldSpacing = screenHeight * 0.015;
+    final double buttonHeight = screenHeight * 0.065;
+    final double buttonBorderWidth = 1.0;
+    final double buttonIconSize = screenHeight * 0.028;
+    final double buttonPaddingHorizontal = screenWidth * 0.03;
+    final double titleFontSize = screenHeight * 0.035;
+    final double svgIconSize = screenHeight * 0.026;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
-      body: Padding(
-        padding: EdgeInsets.all(paddingAll),
-        child: Stack(
-          children: [
-            Positioned(
-              top: iconPaddingTop,
-              child: IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                  size: 26.0,
-                ),
-                onPressed: () {
-                  if (widget.goRouter.canPop()) {
-                    widget.goRouter.pop();
-                  } else {
-                    widget.goRouter.go(AppStrings.selectionScreenRoute);
-                  }
-                },
-              ),
-            ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: paddingAll),
-                  child: Text(
-                    AppStrings.logIn,
-                    style: TextStyle(
-                      fontSize: titleFontSize,
-                      color:
-                          colorScheme[AppStrings.secondaryColor] ??
-                          Colors.black,
-                    ),
-                  ),
-                ),
-
-                if (errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      errorMessage,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.redColor] ?? Colors.red,
-                      ),
-                    ),
-                  ),
-
-                SizedBox(height: textFieldSpacing * 2.5),
-
-                // Email button
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: buttonPaddingHorizontal,
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          colorScheme[AppStrings.essentialColor] ??
-                          Colors.white,
-                      side: BorderSide(
-                        color:
-                            colorScheme[AppStrings.essentialColor] ??
-                            Colors.black,
-                        width: buttonBorderWidth,
-                      ),
-                    ),
-                    onPressed:
-                        () => widget.goRouter.push(
-                          AppStrings.loginMailScreenRoute,
-                          extra: {
-                            'auth': widget.auth,
-                            'firestore': widget.firestore,
-                            'beginningProvider': widget.beginningProvider,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: EdgeInsets.all(paddingAll),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: iconPaddingTop,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.arrow_back,
+                            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                            size: screenHeight * 0.03,
+                          ),
+                          onPressed: () {
+                            if (widget.goRouter.canPop()) {
+                              widget.goRouter.pop();
+                            } else {
+                              widget.goRouter.go(AppStrings.selectionScreenRoute);
+                            }
                           },
                         ),
-                    child: SizedBox(
-                      height: buttonHeight,
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          Positioned(
-                            left: 0,
-                            child: Icon(
-                              Icons.mail,
-                              color: Colors.white,
-                              size: buttonIconSize,
-                            ),
-                          ),
-                          Center(
-                            child: Text(
-                              AppStrings.continueWithMail,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: textFieldSpacing),
-
-                // Google button
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: buttonPaddingHorizontal,
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          colorScheme[AppStrings.primaryColor] ?? Colors.white,
-                      side: BorderSide(
-                        color:
-                            colorScheme[AppStrings.secondaryColor] ??
-                            Colors.black,
-                        width: buttonBorderWidth,
-                      ),
-                    ),
-                    onPressed: _signInWithGoogle,
-                    child: SizedBox(
-                      height: buttonHeight,
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Positioned(
-                            left: 0,
-                            child: SvgPicture.asset(
-                              AppStrings.googleIconPath,
-                              width: svgIconSize,
-                              height: svgIconSize,
-                              color: colorScheme[AppStrings.secondaryColor],
-                            ),
-                          ),
-                          Center(
+                          SizedBox(height: screenHeight * 0.08),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: paddingAll),
                             child: Text(
-                              AppStrings.continueWithGoogle,
+                              AppStrings.logIn,
                               style: TextStyle(
-                                color:
-                                    colorScheme[AppStrings.secondaryColor] ??
-                                    Colors.black,
+                                fontSize: titleFontSize,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
-                SizedBox(height: textFieldSpacing),
-
-                // Apple button (solo para iOS)
-                if (Theme.of(context).platform == TargetPlatform.iOS)
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: buttonPaddingHorizontal,
-                    ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                        side: BorderSide(
-                          color:
-                              colorScheme[AppStrings.secondaryColor] ??
-                              Colors.black,
-                          width: buttonBorderWidth,
-                        ),
-                      ),
-                      onPressed: _signInWithApple,
-                      child: SizedBox(
-                        height: buttonHeight,
-                        child: Stack(
-                          alignment: Alignment.centerLeft,
-                          children: [
-                            Positioned(
-                              left: 0,
-                              child: Icon(
-                                Icons.apple,
-                                color: Colors.white,
-                                size: buttonIconSize,
-                              ),
-                            ),
-                            Center(
+                          if (errorMessage.isNotEmpty)
+                            Padding(
+                              padding: EdgeInsets.only(top: textFieldSpacing),
                               child: Text(
-                                AppStrings.continueWithApple,
+                                errorMessage,
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: colorScheme[AppStrings.redColor] ?? Colors.red,
+                                  fontSize: screenHeight * 0.018,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
 
-            if (isLoading)
-              Center(
-                child: CircularProgressIndicator(
-                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                          SizedBox(height: textFieldSpacing * 2.5),
+
+                          // Email button
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: buttonPaddingHorizontal,
+                            ),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme[AppStrings.essentialColor] ?? Colors.white,
+                                side: BorderSide(
+                                  color: colorScheme[AppStrings.essentialColor] ?? Colors.black,
+                                  width: buttonBorderWidth,
+                                ),
+                                minimumSize: Size(double.infinity, buttonHeight),
+                              ),
+                              onPressed: () => widget.goRouter.push(
+                                AppStrings.loginMailScreenRoute,
+                                extra: {
+                                  'auth': widget.auth,
+                                  'firestore': widget.firestore,
+                                  'beginningProvider': widget.beginningProvider,
+                                },
+                              ),
+                              child: SizedBox(
+                                height: buttonHeight,
+                                child: Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    Positioned(
+                                      left: 0,
+                                      child: Padding(
+                                        padding: EdgeInsets.only(left: buttonHeight * 0.3),
+                                        child: Icon(
+                                          Icons.mail,
+                                          color: Colors.white,
+                                          size: buttonIconSize,
+                                        ),
+                                      ),
+                                    ),
+                                    Center(
+                                      child: Text(
+                                        AppStrings.continueWithMail,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: buttonHeight * 0.30,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: textFieldSpacing),
+
+                          // Google button
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: buttonPaddingHorizontal,
+                            ),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
+                                side: BorderSide(
+                                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                                  width: buttonBorderWidth,
+                                ),
+                                minimumSize: Size(double.infinity, buttonHeight),
+                              ),
+                              onPressed: _signInWithGoogle,
+                              child: SizedBox(
+                                height: buttonHeight,
+                                child: Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    Positioned(
+                                      left: 0,
+                                      child: Padding(
+                                        padding: EdgeInsets.only(left: buttonHeight * 0.3),
+                                        child: SvgPicture.asset(
+                                          AppStrings.googleIconPath,
+                                          width: svgIconSize,
+                                          height: svgIconSize,
+                                          color: colorScheme[AppStrings.secondaryColor],
+                                        ),
+                                      ),
+                                    ),
+                                    Center(
+                                      child: Text(
+                                        AppStrings.continueWithGoogle,
+                                        style: TextStyle(
+                                          color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                                          fontSize: buttonHeight * 0.30,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: textFieldSpacing),
+// Apple button (solo para iOS)
+if (Theme.of(context).platform == TargetPlatform.iOS)
+  Padding(
+    padding: EdgeInsets.symmetric(
+      horizontal: buttonPaddingHorizontal,
+    ),
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black, // Color negro para el botón de Apple
+        side: BorderSide(
+          color: Colors.white, // Borde blanco
+          width: buttonBorderWidth,
+        ),
+        minimumSize: Size(double.infinity, buttonHeight),
+      ),
+      onPressed: _signInWithApple,
+      child: SizedBox(
+        height: buttonHeight,
+        child: Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            Positioned(
+              left: 0,
+              child: Padding(
+                padding: EdgeInsets.only(left: buttonHeight * 0.3),
+                child: Icon(
+                  Icons.apple,
+                  color: Colors.white,
+                  size: buttonIconSize,
                 ),
               ),
+            ),
+            Center(
+              child: Text(
+                AppStrings.continueWithApple,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: buttonHeight * 0.30,
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    ),
+  ),
+
+SizedBox(height: screenHeight * 0.05),
+],
+),
+                      if (isLoading)
+                        Center(
+                          child: CircularProgressIndicator(
+                            color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

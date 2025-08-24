@@ -72,9 +72,7 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     });
   }
 
-  bool isEmailValid(String email) {
-    return emailPattern.hasMatch(email);
-  }
+  bool isEmailValid(String email) => emailPattern.hasMatch(email);
 
   Map<String, bool> isPasswordValid(String password) {
     return {
@@ -82,9 +80,7 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
       AppStrings.passwordUppercaseReq: password.contains(RegExp(r'[A-Z]')),
       AppStrings.passwordLowercaseReq: password.contains(RegExp(r'[a-z]')),
       AppStrings.passwordNumberReq: password.contains(RegExp(r'[0-9]')),
-      AppStrings.passwordSpecialCharReq: password.contains(
-        RegExp(r'[^a-zA-Z0-9]'),
-      ),
+      AppStrings.passwordSpecialCharReq: password.contains(RegExp(r'[^a-zA-Z0-9]')),
     };
   }
 
@@ -104,7 +100,7 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
       return;
     }
 
-    if (!passwordValidation.values.every((isValid) => isValid)) {
+    if (!passwordValidation.values.every((v) => v)) {
       setState(() => errorMessage = AppStrings.passwordRequirementsError);
       return;
     }
@@ -143,79 +139,94 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
-    const double borderValue = 15.0;
-    const double contentPaddingTFVertical = 6.0;
-    const double contentPaddingTFHorizontal = 12.0;
-    const double iconPaddingTop = 16.0;
-    const double textFieldSpacing = 8.0;
-    const double buttonHeight = 40.0;
-    const double buttonBorderRadius = 17.0;
-    const double titleFontSize = 26.0;
-    const double passwordHintFontSize = 15.0;
-    const double passwordHintIconSize = 16.0;
+
+    // Medidas adaptativas
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final horizontalPadding = screenWidth * 0.06;
+    final verticalSpacing = screenHeight * 0.02;
+    final titleFontSize = screenWidth * 0.065;
+    final textFontSize = screenWidth * 0.045;
+    final iconSize = screenWidth * 0.06;
+    final textFieldVerticalPadding = screenHeight * 0.018;
+    final textFieldHorizontalPadding = screenWidth * 0.04;
+    final borderRadius = screenWidth * 0.035;
+    final buttonHeight = screenHeight * 0.065;
+    final passwordIconSize = screenWidth * 0.055;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: iconPaddingTop),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 26.0),
-                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                  onPressed: () => context.pop(),
-                ),
+              SizedBox(height: screenHeight * 0.03),
+              IconButton(
+                icon: Icon(Icons.arrow_back, size: iconSize),
+                color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                onPressed: () => context.pop(),
               ),
               Center(
-                child: Text(
-                  AppStrings.signUp,
-                  style: TextStyle(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                    fontSize: titleFontSize,
-                  ),
-                ),
-              ),
-              SizedBox(height: textFieldSpacing * 2),
-              _buildFormFields(
-                colorScheme: colorScheme,
-                borderValue: borderValue,
-                contentPaddingTFVertical: contentPaddingTFVertical,
-                contentPaddingTFHorizontal: contentPaddingTFHorizontal,
-                textFieldSpacing: textFieldSpacing,
-              ),
-              SizedBox(height: textFieldSpacing * 1.5),
-              _buildRegisterButton(
-                colorScheme: colorScheme,
-                buttonHeight: buttonHeight,
-                buttonBorderRadius: buttonBorderRadius,
-              ),
-              if (errorMessage.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: textFieldSpacing),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
                   child: Text(
-                    errorMessage,
+                    AppStrings.signUp,
                     style: TextStyle(
-                      color: colorScheme[AppStrings.redColor] ?? Colors.red,
+                      color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              SizedBox(height: textFieldSpacing * 1.5),
-              Text(
-                AppStrings.password,
-                style: TextStyle(
-                  color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                  fontSize: passwordHintFontSize,
+              ),
+              SizedBox(height: verticalSpacing * 1.5),
+              _buildFormFields(
+                colorScheme: colorScheme,
+                borderRadius: borderRadius,
+                verticalPadding: textFieldVerticalPadding,
+                horizontalPadding: textFieldHorizontalPadding,
+                fontSize: textFontSize,
+                passwordIconSize: passwordIconSize,
+              ),
+              SizedBox(height: verticalSpacing),
+              _buildRegisterButton(
+                colorScheme: colorScheme,
+                buttonHeight: buttonHeight,
+                borderRadius: borderRadius,
+              ),
+              if (errorMessage.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: verticalSpacing / 2),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      errorMessage,
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.redColor] ?? Colors.red,
+                        fontSize: textFontSize * 0.9,
+                      ),
+                    ),
+                  ),
+                ),
+              SizedBox(height: verticalSpacing),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppStrings.password,
+                  style: TextStyle(
+                    color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                    fontSize: textFontSize * 0.9,
+                  ),
                 ),
               ),
+              SizedBox(height: verticalSpacing * 0.5),
               _buildPasswordRequirements(
                 colorScheme: colorScheme,
-                passwordHintIconSize: passwordHintIconSize,
-                textFieldSpacing: textFieldSpacing,
+                fontSize: textFontSize * 0.8,
+                iconSize: passwordIconSize,
               ),
             ],
           ),
@@ -226,10 +237,11 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
 
   Widget _buildFormFields({
     required Map<String, Color?> colorScheme,
-    required double borderValue,
-    required double contentPaddingTFVertical,
-    required double contentPaddingTFHorizontal,
-    required double textFieldSpacing,
+    required double borderRadius,
+    required double verticalPadding,
+    required double horizontalPadding,
+    required double fontSize,
+    required double passwordIconSize,
   }) {
     return Column(
       children: [
@@ -237,36 +249,41 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
           controller: nameController,
           hintText: AppStrings.names,
           colorScheme: colorScheme,
-          borderValue: borderValue,
-          contentPaddingTFVertical: contentPaddingTFVertical,
-          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+          borderRadius: borderRadius,
+          verticalPadding: verticalPadding,
+          horizontalPadding: horizontalPadding,
+          fontSize: fontSize,
         ),
-        SizedBox(height: textFieldSpacing),
+        SizedBox(height: verticalPadding),
         _buildTextField(
           controller: lastNameController,
           hintText: AppStrings.lastNames,
           colorScheme: colorScheme,
-          borderValue: borderValue,
-          contentPaddingTFVertical: contentPaddingTFVertical,
-          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+          borderRadius: borderRadius,
+          verticalPadding: verticalPadding,
+          horizontalPadding: horizontalPadding,
+          fontSize: fontSize,
         ),
-        SizedBox(height: textFieldSpacing),
+        SizedBox(height: verticalPadding),
         _buildTextField(
           controller: emailController,
           hintText: AppStrings.email,
           colorScheme: colorScheme,
-          borderValue: borderValue,
-          contentPaddingTFVertical: contentPaddingTFVertical,
-          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+          borderRadius: borderRadius,
+          verticalPadding: verticalPadding,
+          horizontalPadding: horizontalPadding,
+          fontSize: fontSize,
         ),
-        SizedBox(height: textFieldSpacing),
+        SizedBox(height: verticalPadding),
         _buildPasswordTextField(
           controller: passwordController,
           hintText: AppStrings.password,
           colorScheme: colorScheme,
-          borderValue: borderValue,
-          contentPaddingTFVertical: contentPaddingTFVertical,
-          contentPaddingTFHorizontal: contentPaddingTFHorizontal,
+          borderRadius: borderRadius,
+          verticalPadding: verticalPadding,
+          horizontalPadding: horizontalPadding,
+          fontSize: fontSize,
+          passwordIconSize: passwordIconSize,
         ),
       ],
     );
@@ -276,9 +293,10 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     required TextEditingController controller,
     required String hintText,
     required Map<String, Color?> colorScheme,
-    required double borderValue,
-    required double contentPaddingTFVertical,
-    required double contentPaddingTFHorizontal,
+    required double borderRadius,
+    required double verticalPadding,
+    required double horizontalPadding,
+    required double fontSize,
   }) {
     return TextField(
       controller: controller,
@@ -291,34 +309,35 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
             color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
             width: 1.5,
           ),
-          borderRadius: BorderRadius.circular(borderValue),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
             width: 1.5,
           ),
-          borderRadius: BorderRadius.circular(borderValue),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
             width: 2.0,
           ),
-          borderRadius: BorderRadius.circular(borderValue),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         contentPadding: EdgeInsets.symmetric(
-          vertical: contentPaddingTFVertical,
-          horizontal: contentPaddingTFHorizontal,
+          vertical: verticalPadding,
+          horizontal: horizontalPadding,
         ),
         hintStyle: TextStyle(
-          color:
-              colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
+          color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
               Colors.grey,
+          fontSize: fontSize,
         ),
       ),
       style: TextStyle(
         color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+        fontSize: fontSize,
       ),
     );
   }
@@ -327,9 +346,11 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
     required TextEditingController controller,
     required String hintText,
     required Map<String, Color?> colorScheme,
-    required double borderValue,
-    required double contentPaddingTFVertical,
-    required double contentPaddingTFHorizontal,
+    required double borderRadius,
+    required double verticalPadding,
+    required double horizontalPadding,
+    required double fontSize,
+    required double passwordIconSize,
   }) {
     return TextField(
       controller: controller,
@@ -343,45 +364,45 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
             color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
             width: 1.5,
           ),
-          borderRadius: BorderRadius.circular(borderValue),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: colorScheme[AppStrings.secondaryColor] ?? Colors.grey,
             width: 1.5,
           ),
-          borderRadius: BorderRadius.circular(borderValue),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
             width: 2.0,
           ),
-          borderRadius: BorderRadius.circular(borderValue),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         contentPadding: EdgeInsets.symmetric(
-          vertical: contentPaddingTFVertical,
-          horizontal: contentPaddingTFHorizontal,
+          vertical: verticalPadding,
+          horizontal: horizontalPadding,
         ),
         hintStyle: TextStyle(
-          color:
-              colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
+          color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.6) ??
               Colors.grey,
+          fontSize: fontSize,
         ),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword ? Icons.visibility : Icons.visibility_off,
             color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+            size: passwordIconSize,
           ),
           onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
+            setState(() => _obscurePassword = !_obscurePassword);
           },
         ),
       ),
       style: TextStyle(
         color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+        fontSize: fontSize,
       ),
     );
   }
@@ -389,55 +410,73 @@ class _RegisterArtistMailScreenState extends State<RegisterArtistMailScreen> {
   Widget _buildRegisterButton({
     required Map<String, Color?> colorScheme,
     required double buttonHeight,
-    required double buttonBorderRadius,
+    required double borderRadius,
   }) {
-    return ElevatedButton(
-      onPressed: isLoading ? null : _handleRegistration,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: colorScheme[AppStrings.essentialColor] ?? Colors.white,
-        minimumSize: Size(double.infinity, buttonHeight),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(buttonBorderRadius),
+    return SizedBox(
+      width: double.infinity,
+      height: buttonHeight,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : _handleRegistration,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colorScheme[AppStrings.essentialColor] ?? Colors.blue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(borderRadius),
+          ),
         ),
+        child: isLoading
+            ? SizedBox(
+                width: buttonHeight * 0.6,
+                height: buttonHeight * 0.6,
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppStrings.signUp,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
       ),
-      child:
-          isLoading
-              ? CircularProgressIndicator(color: Colors.white)
-              : Text(AppStrings.signUp, style: TextStyle(color: Colors.white)),
     );
   }
 
   Widget _buildPasswordRequirements({
     required Map<String, Color?> colorScheme,
-    required double passwordHintIconSize,
-    required double textFieldSpacing,
+    required double fontSize,
+    required double iconSize,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          passwordValidation.entries.map((entry) {
-            return Row(
-              children: [
-                Icon(
-                  entry.value ? Icons.check : Icons.close,
-                  color:
-                      entry.value
-                          ? colorScheme[AppStrings.correctGreen] ?? Colors.green
-                          : colorScheme[AppStrings.redColor] ?? Colors.red,
-                  size: passwordHintIconSize,
-                ),
-                SizedBox(width: textFieldSpacing),
-                Text(
-                  entry.key,
-                  style: TextStyle(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.black,
-                    fontSize: 12,
+      children: passwordValidation.entries.map((entry) {
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: iconSize * 0.2),
+          child: Row(
+            children: [
+              Icon(
+                entry.value ? Icons.check : Icons.close,
+                color: entry.value
+                    ? colorScheme[AppStrings.correctGreen] ?? Colors.green
+                    : colorScheme[AppStrings.redColor] ?? Colors.red,
+                size: iconSize,
+              ),
+              SizedBox(width: iconSize * 0.5),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    entry.key,
+                    style: TextStyle(
+                      color: colorScheme[AppStrings.secondaryColor] ?? Colors.black,
+                      fontSize: fontSize,
+                    ),
                   ),
                 ),
-              ],
-            );
-          }).toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

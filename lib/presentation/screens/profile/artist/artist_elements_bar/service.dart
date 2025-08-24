@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +10,6 @@ import 'package:live_music/data/provider_logics/user/user_provider.dart';
 import 'package:live_music/data/repositories/render_http_client/images/upload_service_services.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
-import 'package:live_music/presentation/widgets/services/service_card.dart';
 
 class ServicesProfileScreen extends StatefulWidget {
   final String userId;
@@ -33,8 +31,7 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
   Map<String, dynamic>? servicio;
   bool _isLoading = true;
   bool _validPackages = false;
-  late final Stream<QuerySnapshot<Map<String, dynamic>>>?
-  _servicePackagesStream;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>>? _servicePackagesStream;
 
   @override
   void initState() {
@@ -44,12 +41,11 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
   }
 
   void _initServicePackagesStream() {
-    _servicePackagesStream =
-        FirebaseFirestore.instance
-            .collection('services')
-            .doc(widget.userId)
-            .collection('service')
-            .snapshots();
+    _servicePackagesStream = FirebaseFirestore.instance
+        .collection('services')
+        .doc(widget.userId)
+        .collection('service')
+        .snapshots();
   }
 
   Future<void> _refreshServiceData() async {
@@ -59,11 +55,10 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
 
   Future<void> _cargarServicioExistente() async {
     try {
-      final docSnap =
-          await FirebaseFirestore.instance
-              .collection('services')
-              .doc(widget.userId)
-              .get();
+      final docSnap = await FirebaseFirestore.instance
+          .collection('services')
+          .doc(widget.userId)
+          .get();
 
       if (docSnap.exists) {
         final data = docSnap.data();
@@ -84,9 +79,8 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al cargar servicio: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error al cargar servicio: $e')));
       }
       setState(() => _isLoading = false);
     }
@@ -95,7 +89,6 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
   Future<File?> _cropImage(File imageFile) async {
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: imageFile.path,
-      // Removed cropStyle parameter since it is not defined.
       aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       uiSettings: [
         AndroidUiSettings(
@@ -124,12 +117,11 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
           .doc(widget.userId)
           .delete();
 
-      final subcollections =
-          await FirebaseFirestore.instance
-              .collection('services')
-              .doc(widget.userId)
-              .collection('service')
-              .get();
+      final subcollections = await FirebaseFirestore.instance
+          .collection('services')
+          .doc(widget.userId)
+          .collection('service')
+          .get();
 
       for (final doc in subcollections.docs) {
         await doc.reference.delete();
@@ -153,29 +145,28 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
   void _mostrarDialogoEliminar() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Eliminar servicio'),
-            content: const Text(
-              '¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _eliminarServicio();
-                },
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar servicio'),
+        content: const Text(
+          '¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _eliminarServicio();
+            },
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -193,19 +184,17 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
       barrierDismissible: !isUploading,
       builder: (BuildContext context) {
         final colorScheme = ColorPalette.getPalette(context);
+        final screenWidth = MediaQuery.of(context).size.width;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            nombreServicioController
-                .value = nombreServicioController.value.copyWith(
+            nombreServicioController.value = nombreServicioController.value.copyWith(
               text: nombreServicio,
               selection: TextSelection.collapsed(offset: nombreServicio.length),
             );
 
-            final bool hasChanges =
-                serviceImageFile != null ||
-                (nombreServicio != servicio?['name'] &&
-                    nombreServicio.length >= 8);
+            final bool hasChanges = serviceImageFile != null ||
+                (nombreServicio != servicio?['name'] && nombreServicio.length >= 8);
 
             Future<void> pickImage() async {
               final pickedFile = await imagePicker.pickImage(
@@ -213,7 +202,6 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                 imageQuality: 85,
               );
               if (pickedFile != null) {
-                // Add dynamic cropping before setting the image file.
                 final croppedFile = await _cropImage(File(pickedFile.path));
                 if (croppedFile != null) {
                   setDialogState(() => serviceImageFile = croppedFile);
@@ -233,9 +221,7 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                   final errorMessage =
                       uploadResponse.error ?? "Error al subir la imagen.";
                   final errorDetails =
-                      uploadResponse.details != null
-                          ? '\n${uploadResponse.details}'
-                          : '';
+                      uploadResponse.details != null ? '\n${uploadResponse.details}' : '';
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -255,8 +241,8 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                     .collection('services')
                     .doc(widget.userId)
                     .update({
-                      'service': {'name': nombreServicio, 'imageUrl': imageUrl},
-                    });
+                  'service': {'name': nombreServicio, 'imageUrl': imageUrl},
+                });
 
                 if (mounted) {
                   await _refreshServiceData();
@@ -273,13 +259,20 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
               if (mounted) setDialogState(() => isUploading = false);
             }
 
+            // Adapt sizes based on screen width (responsive)
+            double imageHeight = screenWidth * 0.35;
+            double iconSize = screenWidth * 0.14;
+            double fontSizeTitle = screenWidth * 0.055;
+            double fontSizeHint = screenWidth * 0.038;
+            double buttonFontSize = screenWidth * 0.045;
+
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               backgroundColor: colorScheme[AppStrings.primaryColorLight],
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(screenWidth * 0.04),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -287,7 +280,7 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                       onTap: isUploading ? null : pickImage,
                       child: Container(
                         width: double.infinity,
-                        height: 180,
+                        height: imageHeight,
                         decoration: BoxDecoration(
                           color: colorScheme[AppStrings.primaryColorLight],
                           borderRadius: BorderRadius.circular(12),
@@ -296,67 +289,60 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                                 .withOpacity(0.3),
                           ),
                         ),
-                        child:
-                            serviceImageFile != null
+                        child: serviceImageFile != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(11),
+                                child: Image.file(
+                                  serviceImageFile!,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : currentImageUrl != null
                                 ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(11),
-                                  child: Image.file(
-                                    serviceImageFile!,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                                : currentImageUrl != null
-                                ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(11),
-                                  child: Image.network(
-                                    currentImageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (_, __, ___) => Icon(
-                                          Icons.broken_image_rounded,
-                                          size: 60,
-                                          color:
-                                              colorScheme[AppStrings
-                                                  .primaryColor],
-                                        ),
-                                  ),
-                                )
-                                : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.add_a_photo_outlined,
-                                      size: 60,
-                                      color:
-                                          colorScheme[AppStrings.primaryColor],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Añadir imagen del servicio',
-                                      style: TextStyle(
-                                        color:
-                                            colorScheme[AppStrings
-                                                .primaryColor],
-                                        fontSize: 14,
+                                    borderRadius: BorderRadius.circular(11),
+                                    child: Image.network(
+                                      currentImageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Icon(
+                                        Icons.broken_image_rounded,
+                                        size: iconSize,
+                                        color: colorScheme[AppStrings.primaryColor],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_a_photo_outlined,
+                                        size: iconSize,
+                                        color: colorScheme[AppStrings.primaryColor],
+                                      ),
+                                      SizedBox(height: screenWidth * 0.02),
+                                      Text(
+                                        'Añadir imagen del servicio',
+                                        style: TextStyle(
+                                          color: colorScheme[AppStrings.primaryColor],
+                                          fontSize: fontSizeHint,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenWidth * 0.045),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Nombre del servicio',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: fontSizeTitle,
                           fontWeight: FontWeight.bold,
                           color: colorScheme[AppStrings.secondaryColor],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: screenWidth * 0.02),
                     TextField(
                       controller: nombreServicioController,
                       onChanged: (value) {
@@ -379,42 +365,41 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                       ),
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: fontSizeHint,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenWidth * 0.045),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed:
-                            hasChanges && !isUploading ? handleSave : null,
+                        onPressed: hasChanges && !isUploading ? handleSave : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              colorScheme[AppStrings.essentialColor],
-                          disabledBackgroundColor: colorScheme[AppStrings
-                                  .essentialColor]
+                          backgroundColor: colorScheme[AppStrings.essentialColor],
+                          disabledBackgroundColor: colorScheme[AppStrings.essentialColor]
                               ?.withOpacity(0.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding:
+                              EdgeInsets.symmetric(vertical: screenWidth * 0.035),
                         ),
-                        child:
-                            isUploading
-                                ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                : Text(
-                                  'Guardar cambios',
-                                  style: TextStyle(
-                                    color: colorScheme[AppStrings.primaryColor],
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                        child: isUploading
+                            ? SizedBox(
+                                height: screenWidth * 0.06,
+                                width: screenWidth * 0.06,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
+                              )
+                            : Text(
+                                'Guardar cambios',
+                                style: TextStyle(
+                                  color: colorScheme[AppStrings.primaryColor],
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: buttonFontSize,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -440,11 +425,11 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
       barrierDismissible: !isUploading,
       builder: (BuildContext context) {
         final colorScheme = ColorPalette.getPalette(context);
+        final screenWidth = MediaQuery.of(context).size.width;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final bool canContinue =
-                serviceImageFile != null && nombreServicio.length >= 8;
+            final bool canContinue = serviceImageFile != null && nombreServicio.length >= 8;
 
             Future<void> pickImage() async {
               final pickedFile = await imagePicker.pickImage(
@@ -452,7 +437,6 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                 imageQuality: 85,
               );
               if (pickedFile != null) {
-                // Perform cropping before setting file.
                 final croppedFile = await _cropImage(File(pickedFile.path));
                 if (croppedFile != null) {
                   setDialogState(() => serviceImageFile = croppedFile);
@@ -488,8 +472,8 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                       .collection('services')
                       .doc(widget.userId)
                       .set({
-                        'service': serviceMainData,
-                      }, SetOptions(merge: true));
+                    'service': serviceMainData,
+                  }, SetOptions(merge: true));
                   await FirebaseFirestore.instance
                       .collection('services')
                       .doc(widget.userId)
@@ -512,9 +496,7 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                 final errorMessage =
                     uploadResponse.error ?? "Error al subir la imagen.";
                 final errorDetails =
-                    uploadResponse.details != null
-                        ? '\n${uploadResponse.details}'
-                        : '';
+                    uploadResponse.details != null ? '\n${uploadResponse.details}' : '';
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -528,13 +510,20 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
               if (mounted) setDialogState(() => isUploading = false);
             }
 
+            // Adapt sizes based on screen width (responsive)
+            double imageHeight = screenWidth * 0.35;
+            double iconSize = screenWidth * 0.14;
+            double fontSizeTitle = screenWidth * 0.055;
+            double fontSizeHint = screenWidth * 0.038;
+            double buttonFontSize = screenWidth * 0.045;
+
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               backgroundColor: colorScheme[AppStrings.primaryColorLight],
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(screenWidth * 0.04),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -542,7 +531,7 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                       onTap: isUploading ? null : pickImage,
                       child: Container(
                         width: double.infinity,
-                        height: 180,
+                        height: imageHeight,
                         decoration: BoxDecoration(
                           color: colorScheme[AppStrings.primaryColorLight],
                           borderRadius: BorderRadius.circular(12),
@@ -551,51 +540,47 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                                 .withOpacity(0.3),
                           ),
                         ),
-                        child:
-                            serviceImageFile != null
-                                ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(11),
-                                  child: Image.file(
-                                    serviceImageFile!,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                                : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.add_a_photo_outlined,
-                                      size: 60,
-                                      color:
-                                          colorScheme[AppStrings.primaryColor],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Añadir imagen del servicio',
-                                      style: TextStyle(
-                                        color:
-                                            colorScheme[AppStrings
-                                                .primaryColor],
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                        child: serviceImageFile != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(11),
+                                child: Image.file(
+                                  serviceImageFile!,
+                                  fit: BoxFit.cover,
                                 ),
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_a_photo_outlined,
+                                    size: iconSize,
+                                    color: colorScheme[AppStrings.primaryColor],
+                                  ),
+                                  SizedBox(height: screenWidth * 0.02),
+                                  Text(
+                                    'Añadir imagen del servicio',
+                                    style: TextStyle(
+                                      color: colorScheme[AppStrings.primaryColor],
+                                      fontSize: fontSizeHint,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenWidth * 0.045),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Nombre del servicio',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: fontSizeTitle,
                           fontWeight: FontWeight.bold,
                           color: colorScheme[AppStrings.secondaryColor],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: screenWidth * 0.02),
                     TextField(
                       controller: nombreServicioController,
                       onChanged: (value) {
@@ -618,42 +603,41 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
                       ),
                       style: TextStyle(
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontSize: fontSizeHint,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenWidth * 0.045),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed:
-                            canContinue && !isUploading ? handleContinue : null,
+                        onPressed: canContinue && !isUploading ? handleContinue : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              colorScheme[AppStrings.essentialColor],
-                          disabledBackgroundColor: colorScheme[AppStrings
-                                  .essentialColor]
+                          backgroundColor: colorScheme[AppStrings.essentialColor],
+                          disabledBackgroundColor: colorScheme[AppStrings.essentialColor]
                               ?.withOpacity(0.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding:
+                              EdgeInsets.symmetric(vertical: screenWidth * 0.035),
                         ),
-                        child:
-                            isUploading
-                                ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                : Text(
-                                  'Continuar',
-                                  style: TextStyle(
-                                    color: colorScheme[AppStrings.primaryColor],
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                        child: isUploading
+                            ? SizedBox(
+                                height: screenWidth * 0.06,
+                                width: screenWidth * 0.06,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
+                              )
+                            : Text(
+                                'Continuar',
+                                style: TextStyle(
+                                  color: colorScheme[AppStrings.primaryColor],
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: buttonFontSize,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -689,195 +673,191 @@ class _ServicesProfileScreenState extends State<ServicesProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Adapt sizes for main screen
+    double titleFontSize = screenWidth * 0.07;
+    double iconSize = screenWidth * 0.12;
+    double cardHeight = screenHeight * 0.16;
+    double nameFontSize = screenWidth * 0.045;
+    double listPadding = screenWidth * 0.04;
 
     return Container(
       color: colorScheme[AppStrings.primaryColor],
       child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.6,
+        height: screenHeight * 0.6,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: EdgeInsets.fromLTRB(
+            listPadding,
+            screenHeight * 0.022,
+            listPadding,
+            listPadding,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: EdgeInsets.only(top: screenHeight * 0.022),
                 child: Text(
                   servicio == null ? 'Cree un nuevo servicio' : 'Servicios',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: titleFontSize,
                     fontWeight: FontWeight.bold,
                     color: colorScheme[AppStrings.secondaryColor],
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: screenHeight * 0.012),
               Expanded(
-                child:
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : servicio == null
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : servicio == null
                         ? Center(
-                          child: GestureDetector(
-                            onTap: _mostrarDialogoCrearServicio,
-                            child: Container(
-                              width: double.infinity,
-                              constraints: const BoxConstraints(maxWidth: 500),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: colorScheme[AppStrings.primaryColorLight]
-                                    ?.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: colorScheme[AppStrings.secondaryColor]!
-                                      .withOpacity(0.2),
+                            child: GestureDetector(
+                              onTap: _mostrarDialogoCrearServicio,
+                              child: Container(
+                                width: double.infinity,
+                                constraints: BoxConstraints(
+                                  maxWidth: screenWidth * 0.8,
                                 ),
-                              ),
-                              height: 90,
-                              child: Center(
-                                child: Icon(
-                                  Icons.add,
-                                  color: colorScheme[AppStrings.secondaryColor],
-                                  size: 40,
+                                padding: EdgeInsets.all(listPadding),
+                                decoration: BoxDecoration(
+                                  color: colorScheme[AppStrings.primaryColorLight]
+                                      ?.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colorScheme[AppStrings.secondaryColor]!
+                                        .withOpacity(0.2),
+                                  ),
+                                ),
+                                height: cardHeight,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.add,
+                                    color: colorScheme[AppStrings.secondaryColor],
+                                    size: iconSize,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        )
+                          )
                         : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                          stream: _servicePackagesStream,
-                          builder: (context, snapshot) {
-                            final docs = snapshot.data?.docs ?? [];
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              _checkValidPackages(docs);
-                            });
-                            return ListView(
-                              shrinkWrap: true,
-                              physics: const ClampingScrollPhysics(),
-                              children: [
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme[AppStrings
-                                            .primaryColorLight]
-                                        ?.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: colorScheme[AppStrings
-                                              .secondaryColor]!
-                                          .withOpacity(0.2),
+                            stream: _servicePackagesStream,
+                            builder: (context, snapshot) {
+                              final docs = snapshot.data?.docs ?? [];
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                _checkValidPackages(docs);
+                              });
+                              return ListView(
+                                shrinkWrap: true,
+                                physics: const ClampingScrollPhysics(),
+                                children: [
+                                  Container(
+                                    margin: EdgeInsets.only(bottom: screenHeight * 0.022),
+                                    padding: EdgeInsets.all(listPadding),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme[AppStrings.primaryColorLight]
+                                          ?.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: colorScheme[AppStrings.secondaryColor]!
+                                            .withOpacity(0.2),
+                                      ),
                                     ),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          widget.userProvider.loadServiceData(
-                                            widget.userId,
-                                            'service',
-                                          );
-                                          widget.goRouter.push(
-                                            '/service_screen',
-                                          );
-                                        },
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            if (servicio!['imageUrls']
-                                                .isNotEmpty)
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                  right: 16,
-                                                ),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  child: Image.network(
-                                                    servicio!['imageUrls'][0],
-                                                    width: 80,
-                                                    height: 80,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (
-                                                          _,
-                                                          __,
-                                                          ___,
-                                                        ) => const Icon(
-                                                          Icons
-                                                              .broken_image_rounded,
-                                                          size: 50,
-                                                        ),
-                                                    loadingBuilder:
-                                                        (_, child, progress) =>
-                                                            progress == null
-                                                                ? child
-                                                                : const SizedBox(
-                                                                  width: 100,
-                                                                  height: 100,
+                                    child: Stack(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            widget.userProvider.loadServiceData(
+                                              widget.userId,
+                                              'service',
+                                            );
+                                            widget.goRouter.push(
+                                              '/service_screen',
+                                            );
+                                          },
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              if (servicio!['imageUrls'].isNotEmpty)
+                                                Container(
+                                                  margin: EdgeInsets.only(
+                                                    right: screenWidth * 0.04,
+                                                  ),
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    child: Image.network(
+                                                      servicio!['imageUrls'][0],
+                                                      width: screenWidth * 0.18,
+                                                      height: screenWidth * 0.18,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, __, ___) =>
+                                                          Icon(
+                                                        Icons.broken_image_rounded,
+                                                        size: iconSize,
+                                                      ),
+                                                      loadingBuilder: (_, child, progress) =>
+                                                          progress == null
+                                                              ? child
+                                                              : SizedBox(
+                                                                  width: screenWidth * 0.18,
+                                                                  height: screenWidth * 0.18,
                                                                   child: Center(
                                                                     child: CircularProgressIndicator(
-                                                                      strokeWidth:
-                                                                          2,
+                                                                      strokeWidth: 2,
                                                                     ),
                                                                   ),
                                                                 ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              Expanded(
+                                                child: Padding(
+                                                  padding: EdgeInsets.only(top: screenWidth * 0.02),
+                                                  child: Text(
+                                                    servicio!['name'] ?? 'Servicio',
+                                                    style: TextStyle(
+                                                      color: colorScheme[AppStrings.secondaryColor],
+                                                      fontSize: nameFontSize,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            Expanded(
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 8,
-                                                ),
-                                                child: Text(
-                                                  servicio!['name'] ??
-                                                      'Servicio',
-                                                  style: TextStyle(
-                                                    color:
-                                                        colorScheme[AppStrings
-                                                            .secondaryColor],
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      Positioned(
-                                        top: 0,
-                                        right: 0,
-                                        child: Row(
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                size: 24,
+                                        Positioned(
+                                          top: 0,
+                                          right: 0,
+                                          child: Row(
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.edit,
+                                                  size: iconSize * 0.8,
+                                                ),
+                                                onPressed: _mostrarDialogoEditarServicio,
                                               ),
-                                              onPressed:
-                                                  _mostrarDialogoEditarServicio,
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                size: 24,
-                                                color: Colors.red,
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.delete,
+                                                  size: iconSize * 0.8,
+                                                  color: Colors.red,
+                                                ),
+                                                onPressed: _mostrarDialogoEliminar,
                                               ),
-                                              onPressed:
-                                                  _mostrarDialogoEliminar,
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                                ],
+                              );
+                            },
+                          ),
               ),
             ],
           ),

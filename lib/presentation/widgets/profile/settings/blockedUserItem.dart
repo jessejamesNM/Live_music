@@ -26,78 +26,72 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 
 class BlockedUserItem extends StatelessWidget {
-  final UserData userData; // Datos del usuario bloqueado
-  final VoidCallback
-  onUnblockClick; // Función que se ejecuta al hacer clic en el botón de desbloquear
+  final UserData userData;
+  final VoidCallback onUnblockClick;
+  final double scaleFactor;
 
   const BlockedUserItem({
     Key? key,
     required this.userData,
     required this.onUnblockClick,
+    required this.scaleFactor,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Obtener el esquema de colores de la aplicación
     final colorScheme = ColorPalette.getPalette(context);
 
     return Column(
       children: [
-        // Tarjeta que contiene la información del usuario bloqueado
         Card(
-          color:
-              colorScheme[AppStrings
-                  .primaryColor], // Color de fondo de la tarjeta
-          margin: const EdgeInsets.symmetric(
-            vertical: 8,
-          ), // Margen vertical para separación
+          color: colorScheme[AppStrings.primaryColor],
+          margin: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
           child: ListTile(
             leading: SizedBox(
-              width: 60, // Ancho del avatar
-              height: 60, // Alto del avatar
+              width: 60 * scaleFactor,
+              height: 60 * scaleFactor,
               child: CircleAvatar(
-                radius: 30, // Radio del círculo
-                backgroundImage:
-                    userData.profileImageUrl.isNotEmpty
-                        ? CachedNetworkImageProvider(
-                          userData.profileImageUrl,
-                        ) // Si tiene imagen, cargarla
-                        : null, // Si no tiene imagen, dejarlo vacío
-                child:
-                    userData.profileImageUrl.isEmpty
-                        ? Icon(
-                          // Ícono predeterminado cuando no hay imagen de perfil
-                          Icons.person,
-                          size: 30,
-                          color:
-                              colorScheme[AppStrings
-                                  .secondaryColor], // Color del ícono
-                        )
-                        : null,
+                radius: 30 * scaleFactor,
+                backgroundImage: userData.profileImageUrl.isNotEmpty
+                    ? CachedNetworkImageProvider(userData.profileImageUrl)
+                    : null,
+                child: userData.profileImageUrl.isEmpty
+                    ? Icon(
+                        Icons.person,
+                        size: 30 * scaleFactor,
+                        color: colorScheme[AppStrings.secondaryColor],
+                      )
+                    : null,
               ),
             ),
-            title: Text(
-              userData.name, // Nombre del usuario
-              style: TextStyle(
-                color: colorScheme[AppStrings.secondaryColor],
-              ), // Estilo del texto
+            title: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                userData.name,
+                style: TextStyle(
+                  color: colorScheme[AppStrings.secondaryColor],
+                  fontSize: 16 * scaleFactor,
+                ),
+              ),
             ),
             trailing: TextButton(
-              onPressed:
-                  onUnblockClick, // Acción al presionar el botón de desbloqueo
+              onPressed: onUnblockClick,
               style: TextButton.styleFrom(
-                foregroundColor:
-                    colorScheme[AppStrings
-                        .essentialColor], // Color del texto del botón
+                foregroundColor: colorScheme[AppStrings.essentialColor],
               ),
-              child: Text(AppStrings.unblock), // Texto del botón
+              child: FittedBox(
+                child: Text(
+                  AppStrings.unblock,
+                  style: TextStyle(fontSize: 14 * scaleFactor),
+                ),
+              ),
             ),
           ),
         ),
         Divider(
           color: colorScheme[AppStrings.secondaryColor],
-          thickness: 1,
-        ), // Línea divisoria
+          thickness: 1 * scaleFactor,
+        ),
       ],
     );
   }

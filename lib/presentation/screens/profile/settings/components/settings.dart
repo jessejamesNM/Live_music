@@ -36,95 +36,110 @@ class SettingsComponent extends StatelessWidget {
     final defaultTextColor =
         textColor ?? colorScheme[AppStrings.secondaryColor];
     final screenHeight = MediaQuery.of(context).size.height;
-    final baseButtonHeight = screenHeight * 0.075;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    double proportionalSize(double originalSize) =>
-        (originalSize / 60) * baseButtonHeight;
+    double buttonHeight = screenHeight * 0.075;
+    double iconSize = screenWidth * 0.08;
+    double fontSize = screenWidth * 0.045;
+    double paddingSide = screenWidth * 0.04;
+    double dividerThickness = screenHeight * 0.001;
+    double chevronSize = screenWidth * 0.06;
 
     return Container(
       color: colorScheme[AppStrings.primaryColor],
       child: Column(
         children: [
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.inviteFriendsIconPath,
             text: AppStrings.inviteFriends,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 32,
+            iconSize: iconSize,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
             onPressed: () => _shareApp(context),
-            proportionalSize: proportionalSize,
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.defaultUserImagePath,
             text: AppStrings.myAccount,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 34,
+            iconSize: iconSize,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
             onPressed: () => router.push(AppStrings.myAccountScreenRoute),
-            proportionalSize: proportionalSize,
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.blockedAccountsIconPath,
             text: AppStrings.blockedAccountsTitle,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 35,
+            iconSize: iconSize,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
             onPressed: () => router.push(AppStrings.blockedAccountsRoute),
-            proportionalSize: proportionalSize,
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.languageIconPath,
             text: AppStrings.language,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 35,
+            iconSize: iconSize,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
             onPressed: () => _showInDevelopmentSnackbar(context, colorScheme),
-            proportionalSize: proportionalSize,
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.appearanceIconPath,
             text: AppStrings.appearance,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 43,
-            onPressed:
-                () => router.push(
-                  AppStrings.themeSettingsRoute,
-                ), // Actualizado para navegar a la pantalla de tema
-            proportionalSize: proportionalSize,
+            iconSize: iconSize * 1.07,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
+            onPressed: () => router.push(AppStrings.themeSettingsRoute),
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.suggestionsIconPath,
             text: AppStrings.suggestions,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 37,
+            iconSize: iconSize * 1.02,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
             onPressed: () => router.push(AppStrings.suggestionsRoute),
-            proportionalSize: proportionalSize,
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
           _buildButton(
-            baseHeight: baseButtonHeight,
+            height: buttonHeight,
             iconPath: AppStrings.helpIconPath,
             text: AppStrings.help,
             textColor: defaultTextColor,
             iconColor: defaultTextColor,
-            originalIconSize: 32,
+            iconSize: iconSize,
+            fontSize: fontSize,
+            chevronSize: chevronSize,
+            sidePadding: paddingSide,
             onPressed: () => router.push(AppStrings.helpRoute),
-            proportionalSize: proportionalSize,
           ),
-          _buildDivider(colorScheme, proportionalSize),
+          _buildDivider(colorScheme, dividerThickness),
         ],
       ),
     );
@@ -140,21 +155,16 @@ class SettingsComponent extends StatelessWidget {
     Share.share(message);
   }
 
-  Widget _buildDivider(
-    Map<String, Color?> colorScheme,
-    double Function(double) proportionalSize,
-  ) {
+  Widget _buildDivider(Map<String, Color?> colorScheme, double thickness) {
     return Divider(
       color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.2),
-      thickness: proportionalSize(0.8),
-      height: proportionalSize(1),
+      thickness: thickness,
+      height: thickness * 12,
     );
   }
 
   void _showInDevelopmentSnackbar(
-    BuildContext context,
-    Map<String, Color?> colorScheme,
-  ) {
+      BuildContext context, Map<String, Color?> colorScheme) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -167,18 +177,20 @@ class SettingsComponent extends StatelessWidget {
   }
 
   Widget _buildButton({
-    required double baseHeight,
+    required double height,
     required String iconPath,
     required String text,
     required VoidCallback onPressed,
     required Color? textColor,
     required Color? iconColor,
-    required double originalIconSize,
-    required double Function(double) proportionalSize,
+    required double iconSize,
+    required double fontSize,
+    required double chevronSize,
+    required double sidePadding,
   }) {
     return SizedBox(
       width: double.infinity,
-      height: baseHeight,
+      height: height,
       child: TextButton(
         style: TextButton.styleFrom(
           foregroundColor: Colors.transparent,
@@ -188,10 +200,10 @@ class SettingsComponent extends StatelessWidget {
         child: Row(
           children: [
             Padding(
-              padding: EdgeInsets.only(left: proportionalSize(16)),
+              padding: EdgeInsets.only(left: sidePadding),
               child: SizedBox(
-                width: proportionalSize(originalIconSize),
-                height: proportionalSize(originalIconSize),
+                width: iconSize,
+                height: iconSize,
                 child: SvgPicture.asset(
                   iconPath,
                   colorFilter: ColorFilter.mode(
@@ -206,16 +218,18 @@ class SettingsComponent extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    fontSize: proportionalSize(16),
+                    fontSize: fontSize,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
             Padding(
-              padding: EdgeInsets.only(right: proportionalSize(16)),
-              child: Icon(Icons.chevron_right, size: proportionalSize(24)),
+              padding: EdgeInsets.only(right: sidePadding),
+              child: Icon(Icons.chevron_right, size: chevronSize),
             ),
           ],
         ),

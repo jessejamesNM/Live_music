@@ -25,7 +25,6 @@ class ReviewsContent extends StatefulWidget {
   final ReviewProvider reviewProvider;
   final MessagesProvider messagesProvider;
 
-  // Constructor que recibe los proveedores necesarios para cargar las reseñas y la información del usuario.
   const ReviewsContent({
     required this.userProvider,
     required this.reviewProvider,
@@ -38,47 +37,38 @@ class ReviewsContent extends StatefulWidget {
 }
 
 class _ReviewsContentState extends State<ReviewsContent> {
-  List<Review> reviews = []; // Lista que contendrá las reseñas cargadas.
-  StreamSubscription<int>?
-  _reviewCountSubscription; // Suscripción al stream de conteo de reseñas.
+  List<Review> reviews = [];
+  StreamSubscription<int>? _reviewCountSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadReviews(); // Carga las reseñas al inicio.
+    _loadReviews();
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-    widget.reviewProvider.getAverageStars(
-      userId,
-    ); // Obtiene la puntuación promedio de reseñas.
+    widget.reviewProvider.getAverageStars(userId);
 
-    // Se suscribe al stream que proporciona el número actualizado de reseñas.
-    _reviewCountSubscription = widget.messagesProvider
-        .getReviewCountStream(userId)
-        .listen((count) {
-          if (mounted) {
-            // Asegura que el widget esté montado antes de actualizar el estado.
-            setState(() {
-              widget.messagesProvider.reviewsNumber.value = count;
-            });
-          }
+    _reviewCountSubscription =
+        widget.messagesProvider.getReviewCountStream(userId).listen((count) {
+      if (mounted) {
+        setState(() {
+          widget.messagesProvider.reviewsNumber.value = count;
         });
+      }
+    });
   }
 
   @override
   void dispose() {
-    _reviewCountSubscription
-        ?.cancel(); // Cancela la suscripción al stream cuando el widget se destruye.
+    _reviewCountSubscription?.cancel();
     super.dispose();
   }
 
-  // Función para cargar las reseñas.
   void _loadReviews() {
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     widget.reviewProvider.getReviews(userId, (result) {
       if (mounted) {
         setState(() {
-          reviews =
-              result; // Actualiza la lista de reseñas con los resultados obtenidos.
+          reviews = result;
         });
       }
     });
@@ -86,121 +76,121 @@ class _ReviewsContentState extends State<ReviewsContent> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtiene la paleta de colores.
-    final reviewsNumber =
-        widget
-            .messagesProvider
-            .reviewsNumber
-            .value; // Número actual de reseñas.
-    final averageScore =
-        widget.reviewProvider.averageStars; // Puntuación promedio de reseñas.
+    final colorScheme = ColorPalette.getPalette(context);
+    final reviewsNumber = widget.messagesProvider.reviewsNumber.value;
+    final averageScore = widget.reviewProvider.averageStars;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final padding = screenWidth * 0.04;
+    final iconSize = screenWidth * 0.06;
+    final titleFontSize = screenWidth * 0.05;
+    final subtitleFontSize = screenWidth * 0.045;
+    final textFontSize = screenWidth * 0.04;
+    final reviewPadding = screenWidth * 0.03;
 
     return Container(
-      color:
-          colorScheme['primaryColor'], // Establece el color de fondo principal.
-      height:
-          MediaQuery.of(
-            context,
-          ).size.height, // Ajusta la altura al tamaño de la pantalla.
-      width: double.infinity, // Ajusta el ancho al máximo disponible.
-      child:
-          reviews
-                  .isEmpty // Si no hay reseñas, muestra un mensaje.
-              ? Column(
-                children: [
-                  SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
+      color: colorScheme['primaryColor'],
+      height: screenHeight,
+      width: double.infinity,
+      child: reviews.isEmpty
+          ? Column(
+              children: [
+                SizedBox(height: screenHeight * 0.02),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: padding),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
                     child: Text(
-                      AppStrings.noReviewsYet, // Mensaje cuando no hay reseñas.
+                      AppStrings.noReviewsYet,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: titleFontSize,
                         color: colorScheme['secondaryColor'],
                       ),
                     ),
                   ),
-                ],
-              )
-              // Si hay reseñas, muestra la puntuación promedio y la lista de reseñas.
-              : Column(
-                children: [
-                  // Sección que muestra la puntuación promedio y el número de reseñas.
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Puntuación promedio con icono de estrella.
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.star,
-                                color: colorScheme['essentialColor'],
-                                size: 24,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(padding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(bottom: screenHeight * 0.015),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.star,
+                              color: colorScheme['essentialColor'],
+                              size: iconSize,
+                            ),
+                            SizedBox(width: screenWidth * 0.02),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
                                 '${AppStrings.averageScore} $averageScore',
                                 style: TextStyle(
                                   fontFamily: 'CustomFontFamilyBold',
                                   color: colorScheme['secondaryColor'],
-                                  fontSize: 22,
+                                  fontSize: titleFontSize,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        // Muestra el número de reseñas con un StreamBuilder que escucha los cambios.
-                        StreamBuilder<int>(
-                          stream: widget.messagesProvider.getReviewCountStream(
-                            FirebaseAuth.instance.currentUser?.uid ?? '',
-                          ),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data ?? reviewsNumber;
-                            return Text(
+                      ),
+                      StreamBuilder<int>(
+                        stream: widget.messagesProvider.getReviewCountStream(
+                            FirebaseAuth.instance.currentUser?.uid ?? ''),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data ?? reviewsNumber;
+                          return FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
                               count == 1
                                   ? "$count ${AppStrings.review}"
                                   : "$count ${AppStrings.reviews}",
                               style: TextStyle(
                                 color: colorScheme['secondaryColor'],
-                                fontSize: 18,
+                                fontSize: subtitleFontSize,
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                  // Lista de reseñas
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        child: Column(
-                          children: [
-                            for (final review in reviews)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12.0),
-                                child: ReviewCard(
-                                  review: review.toJson(),
-                                  colorScheme: colorScheme,
-                                ),
-                              ),
-                          ],
-                        ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: padding,
+                        vertical: screenHeight * 0.01,
+                      ),
+                      child: Column(
+                        children: reviews
+                            .map((review) => Padding(
+                                  padding: EdgeInsets.only(bottom: reviewPadding),
+                                  child: ReviewCard(
+                                    review: review.toJson(),
+                                    colorScheme: colorScheme,
+                                    screenWidth: screenWidth,
+                                  ),
+                                ))
+                            .toList(),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -208,48 +198,59 @@ class _ReviewsContentState extends State<ReviewsContent> {
 class ReviewCard extends StatelessWidget {
   final Map<String, dynamic> review;
   final Map<String, Color> colorScheme;
+  final double screenWidth;
 
-  // Constructor de ReviewCard, recibe la reseña y la paleta de colores.
-  const ReviewCard({required this.review, required this.colorScheme, Key? key})
-    : super(key: key);
+  const ReviewCard({
+    required this.review,
+    required this.colorScheme,
+    required this.screenWidth,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = screenWidth * 0.05;
+    final nameFontSize = screenWidth * 0.045;
+    final textFontSize = screenWidth * 0.04;
+    final paddingSize = screenWidth * 0.03;
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       color: colorScheme[AppStrings.primaryColorLight],
       child: Padding(
-        padding: EdgeInsets.all(8),
+        padding: EdgeInsets.all(paddingSize),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Información del autor de la reseña.
             Row(
               children: [
                 CircleAvatar(
                   backgroundImage: CachedNetworkImageProvider(
-                    review["senderProfileImageUrl"], // Foto del perfil del autor.
+                    review["senderProfileImageUrl"] ?? '',
                   ),
-                  radius: 22.5,
+                  radius: iconSize * 1.1,
                 ),
-                SizedBox(width: 8),
+                SizedBox(width: screenWidth * 0.02),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      review["senderName"], // Nombre del autor de la reseña.
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.secondaryColor],
-                        fontSize: 16,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        review["senderName"] ?? '',
+                        style: TextStyle(
+                          color: colorScheme[AppStrings.secondaryColor],
+                          fontSize: nameFontSize,
+                        ),
                       ),
                     ),
                     Row(
-                      // Muestra las estrellas de la reseña.
                       children: List.generate(
-                        review["stars"] as int,
+                        review["stars"] ?? 0,
                         (index) => Icon(
                           Icons.star,
                           color: colorScheme[AppStrings.essentialColor],
-                          size: 16,
+                          size: iconSize,
                         ),
                       ),
                     ),
@@ -257,15 +258,15 @@ class ReviewCard extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
+            SizedBox(height: screenWidth * 0.02),
+            FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
-                review["text"], // Texto de la reseña.
+                review["text"] ?? '',
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   color: colorScheme[AppStrings.secondaryColor],
-                  fontSize: 14,
+                  fontSize: textFontSize,
                 ),
               ),
             ),

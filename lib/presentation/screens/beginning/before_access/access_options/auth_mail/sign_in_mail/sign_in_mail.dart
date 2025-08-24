@@ -100,10 +100,7 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
       final acceptedPrivacy = data['acceptedPrivacy'];
 
       final isArtistType =
-          userType == 'artist' ||
-          userType == 'bakery' ||
-          userType == 'place' ||
-          userType == 'decoration';
+          userType == 'artist' || userType == 'bakery' || userType == 'place' || userType == 'decoration';
 
       if (!isVerified) {
         return AppStrings.waitingConfirmScreenRoute;
@@ -115,54 +112,25 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
         if (age == null || acceptedTerms != true || acceptedPrivacy != true) {
           return AppStrings.ageTermsScreenRoute;
         }
-        if (name.isEmpty) {
-          return AppStrings.usernameScreen;
-        }
-        if (nickname.isEmpty) {
-          return AppStrings.nicknameScreenRoute;
-        }
+        if (name.isEmpty) return AppStrings.usernameScreen;
+        if (nickname.isEmpty) return AppStrings.nicknameScreenRoute;
       } else {
-        widget.beginningProvider.setRouteToGo(
-          AppStrings.profileImageScreenRoute,
-        );
+        widget.beginningProvider.setRouteToGo(AppStrings.profileImageScreenRoute);
 
         if (age == null || acceptedTerms != true || acceptedPrivacy != true) {
           return AppStrings.ageTermsScreenRoute;
         }
-        if (isVerified && name.isEmpty) {
-          return AppStrings.verifyEmailRoute;
-        }
-        if (name.isEmpty) {
-          return AppStrings.groupNameScreenRoute;
-        }
-        if (nickname.isEmpty) {
-          return AppStrings.nicknameScreenRoute;
-        }
-        if (profileImageUrl.isEmpty) {
-          return AppStrings.profileImageScreenRoute;
-        }
-        if (userType == 'artist' && genres.isEmpty) {
-          return AppStrings.musicGenresScreenRoute;
-        }
-        if (specialty.isEmpty) {
-          return AppStrings.eventSpecializationScreenRoute;
-        }
-        if (countries.isEmpty || states.isEmpty) {
-          return AppStrings.userCanWorkCountryStateScreenRoute;
-        }
-        if (country.isEmpty || state.isEmpty) {
-          return AppStrings.countryStateScreenRoute;
-        }
+        if (isVerified && name.isEmpty) return AppStrings.verifyEmailRoute;
+        if (name.isEmpty) return AppStrings.groupNameScreenRoute;
+        if (nickname.isEmpty) return AppStrings.nicknameScreenRoute;
+        if (profileImageUrl.isEmpty) return AppStrings.profileImageScreenRoute;
+        if (userType == 'artist' && genres.isEmpty) return AppStrings.musicGenresScreenRoute;
+        if (specialty.isEmpty) return AppStrings.eventSpecializationScreenRoute;
+        if (countries.isEmpty || states.isEmpty) return AppStrings.userCanWorkCountryStateScreenRoute;
+        if (country.isEmpty || state.isEmpty) return AppStrings.countryStateScreenRoute;
 
-        final serviceDoc =
-            await widget.firestore
-                .collection('services')
-                .doc(currentUserId)
-                .get();
-
-        if (!serviceDoc.exists) {
-          return AppStrings.priceScreenRoute;
-        }
+        final serviceDoc = await widget.firestore.collection('services').doc(currentUserId).get();
+        if (!serviceDoc.exists) return AppStrings.priceScreenRoute;
 
         final serviceCollectionRef = widget.firestore
             .collection('services')
@@ -172,10 +140,7 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
         for (int i = 0; i < 8; i++) {
           final docId = 'service$i';
           final doc = await serviceCollectionRef.doc(docId).get();
-
-          if (!doc.exists) {
-            continue;
-          }
+          if (!doc.exists) continue;
 
           final data = doc.data() ?? {};
           final price = data['price'];
@@ -186,9 +151,7 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
           final isInfoValid = info != null && info.toString().trim().isNotEmpty;
           final hasImages = images != null && images.isNotEmpty;
 
-          if (!isPriceValid || !isInfoValid || !hasImages) {
-            return AppStrings.priceScreenRoute;
-          }
+          if (!isPriceValid || !isInfoValid || !hasImages) return AppStrings.priceScreenRoute;
         }
       }
 
@@ -201,6 +164,19 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+
+    // Tamaños adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final horizontalPadding = screenWidth * 0.08;
+    final verticalSpacing = screenHeight * 0.025;
+    final textFontSize = screenWidth * 0.055;
+    final inputPadding = screenHeight * 0.02;
+    final buttonHeight = screenHeight * 0.065;
+    final borderRadius = screenWidth * 0.03;
+    final iconSize = screenWidth * 0.06;
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Stack(
@@ -208,198 +184,192 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
           Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 23.0),
+                padding: EdgeInsets.only(top: screenHeight * 0.03, left: screenWidth * 0.03),
                 child: Align(
                   alignment: Alignment.topLeft,
                   child: IconButton(
                     icon: Icon(
                       Icons.arrow_back,
                       color: colorScheme[AppStrings.secondaryColor],
+                      size: iconSize,
                     ),
-                    onPressed:
-                        () => widget.goRouter.go(
-                          AppStrings.loginOptionsScreenRoute,
-                        ),
+                    onPressed: () => widget.goRouter.go(AppStrings.loginOptionsScreenRoute),
                   ),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        AppStrings.logIn,
-                        style: TextStyle(
-                          color: colorScheme[AppStrings.secondaryColor],
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        decoration: InputDecoration(
-                          hintText: AppStrings.email,
-                          filled: true,
-                          fillColor: colorScheme[AppStrings.primaryColor],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme[AppStrings.secondaryColor]!,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme[AppStrings.secondaryColor]!,
-                              width: 1.5,
-                            ),
-                          ),
-                          hintStyle: TextStyle(
-                            color: colorScheme[AppStrings.secondaryColor]
-                                ?.withOpacity(0.7),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: TextStyle(
-                          color: colorScheme[AppStrings.secondaryColor],
-                        ),
-                        onChanged: (value) => setState(() => email = value),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        decoration: InputDecoration(
-                          hintText: AppStrings.password,
-                          filled: true,
-                          fillColor: colorScheme[AppStrings.primaryColor],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme[AppStrings.secondaryColor]!,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme[AppStrings.secondaryColor]!,
-                              width: 1.5,
-                            ),
-                          ),
-                          hintStyle: TextStyle(
-                            color: colorScheme[AppStrings.secondaryColor]
-                                ?.withOpacity(0.7),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: colorScheme[AppStrings.secondaryColor],
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                        ),
-                        style: TextStyle(
-                          color: colorScheme[AppStrings.secondaryColor],
-                        ),
-                        obscureText: _obscurePassword,
-                        onChanged: (value) => setState(() => password = value),
-                      ),
-                      const SizedBox(height: 8),
-                      if (errorMessage != null)
-                        Text(
-                          errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (email.isEmpty || password.isEmpty) {
-                              setState(
-                                () =>
-                                    errorMessage = AppStrings.emptyFieldsError,
-                              );
-                            } else if (!isEmailValid(email)) {
-                              setState(
-                                () =>
-                                    errorMessage = AppStrings.invalidEmailError,
-                              );
-                            } else {
-                              try {
-                                await widget.auth.signInWithEmailAndPassword(
-                                  email: email,
-                                  password: password,
-                                );
-                                setState(() => errorMessage = null);
-
-                                final initialRoute =
-                                    await _determineInitialRoute();
-                                widget.goRouter.go(initialRoute);
-                              } on FirebaseAuthException {
-                                setState(
-                                  () =>
-                                      errorMessage =
-                                          AppStrings.incorrectCredentials,
-                                );
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                colorScheme[AppStrings.essentialColor],
-                            foregroundColor:
-                                colorScheme[AppStrings.primaryColor],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            elevation: 4,
-                          ),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
                           child: Text(
                             AppStrings.logIn,
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
+                              color: colorScheme[AppStrings.secondaryColor],
+                              fontSize: textFontSize,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap:
-                            () => widget.goRouter.push(
-                              AppStrings.forgotPasswordScreenRoute,
+                        SizedBox(height: verticalSpacing),
+                        // Email
+                        TextField(
+                          decoration: InputDecoration(
+                            hintText: AppStrings.email,
+                            filled: true,
+                            fillColor: colorScheme[AppStrings.primaryColor],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: colorScheme[AppStrings.secondaryColor]!,
+                                width: 1.5,
+                              ),
                             ),
-                        child: Text(
-                          AppStrings.forgotPassword,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: colorScheme[AppStrings.secondaryColor]!,
+                                width: 1.5,
+                              ),
+                            ),
+                            hintStyle: TextStyle(
+                              color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7),
+                              fontSize: textFontSize * 0.85,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.04,
+                              vertical: inputPadding,
+                            ),
+                          ),
                           style: TextStyle(
                             color: colorScheme[AppStrings.secondaryColor],
-                            decoration: TextDecoration.underline,
+                            fontSize: textFontSize * 0.9,
+                          ),
+                          onChanged: (value) => setState(() => email = value),
+                        ),
+                        SizedBox(height: verticalSpacing * 0.8),
+                        // Password
+                        TextField(
+                          decoration: InputDecoration(
+                            hintText: AppStrings.password,
+                            filled: true,
+                            fillColor: colorScheme[AppStrings.primaryColor],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: colorScheme[AppStrings.secondaryColor]!,
+                                width: 1.5,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: colorScheme[AppStrings.secondaryColor]!,
+                                width: 1.5,
+                              ),
+                            ),
+                            hintStyle: TextStyle(
+                              color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7),
+                              fontSize: textFontSize * 0.85,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.04,
+                              vertical: inputPadding,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                color: colorScheme[AppStrings.secondaryColor],
+                                size: iconSize,
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          style: TextStyle(
+                            color: colorScheme[AppStrings.secondaryColor],
+                            fontSize: textFontSize * 0.9,
+                          ),
+                          obscureText: _obscurePassword,
+                          onChanged: (value) => setState(() => password = value),
+                        ),
+                        SizedBox(height: verticalSpacing * 0.5),
+                        if (errorMessage != null)
+                          Text(
+                            errorMessage!,
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: textFontSize * 0.7,
+                            ),
+                          ),
+                        SizedBox(height: verticalSpacing),
+                        // Botón Login
+                        SizedBox(
+                          width: double.infinity,
+                          height: buttonHeight,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (email.isEmpty || password.isEmpty) {
+                                setState(() => errorMessage = AppStrings.emptyFieldsError);
+                              } else if (!isEmailValid(email)) {
+                                setState(() => errorMessage = AppStrings.invalidEmailError);
+                              } else {
+                                try {
+                                  await widget.auth.signInWithEmailAndPassword(
+                                    email: email,
+                                    password: password,
+                                  );
+                                  setState(() => errorMessage = null);
+                                  final initialRoute = await _determineInitialRoute();
+                                  widget.goRouter.go(initialRoute);
+                                } on FirebaseAuthException {
+                                  setState(() => errorMessage = AppStrings.incorrectCredentials);
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme[AppStrings.essentialColor],
+                              foregroundColor: colorScheme[AppStrings.primaryColor],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(borderRadius),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: inputPadding * 0.6),
+                              elevation: 4,
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                AppStrings.logIn,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: textFontSize * 0.9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        SizedBox(height: verticalSpacing),
+                        GestureDetector(
+                          onTap: () => widget.goRouter.push(AppStrings.forgotPasswordScreenRoute),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              AppStrings.forgotPassword,
+                              style: TextStyle(
+                                color: colorScheme[AppStrings.secondaryColor],
+                                decoration: TextDecoration.underline,
+                                fontSize: textFontSize * 0.8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -407,29 +377,33 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
           ),
           if (showMessage)
             Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
+              bottom: screenHeight * 0.02,
+              left: screenWidth * 0.04,
+              right: screenWidth * 0.04,
               child: Card(
                 elevation: 4,
                 color: colorScheme[AppStrings.primaryColor],
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(borderRadius),
                   side: BorderSide(
                     color: colorScheme[AppStrings.secondaryColor]!,
                     width: 1.5,
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(
-                          AppStrings.passwordResetSent,
-                          style: TextStyle(
-                            color: colorScheme[AppStrings.secondaryColor],
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppStrings.passwordResetSent,
+                            style: TextStyle(
+                              color: colorScheme[AppStrings.secondaryColor],
+                              fontSize: textFontSize * 0.75,
+                            ),
                           ),
                         ),
                       ),
@@ -437,6 +411,7 @@ class _LoginMailScreenState extends State<LoginMailScreen> {
                         icon: Icon(
                           Icons.close,
                           color: colorScheme[AppStrings.secondaryColor],
+                          size: iconSize,
                         ),
                         onPressed: () => setState(() => showMessage = false),
                       ),

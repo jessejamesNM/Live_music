@@ -30,55 +30,42 @@ import 'package:live_music/presentation/resources/colors.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 
-// Pantalla de recuperación de contraseña
 class ForgotPasswordScreen extends StatefulWidget {
   final GoRouter goRouter;
 
   const ForgotPasswordScreen({Key? key, required this.goRouter})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _ForgotPasswordScreenState createState() => _ForgotPasswordScreenState();
 }
 
-// Estado de la pantalla ForgotPasswordScreen
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // Controlador para el campo de texto del email
   final TextEditingController _emailController = TextEditingController();
-  // Indicador de si el email es válido o no
   bool _isEmailValid = true;
-  // Controla si el botón está habilitado o no
   bool _isButtonEnabled = true;
-  // Temporizador para contar atrás (en segundos)
   int _countdown = 0;
-  // Indicador para mostrar el mensaje de error
   bool _showErrorMessage = false;
 
   @override
   void dispose() {
-    _emailController
-        .dispose(); // Liberar recursos cuando la pantalla se destruya
+    _emailController.dispose();
     super.dispose();
   }
 
-  // Función que valida si el email coincide con el patrón
   bool _validateEmail(String email) {
     return emailPattern.hasMatch(email);
   }
 
-  // Función que envía el correo de restablecimiento de contraseña a Firebase
   Future<void> _sendPasswordResetEmail(String email) async {
     try {
-      // Intentar enviar el correo de restablecimiento
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) {
-        // Si se envía correctamente, mostrar un mensaje en pantalla
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppStrings.recoveryEmailSent)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.recoveryEmailSent)),
+        );
       }
     } catch (e) {
-      // Si ocurre un error, mostrar mensaje de error
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -90,26 +77,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-  // Función para iniciar el conteo regresivo
   void _startCountdown() {
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted && _countdown > 0) {
-        setState(
-          () => _countdown--,
-        ); // Decrementar el contador y actualizar la UI
-        _startCountdown(); // Llamar de nuevo para continuar el conteo
+        setState(() => _countdown--);
+        _startCountdown();
       } else if (mounted) {
-        setState(
-          () => _isButtonEnabled = true,
-        ); // Habilitar el botón después de que el contador llegue a 0
+        setState(() => _isButtonEnabled = true);
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Obtener la paleta de colores del contexto
     final colorScheme = ColorPalette.getPalette(context);
+
+    // Tamaños adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final paddingAll = screenWidth * 0.08;
+    final spacing = screenHeight * 0.02;
+    final iconSize = screenWidth * 0.07;
+    final titleFontSize = screenWidth * 0.06;
+    final textFontSize = screenWidth * 0.045;
+    final buttonHeight = screenHeight * 0.065;
+    final borderRadius = screenWidth * 0.03;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor] ?? Colors.white,
@@ -117,169 +110,181 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         children: [
           // Botón de retroceso
           Positioned(
-            top: 16,
-            left: 16,
+            top: spacing,
+            left: paddingAll * 0.2,
             child: IconButton(
               icon: Icon(
                 Icons.arrow_back,
                 color: colorScheme[AppStrings.secondaryColor] ?? Colors.white,
-                size: 24,
+                size: iconSize,
               ),
-              onPressed:
-                  () => widget.goRouter.pop(), // Volver a la pantalla anterior
+              onPressed: () => widget.goRouter.pop(),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Título de la pantalla de recuperación
-                Text(
-                  AppStrings.recoverAccount,
-                  style: TextStyle(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Instrucciones para ingresar el correo electrónico
-                Text(
-                  AppStrings.enterYourEmail,
-                  style: TextStyle(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Campo de texto para ingresar el email
-                TextField(
-                  controller: _emailController,
-                  onChanged: (value) {
-                    setState(() {
-                      _isEmailValid = _validateEmail(
-                        value,
-                      ); // Verificar si el email es válido al cambiarlo
-                      _showErrorMessage =
-                          false; // Ocultar el mensaje de error al modificar el campo
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: AppStrings.enterEmail,
-                    labelStyle: TextStyle(
-                      color:
-                          colorScheme[AppStrings.secondaryColor] ??
-                          Colors.white,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color:
-                            colorScheme[AppStrings.secondaryColor] ??
-                            Colors.white,
-                        width: 1.5,
+            padding: EdgeInsets.symmetric(horizontal: paddingAll),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Título
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppStrings.recoverAccount,
+                        style: TextStyle(
+                          color: colorScheme[AppStrings.secondaryColor] ??
+                              Colors.white,
+                          fontSize: titleFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color:
-                            colorScheme[AppStrings.secondaryColor] ??
-                            Colors.white,
-                        width: 1.5,
+                    SizedBox(height: spacing),
+                    // Instrucciones
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppStrings.enterYourEmail,
+                        style: TextStyle(
+                          color: colorScheme[AppStrings.secondaryColor] ??
+                              Colors.white,
+                          fontSize: textFontSize,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  style: TextStyle(
-                    color:
-                        colorScheme[AppStrings.secondaryColor] ?? Colors.white,
-                  ),
-                ),
-                // Mostrar mensaje de error si el email no es válido
-                if (!_isEmailValid && _emailController.text.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      AppStrings.invalidEmailError,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.redColor] ?? Colors.red,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                // Botón para enviar el correo de restablecimiento
-                SizedBox(
-                  width: double.infinity,
-                  height: 40,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Si el email está vacío o no es válido, mostrar error
-                      if (_emailController.text.isEmpty || !_isEmailValid) {
-                        setState(() => _showErrorMessage = true);
-                      } else if (_isButtonEnabled) {
-                        // Enviar el correo de restablecimiento si todo está correcto
-                        _sendPasswordResetEmail(_emailController.text);
+                    SizedBox(height: spacing * 0.5),
+                    // Campo de email
+                    TextField(
+                      controller: _emailController,
+                      onChanged: (value) {
                         setState(() {
-                          _isButtonEnabled = false; // Deshabilitar el botón
-                          _countdown = 60; // Iniciar el contador de 60 segundos
+                          _isEmailValid = _validateEmail(value);
+                          _showErrorMessage = false;
                         });
-                        _startCountdown(); // Comenzar el conteo regresivo
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          _isButtonEnabled
-                              ? colorScheme[AppStrings.redColor] ?? Colors.red
-                              : Colors
-                                  .grey, // Cambiar color si el botón está habilitado o no
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                      },
+                      decoration: InputDecoration(
+                        labelText: AppStrings.enterEmail,
+                        labelStyle: TextStyle(
+                          color: colorScheme[AppStrings.secondaryColor] ??
+                              Colors.white,
+                          fontSize: textFontSize,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(borderRadius),
+                          borderSide: BorderSide(
+                            color: colorScheme[AppStrings.secondaryColor] ??
+                                Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(borderRadius),
+                          borderSide: BorderSide(
+                            color: colorScheme[AppStrings.secondaryColor] ??
+                                Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      AppStrings.continueText,
                       style: TextStyle(
-                        color:
-                            colorScheme[AppStrings.secondaryColor] ??
+                        color: colorScheme[AppStrings.secondaryColor] ??
                             Colors.white,
+                        fontSize: textFontSize,
                       ),
                     ),
-                  ),
+                    // Mensaje de email inválido
+                    if (!_isEmailValid && _emailController.text.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(top: spacing * 0.3),
+                        child: Text(
+                          AppStrings.invalidEmailError,
+                          style: TextStyle(
+                            color: colorScheme[AppStrings.redColor] ?? Colors.red,
+                            fontSize: textFontSize * 0.9,
+                          ),
+                        ),
+                      ),
+                    SizedBox(height: spacing),
+                    // Botón enviar correo
+                    SizedBox(
+                      width: double.infinity,
+                      height: buttonHeight,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_emailController.text.isEmpty || !_isEmailValid) {
+                            setState(() => _showErrorMessage = true);
+                          } else if (_isButtonEnabled) {
+                            _sendPasswordResetEmail(_emailController.text);
+                            setState(() {
+                              _isButtonEnabled = false;
+                              _countdown = 60;
+                            });
+                            _startCountdown();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isButtonEnabled
+                              ? colorScheme[AppStrings.redColor] ?? Colors.red
+                              : Colors.grey,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppStrings.continueText,
+                            style: TextStyle(
+                              color: colorScheme[AppStrings.secondaryColor] ??
+                                  Colors.white,
+                              fontSize: textFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Temporizador
+                    if (!_isButtonEnabled)
+                      Padding(
+                        padding: EdgeInsets.only(top: spacing * 0.3),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '${AppStrings.wait} $_countdown ${AppStrings.secondsToTryAgain}',
+                            style: TextStyle(
+                              color: colorScheme[AppStrings.secondaryColor]
+                                      ?.withOpacity(0.7) ??
+                                  Colors.grey,
+                              fontSize: textFontSize * 0.9,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    // Mensaje de error
+                    if (_showErrorMessage)
+                      Padding(
+                        padding: EdgeInsets.only(top: spacing * 0.3),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppStrings.enterValidEmail,
+                            style: TextStyle(
+                              color: colorScheme[AppStrings.redColor] ??
+                                  Colors.red,
+                              fontSize: textFontSize * 0.9,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                // Mostrar el temporizador si el botón está deshabilitado
-                if (!_isButtonEnabled)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      '${AppStrings.wait} $_countdown ${AppStrings.secondsToTryAgain}',
-                      style: TextStyle(
-                        color:
-                            colorScheme[AppStrings.secondaryColor]?.withOpacity(
-                              0.7,
-                            ) ??
-                            Colors.grey,
-                      ),
-                    ),
-                  ),
-                // Mostrar mensaje de error si el email no es válido y hay un intento
-                if (_showErrorMessage)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      AppStrings.enterValidEmail,
-                      style: TextStyle(
-                        color: colorScheme[AppStrings.redColor] ?? Colors.red,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         ],

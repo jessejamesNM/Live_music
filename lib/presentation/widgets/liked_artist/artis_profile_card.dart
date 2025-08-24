@@ -31,7 +31,7 @@ import 'package:live_music/presentation/resources/colors.dart';
 import 'package:live_music/presentation/resources/strings.dart';
 import 'package:live_music/presentation/widgets/artist_item.dart';
 
-/// Componente que muestra la tarjeta del perfil de un artista
+/// Tarjeta adaptativa del perfil de artista
 class ArtistProfileCard extends StatelessWidget {
   final String profileImageUrl;
   final String name;
@@ -45,6 +45,7 @@ class ArtistProfileCard extends StatelessWidget {
   final String currentUserId;
   final GoRouter goRouter;
   final FavoritesProvider favoritesProvider;
+  final double imageSize;
 
   const ArtistProfileCard({
     required this.profileImageUrl,
@@ -59,25 +60,24 @@ class ArtistProfileCard extends StatelessWidget {
     required this.currentUserId,
     required this.goRouter,
     required this.favoritesProvider,
+    required this.imageSize,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorPalette.getPalette(context);
+    final fontSizeName = imageSize * 0.12;
+    final fontSizePrice = imageSize * 0.09;
+    final iconSize = imageSize * 0.15;
 
     return Stack(
       children: [
         GestureDetector(
           onTap: () {
             favoritesProvider.updateSelectedArtistId(userId);
-            favoritesProvider.saveRecentlyViewedProfileToFirestore(
-              currentUserId,
-              userId,
-            );
-            favoritesProvider.listenAndSaveRecentlyViewedProfiles(
-              currentUserId: currentUserId,
-            );
+            favoritesProvider.saveRecentlyViewedProfileToFirestore(currentUserId, userId);
+            favoritesProvider.listenAndSaveRecentlyViewedProfiles(currentUserId: currentUserId);
 
             showDialog(
               context: context,
@@ -100,21 +100,19 @@ class ArtistProfileCard extends StatelessWidget {
             );
           },
           child: Container(
-            width: 165,
-            height: 165,
-            margin: const EdgeInsets.all(8),
+            width: imageSize,
+            height: imageSize,
+            margin: EdgeInsets.all(imageSize * 0.05),
             decoration: BoxDecoration(
               color: colorScheme[AppStrings.primaryColorLight],
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(imageSize * 0.05),
             ),
             child: Column(
               children: [
                 Expanded(
                   flex: 76,
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(8),
-                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(imageSize * 0.05)),
                     child: Image.network(
                       profileImageUrl,
                       fit: BoxFit.cover,
@@ -123,7 +121,7 @@ class ArtistProfileCard extends StatelessWidget {
                         color: Colors.grey[300],
                         child: Icon(
                           Icons.person,
-                          size: 40,
+                          size: iconSize,
                           color: colorScheme[AppStrings.secondaryColor],
                         ),
                       ),
@@ -133,31 +131,35 @@ class ArtistProfileCard extends StatelessWidget {
                 Expanded(
                   flex: 24,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.symmetric(horizontal: imageSize * 0.05),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 14.2,
-                            color: colorScheme[AppStrings.secondaryColor],
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.none,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: fontSizeName,
+                              color: colorScheme[AppStrings.secondaryColor],
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          '"\$$price"',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: colorScheme[AppStrings.grayColor],
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.none,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            "\$$price",
+                            style: TextStyle(
+                              fontSize: fontSizePrice,
+                              color: colorScheme[AppStrings.grayColor],
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -169,13 +171,13 @@ class ArtistProfileCard extends StatelessWidget {
         ),
         if (isEditMode)
           Positioned(
-            top: 4,
-            left: 4,
+            top: imageSize * 0.025,
+            left: imageSize * 0.025,
             child: GestureDetector(
               onTap: onUnlikeClick,
               child: Container(
-                width: 32,
-                height: 32,
+                width: imageSize * 0.2,
+                height: imageSize * 0.2,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colorScheme[AppStrings.primaryColor],
@@ -186,7 +188,7 @@ class ArtistProfileCard extends StatelessWidget {
                 ),
                 child: Icon(
                   Icons.close,
-                  size: 20,
+                  size: imageSize * 0.12,
                   color: colorScheme[AppStrings.essentialColor],
                 ),
               ),

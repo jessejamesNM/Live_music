@@ -44,10 +44,24 @@ class VerificationSuccessContent extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = ColorPalette.getPalette(context);
 
+    // Tamaños adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final paddingAll = screenWidth * 0.08;
+    final spacingSmall = screenHeight * 0.02;
+    final spacingMedium = screenHeight * 0.03;
+    final iconSize = screenWidth * 0.2;
+    final titleFontSize = screenWidth * 0.07;
+    final textFontSize = screenWidth * 0.045;
+    final buttonHeight = screenHeight * 0.065;
+    final borderRadius = screenWidth * 0.03;
+
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColor],
       body: Stack(
         children: [
+          // Fondo degradado
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -61,59 +75,82 @@ class VerificationSuccessContent extends StatelessWidget {
             ),
           ),
 
+          // Botón de retroceso
           SafeArea(
             child: IconButton(
               icon: Icon(
                 Icons.arrow_back,
                 color: colorScheme[AppStrings.secondaryColor],
+                size: iconSize * 0.5,
               ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
 
+          // Contenido central
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
+              padding: EdgeInsets.all(paddingAll),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 80),
-                  const SizedBox(height: 24),
+                  // Icono adaptativo
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: iconSize,
+                  ),
+                  SizedBox(height: spacingMedium),
 
-                  Text(
-                    AppStrings.accountVerified,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: colorScheme[AppStrings.secondaryColor],
-                      fontWeight: FontWeight.bold,
+                  // Título adaptativo
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.accountVerified,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: colorScheme[AppStrings.secondaryColor],
+                        fontWeight: FontWeight.bold,
+                        fontSize: titleFontSize,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: spacingSmall),
 
-                  Text(
-                    AppStrings.canContinueRegistration,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: colorScheme[AppStrings.secondaryColor]
-                          ?.withOpacity(0.7),
-                      fontSize: 16,
+                  // Texto adaptativo
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.canContinueRegistration,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: colorScheme[AppStrings.secondaryColor]
+                            ?.withOpacity(0.7),
+                        fontSize: textFontSize,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: spacingMedium),
 
+                  // Botón adaptativo
                   SizedBox(
                     width: double.infinity,
+                    height: buttonHeight,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme[AppStrings.essentialColor],
+                        backgroundColor:
+                            colorScheme[AppStrings.essentialColor],
                         foregroundColor: colorScheme[AppStrings.primaryColor],
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding:
+                            EdgeInsets.symmetric(vertical: spacingSmall * 0.8),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(borderRadius),
                         ),
                       ),
                       onPressed: () async {
                         try {
-                          final currentUser = FirebaseAuth.instance.currentUser;
+                          final currentUser =
+                              FirebaseAuth.instance.currentUser;
                           if (currentUser != null) {
                             DocumentSnapshot userDoc =
                                 await FirebaseFirestore.instance
@@ -128,14 +165,14 @@ class VerificationSuccessContent extends StatelessWidget {
                               await FirebaseFirestore.instance
                                   .collection('users')
                                   .doc(currentUser.uid)
-                                  .set({
-                                    'isVerified': true,
-                                  }, SetOptions(merge: true));
+                                  .set(
+                                {'isVerified': true},
+                                SetOptions(merge: true),
+                              );
 
                               await userProvider.verifyEmail();
 
                               if (context.mounted) {
-                                // Definir los tipos que se consideran "artistas"
                                 final isArtistType = [
                                   'artist',
                                   'bakery',
@@ -151,10 +188,9 @@ class VerificationSuccessContent extends StatelessWidget {
                                   context.go(AppStrings.groupNameScreenRoute);
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Tipo de usuario no reconocido',
-                                      ),
+                                    const SnackBar(
+                                      content:
+                                          Text('Tipo de usuario no reconocido'),
                                       backgroundColor: Colors.orange,
                                     ),
                                   );
@@ -166,20 +202,23 @@ class VerificationSuccessContent extends StatelessWidget {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  '${AppStrings.error}: ${e.toString()}',
-                                ),
+                                content:
+                                    Text('${AppStrings.error}: ${e.toString()}'),
                                 backgroundColor: Colors.red,
                               ),
                             );
                           }
                         }
                       },
-                      child: Text(
-                        AppStrings.continueText,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme[AppStrings.primaryColor],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppStrings.continueText,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme[AppStrings.primaryColor],
+                            fontSize: textFontSize,
+                          ),
                         ),
                       ),
                     ),

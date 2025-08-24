@@ -32,35 +32,37 @@ class Suggestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorPalette.getPalette(
-      context,
-    ); // Obtiene los colores del tema
-    final profileProvider =
-        ProfileProvider(); // Instancia del proveedor para interactuar con el perfil del usuario
-    final currentUser =
-        FirebaseAuth
-            .instance
-            .currentUser; // Obtiene el usuario actual de Firebase
-    var suggestionText =
-        ''; // Variable para almacenar el texto de la sugerencia
-    final userType =
-        userProvider.userType; // Obtiene el tipo de usuario (Artista o no)
-    final isArtist =
-        userType == AppStrings.artist; // Verifica si el usuario es artista
+    final colorScheme = ColorPalette.getPalette(context);
+    final profileProvider = ProfileProvider();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    var suggestionText = '';
+    final userType = userProvider.userType;
+    final isArtist = userType == AppStrings.artist;
+
+    // Adaptativos según tamaño de pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    double iconSize = screenWidth * 0.08; // ~32 en 400px
+    double titleFontSize = screenWidth * 0.06; // ~24 en 400px
+    double sectionTitleFontSize = screenWidth * 0.052; // ~20 en 400px
+    double descFontSize = screenWidth * 0.038; // ~15 en 400px
+    double fieldFontSize = screenWidth * 0.045; // ~18 en 400px
+    double buttonFontSize = screenWidth * 0.05; // ~20 en 400px
+    double verticalSpacing = screenHeight * 0.02;
+    double fieldBorderRadius = screenWidth * 0.03; // ~12 en 400px
+    double buttonPadding = screenHeight * 0.02; // ~16 en 750px
 
     return Scaffold(
-      backgroundColor:
-          colorScheme[AppStrings.primaryColor], // Fondo con el color primario
+      backgroundColor: colorScheme[AppStrings.primaryColor],
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
         userType: userType,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0), // Padding para la pantalla
+        padding: EdgeInsets.all(screenWidth * 0.04), // ~16 en 400px
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment
-                  .start, // Alineación de los elementos en la columna
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Cabecera con botón de retroceso y título
             Row(
@@ -68,166 +70,138 @@ class Suggestions extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.arrow_back,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color del ícono
+                    color: colorScheme[AppStrings.secondaryColor],
+                    size: iconSize,
                   ),
                   onPressed: () {
-                    goRouter
-                        .pop(); // Navega hacia atrás cuando se presiona el botón
+                    goRouter.pop();
                   },
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: screenWidth * 0.02),
                 Text(
-                  AppStrings.suggestionsTitle, // Título de la pantalla
+                  AppStrings.suggestionsTitle,
                   style: TextStyle(
-                    fontSize: 25,
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor], // Color del texto
-                    fontWeight: FontWeight.bold, // Estilo del texto
+                    fontSize: titleFontSize,
+                    color: colorScheme[AppStrings.secondaryColor],
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16), // Espacio entre elementos
+            SizedBox(height: verticalSpacing),
             // Título y descripción
             Text(
-              AppStrings.feedbackTitle, // Título de la sección de sugerencias
+              AppStrings.feedbackTitle,
               style: TextStyle(
-                fontSize: 20,
-                color:
-                    colorScheme[AppStrings.secondaryColor], // Color del texto
+                fontSize: sectionTitleFontSize,
+                color: colorScheme[AppStrings.secondaryColor],
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: verticalSpacing * 0.5),
             Text(
-              AppStrings
-                  .feedbackDescription, // Descripción de la sección de sugerencias
+              AppStrings.feedbackDescription,
               style: TextStyle(
-                fontSize: 15,
-                color: colorScheme[AppStrings.secondaryColor]?.withOpacity(
-                  0.7,
-                ), // Color del texto con opacidad
+                fontSize: descFontSize,
+                color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.7),
               ),
             ),
-            const SizedBox(height: 24), // Espacio entre elementos
+            SizedBox(height: verticalSpacing * 1.2),
             // Campo de texto para la sugerencia
             TextField(
-              onChanged:
-                  (value) =>
-                      suggestionText =
-                          value, // Actualiza el texto de la sugerencia
+              onChanged: (value) => suggestionText = value,
               decoration: InputDecoration(
-                hintText: AppStrings.suggestionHint, // Texto de sugerencia
+                hintText: AppStrings.suggestionHint,
                 hintStyle: TextStyle(
-                  color: colorScheme[AppStrings.secondaryColor]?.withOpacity(
-                    0.5,
-                  ), // Color del texto del hint
+                  color: colorScheme[AppStrings.secondaryColor]?.withOpacity(0.5),
+                  fontSize: fieldFontSize,
                 ),
                 filled: true,
-                fillColor:
-                    colorScheme[AppStrings.primaryColor], // Color de fondo
+                fillColor: colorScheme[AppStrings.primaryColor],
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12), // Bordes redondeados
+                  borderRadius: BorderRadius.circular(fieldBorderRadius),
                   borderSide: BorderSide(
-                    color:
-                        colorScheme[AppStrings
-                            .secondaryColor]!, // Color del borde
-                    width: 1.5, // Ancho del borde
+                    color: colorScheme[AppStrings.secondaryColor]!,
+                    width: 1.5,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(fieldBorderRadius),
                   borderSide: BorderSide(
                     color: colorScheme[AppStrings.secondaryColor]!,
                     width: 1.5,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(fieldBorderRadius),
                   borderSide: BorderSide(
                     color: colorScheme[AppStrings.secondaryColor]!,
                     width: 1.5,
                   ),
                 ),
+                contentPadding: EdgeInsets.all(screenWidth * 0.04),
               ),
               style: TextStyle(
+                fontSize: fieldFontSize,
                 color: colorScheme[AppStrings.secondaryColor],
-              ), // Estilo del texto
-              maxLines: 4, // Permite múltiples líneas
+              ),
+              maxLines: 4,
             ),
-            const SizedBox(height: 24), // Espacio entre elementos
+            SizedBox(height: verticalSpacing * 1.2),
             // Botón de envío
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Lógica para enviar la sugerencia
                   if (suggestionText.isNotEmpty && currentUser != null) {
                     profileProvider.sendSuggestionToFirestore(
-                      suggestionText, // Texto de la sugerencia
-                      currentUser.email ??
-                          AppStrings.noEmail, // Correo del usuario
-                      currentUser.displayName ??
-                          AppStrings.anonymous, // Nombre del usuario
+                      suggestionText,
+                      currentUser.email ?? AppStrings.noEmail,
+                      currentUser.displayName ?? AppStrings.anonymous,
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          AppStrings.suggestionSent, // Mensaje de éxito
+                          AppStrings.suggestionSent,
                           style: TextStyle(
-                            color:
-                                colorScheme[AppStrings
-                                    .primaryColor], // Color del texto
+                            color: colorScheme[AppStrings.primaryColor],
+                            fontSize: fieldFontSize,
                           ),
                         ),
-                        backgroundColor:
-                            colorScheme[AppStrings
-                                .secondaryColor], // Color de fondo del Snackbar
+                        backgroundColor: colorScheme[AppStrings.secondaryColor],
                       ),
                     );
-                    suggestionText = ''; // Limpia el campo de texto
+                    suggestionText = '';
                   } else {
-                    // Si la sugerencia está vacía o el usuario no está autenticado
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text(
-                          AppStrings.completeSuggestion, // Mensaje de error
+                          AppStrings.completeSuggestion,
                           style: TextStyle(
                             color: Colors.white,
-                          ), // Color del texto
+                            fontSize: fieldFontSize,
+                          ),
                         ),
-                        backgroundColor:
-                            Colors.red, // Color de fondo del Snackbar de error
+                        backgroundColor: Colors.red,
                       ),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      colorScheme[AppStrings
-                          .essentialColor], // Color de fondo del botón
-                  foregroundColor:
-                      colorScheme[AppStrings
-                          .primaryColor], // Color del texto del botón
+                  backgroundColor: colorScheme[AppStrings.essentialColor],
+                  foregroundColor: colorScheme[AppStrings.primaryColor],
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      12,
-                    ), // Bordes redondeados del botón
+                    borderRadius: BorderRadius.circular(fieldBorderRadius),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ), // Padding dentro del botón
-                  elevation: 4, // Elevación para darle sombra
+                  padding: EdgeInsets.symmetric(vertical: buttonPadding),
+                  elevation: 4,
                 ),
                 child: Text(
-                  AppStrings.sendButton, // Texto del botón
+                  AppStrings.sendButton,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold, // Estilo del texto
-                    color:
-                        colorScheme[AppStrings.primaryColor], // Color del texto
+                    fontSize: buttonFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme[AppStrings.primaryColor],
                   ),
                 ),
               ),

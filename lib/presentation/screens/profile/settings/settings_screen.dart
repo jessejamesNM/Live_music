@@ -22,45 +22,47 @@ class SettingsScreen extends StatelessWidget {
   final GoRouter goRouter;
   final UserProvider userProvider;
 
-  // Constructor que recibe el router y el proveedor de usuario.
-  SettingsScreen({required this.goRouter, required this.userProvider});
+  SettingsScreen({required this.goRouter, required this.userProvider, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Obtiene el esquema de colores para la pantalla.
     final colorScheme = ColorPalette.getPalette(context);
 
-    // Verifica el tipo de usuario para determinar si es un artista.
     final userType = userProvider.userType;
     final isArtist = userType == AppStrings.artist;
 
-    // Construye la interfaz de la pantalla de configuración.
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    double iconSize = screenWidth * 0.08;
+    double titleFontSize = screenWidth * 0.055;
+    double headerPadding = screenWidth * 0.04;
+    double buttonFontSize = screenWidth * 0.045;
+
     return Scaffold(
-      // Configura el color de fondo de la pantalla.
       backgroundColor: colorScheme[AppStrings.primaryColor],
-      // Barra de navegación inferior que varía según el tipo de usuario.
       bottomNavigationBar: BottomNavigationBarWidget(
         goRouter: goRouter,
         userType: userType,
       ),
-      // Contenido principal de la pantalla.
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Encabezado con el título y el botón de regresar.
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(headerPadding),
               child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Positioned(
-                    // Botón de regresar que utiliza el router para navegar a la pantalla anterior.
+                  Align(
+                    alignment: Alignment.centerLeft,
                     child: IconButton(
                       icon: Icon(
                         Icons.arrow_back,
                         color: colorScheme[AppStrings.secondaryColor],
-                        size: 30,
+                        size: iconSize * 1.1,
                       ),
                       onPressed: () {
                         goRouter.pop();
@@ -68,22 +70,21 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   Center(
-                    // Título de la pantalla de configuración.
                     child: Text(
                       AppStrings.settings,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: titleFontSize,
                         color: colorScheme[AppStrings.secondaryColor],
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            // Sección de contenido, que es el componente de configuración.
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 0),
+                padding: EdgeInsets.only(bottom: 0),
                 child: SettingsComponent(router: goRouter),
               ),
             ),

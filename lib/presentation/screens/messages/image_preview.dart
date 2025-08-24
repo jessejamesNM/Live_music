@@ -38,33 +38,35 @@ import '../../../data/provider_logics/user/user_provider.dart';
 class ImagePreviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Obtener los datos del proveedor de mensajes y del proveedor de usuario
     final messagesProvider = Provider.of<MessagesProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
-
-    // Obtener el archivo seleccionado para previsualizar
     final selectedMediaFile = messagesProvider.selectedImageFile.value;
-
-    // Obtener los ID del usuario actual y el otro usuario
-    final currentUserId =  FirebaseAuth.instance.currentUser?.uid;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final otherUserId = userProvider.otherUserId;
-
-    // Obtener la paleta de colores para la interfaz
     final colorScheme = ColorPalette.getPalette(context);
+
+    // Tamaños adaptativos
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final topPadding = screenHeight * 0.05;
+    final bottomPadding = screenHeight * 0.03;
+    final iconSize = screenWidth * 0.08;
+    final textSize = screenWidth * 0.05;
+    final sendButtonSize = screenWidth * 0.1;
 
     return Scaffold(
       backgroundColor: colorScheme[AppStrings.primaryColorLight],
       body: SafeArea(
-        minimum: const EdgeInsets.only(top: 35.0, bottom: 20.0),
+        minimum: EdgeInsets.only(top: topPadding, bottom: bottomPadding),
         child: selectedMediaFile != null
             ? Stack(
                 children: [
-                  // Mostrar la imagen o el video seleccionado en el centro
+                  // Imagen o video central
                   Center(
-                    child: Container(
+                    child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.7,
-                        maxWidth: MediaQuery.of(context).size.width * 0.9,
+                        maxHeight: screenHeight * 0.7,
+                        maxWidth: screenWidth * 0.9,
                       ),
                       child: ClipRect(
                         child: selectedMediaFile.path.toLowerCase().endsWith('.mp4') ||
@@ -74,11 +76,11 @@ class ImagePreviewScreen extends StatelessWidget {
                                 selectedMediaFile,
                                 fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) {
-                                  // Manejar error de imagen inválida
                                   return Center(
-                                    child: Text(
-                                      'Error al cargar el archivo',
-                                      style: TextStyle(color: Colors.white),
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: iconSize,
+                                      color: Colors.white70,
                                     ),
                                   );
                                 },
@@ -86,10 +88,10 @@ class ImagePreviewScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Botón para cerrar la pantalla de previsualización
+                  // Botón cerrar
                   Positioned(
                     top: 0,
-                    left: 16,
+                    left: screenWidth * 0.04,
                     child: IconButton(
                       onPressed: () {
                         messagesProvider.clearSelectedImageFile();
@@ -102,78 +104,64 @@ class ImagePreviewScreen extends StatelessWidget {
                       icon: Icon(
                         Icons.close,
                         color: colorScheme[AppStrings.primaryColorLight],
+                        size: iconSize,
                       ),
                     ),
                   ),
-                  // Texto en la parte superior para indicar el tipo de archivo
+                  // Tipo de archivo
                   Positioned(
                     top: 0,
                     left: 0,
                     right: 0,
                     child: Center(
-                      child: Text(
-                        selectedMediaFile.path.toLowerCase().endsWith('.mp4') ||
-                                selectedMediaFile.path.toLowerCase().endsWith('.mov')
-                            ? AppStrings.sendVideo
-                            : AppStrings.sendImage,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          selectedMediaFile.path.toLowerCase().endsWith('.mp4') ||
+                                  selectedMediaFile.path.toLowerCase().endsWith('.mov')
+                              ? AppStrings.sendVideo
+                              : AppStrings.sendImage,
+                          style: TextStyle(
+                            fontSize: textSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  // Botón para enviar el archivo
+                  // Botón enviar
                   Positioned(
                     bottom: 0,
-                    right: 16,
+                    right: screenWidth * 0.04,
                     child: IconButton(
                       onPressed: () async {
-                        // Mostrar mensaje de "enviando"
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(AppStrings.sendingMessage),
                             duration: Duration(seconds: 2),
                           ),
                         );
-
-                        // Navegar inmediatamente
                         messagesProvider.clearSelectedImageFile();
                         context.pop();
 
-                        // Verificar si el archivo es un video y tiene una duración válida
                         if (selectedMediaFile.path.toLowerCase().endsWith('.mp4') ||
                             selectedMediaFile.path.toLowerCase().endsWith('.mov')) {
-                          final controller = VideoPlayerController.file(
-                            selectedMediaFile,
-                          );
+                          final controller = VideoPlayerController.file(selectedMediaFile);
                           try {
                             await controller.initialize();
-                            final duration = controller.value.duration;
-                            if (duration > Duration(minutes: 5)) {
-                              // Mostrar error si el video excede los 5 minutos
+                            if (controller.value.duration > Duration(minutes: 5)) {
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      AppStrings.videoDurationLimit,
-                                    ),
-                                  ),
+                                  SnackBar(content: Text(AppStrings.videoDurationLimit)),
                                 );
                               });
                               return;
                             }
                           } catch (e) {
-                            // Manejar error de video inválido
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'El video no es válido o no se puede reproducir',
-                                  ),
-                                ),
+                                SnackBar(content: Text('El video no es válido')),
                               );
                             });
                             return;
@@ -182,24 +170,18 @@ class ImagePreviewScreen extends StatelessWidget {
                           }
                         }
 
-                        // Enviar el mensaje en segundo plano
                         messagesProvider
                             .sendMessage(
                               context,
                               "",
                               selectedMediaFile,
-                              currentUserId?? '',
+                              currentUserId ?? '',
                               otherUserId,
                             )
-                            .catchError((error) {
-                          // Manejar errores durante el envío
+                            .catchError((_) {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  AppStrings.messageSendError,
-                                ),
-                              ),
+                              SnackBar(content: Text(AppStrings.messageSendError)),
                             );
                           });
                         });
@@ -211,13 +193,13 @@ class ImagePreviewScreen extends StatelessWidget {
                       icon: Icon(
                         Icons.send,
                         color: colorScheme[AppStrings.primaryColorLight],
-                        size: 24,
+                        size: sendButtonSize,
                       ),
                     ),
                   ),
-                  // Botón para cambiar el archivo seleccionado
+                  // Cambiar archivo
                   Positioned(
-                    bottom: 34,
+                    bottom: screenHeight * 0.08,
                     left: 0,
                     right: 0,
                     child: Center(
@@ -230,36 +212,42 @@ class ImagePreviewScreen extends StatelessWidget {
                               source: ImageSource.gallery,
                             );
                             if (pickedVideo != null) {
-                              messagesProvider.updateSelectedImageFile(
-                                File(pickedVideo.path),
-                              );
+                              messagesProvider.updateSelectedImageFile(File(pickedVideo.path));
                             }
                           } else {
                             final pickedImage = await picker.pickImage(
                               source: ImageSource.gallery,
                             );
                             if (pickedImage != null) {
-                              messagesProvider.updateSelectedImageFile(
-                                File(pickedImage.path),
-                              );
+                              messagesProvider.updateSelectedImageFile(File(pickedImage.path));
                             }
                           }
                         },
-                        child: Text(
-                          AppStrings.changeFile,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                                decoration: TextDecoration.underline,
-                              ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppStrings.changeFile,
+                            style: TextStyle(
+                              fontSize: textSize * 0.9,
+                              color: Colors.white,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ],
               )
-            : Center(child: Text(AppStrings.noFileSelected)),
+            : Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppStrings.noFileSelected,
+                    style: TextStyle(fontSize: textSize),
+                  ),
+                ),
+              ),
       ),
     );
   }
@@ -285,18 +273,12 @@ class _VideoPreviewState extends State<_VideoPreview> {
     _controller = VideoPlayerController.file(widget.file)
       ..initialize().then((_) {
         if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
+          setState(() => _isInitialized = true);
           _controller.setLooping(true);
           _controller.play();
         }
-      }).catchError((error) {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-          });
-        }
+      }).catchError((_) {
+        if (mounted) setState(() => _hasError = true);
       });
   }
 
@@ -308,7 +290,6 @@ class _VideoPreviewState extends State<_VideoPreview> {
 
   void _togglePlayPause() {
     if (!_isInitialized || _hasError) return;
-    
     setState(() {
       if (_controller.value.isPlaying) {
         _controller.pause();
@@ -323,30 +304,22 @@ class _VideoPreviewState extends State<_VideoPreview> {
   @override
   Widget build(BuildContext context) {
     if (_hasError) {
-      return Center(
-        child: Text(
-          'Error al cargar el video',
-          style: TextStyle(color: Colors.white),
-        ),
-      );
+      return Center(child: Text('Error al cargar el video', style: TextStyle(color: Colors.white)));
     }
-
     if (!_isInitialized) {
       return Center(child: CircularProgressIndicator());
     }
-
     return GestureDetector(
       onTap: _togglePlayPause,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Usamos AspectRatio para mantener la proporción correcta del video
           AspectRatio(
             aspectRatio: _controller.value.aspectRatio,
             child: VideoPlayer(_controller),
           ),
           if (!_isPlaying)
-            Icon(Icons.play_arrow, size: 64, color: Colors.white70),
+            Icon(Icons.play_arrow, size: MediaQuery.of(context).size.width * 0.15, color: Colors.white70),
         ],
       ),
     );
