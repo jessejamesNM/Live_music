@@ -23,7 +23,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:live_music/presentation/resources/colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io' show Platform;
-
 class SettingsComponent extends StatelessWidget {
   final GoRouter router;
   final Color? textColor;
@@ -149,8 +148,12 @@ class SettingsComponent extends StatelessWidget {
     String androidUrl =
         'https://play.google.com/store/apps/details?id=com.jesse.live_music';
     String iosUrl = 'https://apps.apple.com/app/id6747364802';
-    String message =
-        '¡Descarga la app my events y descubre nuevas experiencias musicales! \n\n${Platform.isAndroid ? androidUrl : iosUrl}';
+    String message = '''
+¡Descarga la app My Events y descubre nuevas experiencias musicales! 🎶✨  
+
+📱 Para Android: $androidUrl  
+🍏 Para iPhone: $iosUrl
+''';
 
     Share.share(message);
   }
