@@ -149,7 +149,7 @@ class SettingsComponent extends StatelessWidget {
         'https://play.google.com/store/apps/details?id=com.jesse.live_music';
     String iosUrl = 'https://apps.apple.com/app/id6747364802';
     String message = '''
-¡Descarga la app My Events y descubre nuevas experiencias musicales! 🎶✨  
+¡Descarga la app My Events y descubre nuevas experiencias! 🎶✨  
 
 📱 Para Android: $androidUrl  
 🍏 Para iPhone: $iosUrl
